@@ -48,11 +48,14 @@
 <div class="editor-split-view">
   <div class="split-controls">
     <button class="split-btn" on:click={handleSplitHorizontal} title="Split Horizontally" disabled={$editorPanes.panes.length >= 4}>
-      ⬌
+      ⬌ ({$editorPanes.panes.length})
     </button>
     <button class="split-btn" on:click={handleSplitVertical} title="Split Vertically" disabled={$editorPanes.panes.length >= 4}>
-      ⬍
+      ⬍ ({$editorPanes.panes.length})
     </button>
+    {#if draggedFile}
+      <span class="drag-status">Dragging: {draggedFile.filePath.split('/').pop()}</span>
+    {/if}
   </div>
   
   <div class="panes-container" class:horizontal={$editorPanes.splitDirection === 'horizontal'} class:vertical={$editorPanes.splitDirection === 'vertical'}>
@@ -109,6 +112,16 @@
   .split-btn:disabled {
     opacity: 0.3;
     cursor: not-allowed;
+  }
+  
+  .drag-status {
+    margin-left: 12px;
+    padding: 4px 8px;
+    background: var(--color-accent);
+    color: var(--color-bg-primary);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
   }
   
   .panes-container {
