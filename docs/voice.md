@@ -74,4 +74,4 @@ Never hardcode strings in components.
 
 ---
 
-*Axiom is a HawkLogic Systems project.*
+*Axiom by HawkLogic Systems.*

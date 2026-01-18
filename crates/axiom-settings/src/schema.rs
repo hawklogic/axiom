@@ -57,7 +57,7 @@ impl Default for Settings {
 }
 
 /// Toolchain configuration.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ToolchainSettings {
     /// Path to clang binary.
     pub clang_path: Option<PathBuf>,
@@ -71,6 +71,17 @@ pub struct ToolchainSettings {
     /// Whether to auto-detect toolchains.
     #[serde(default = "default_true")]
     pub auto_detect: bool,
+}
+
+impl Default for ToolchainSettings {
+    fn default() -> Self {
+        Self {
+            clang_path: None,
+            gcc_path: None,
+            arm_gcc_path: None,
+            auto_detect: true,
+        }
+    }
 }
 
 /// Build configuration.

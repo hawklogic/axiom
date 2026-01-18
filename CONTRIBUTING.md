@@ -121,4 +121,4 @@ Open an issue with the `question` label.
 
 ---
 
-*Axiom is a HawkLogic Systems project, licensed under Apache-2.0.*
+*Axiom by HawkLogic Systems, licensed under Apache-2.0.*

@@ -1,0 +1,28 @@
+# Rust
+target/
+Cargo.lock
+
+# Node
+node_modules/
+dist/
+.svelte-kit/
+build/
+
+# Tauri
+src-tauri/target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Test artifacts
+test_icon.png
+*.log
+
+# Environment
+.env
+.env.*
+

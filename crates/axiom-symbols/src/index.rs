@@ -4,7 +4,7 @@
 //! Symbol index for autocomplete.
 
 use crate::{Symbol, SymbolKind};
-use axiom_core::{Location, Position, Range};
+use axiom_core::Location;
 use axiom_parser::AstNode;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -195,6 +195,7 @@ impl SymbolIndex {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axiom_core::{Position, Range};
 
     #[test]
     fn test_completion_determinism() {

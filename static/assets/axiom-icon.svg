@@ -1,0 +1,23 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Copyright 2024 HawkLogic Systems -->
+<!-- Axiom App Icon - Geometric 'A' with flight instrument aesthetic -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="#1a1a1a"/>
+  
+  <!-- Outer ring - instrument bezel -->
+  <circle cx="256" cy="256" r="200" stroke="#3a3a3a" stroke-width="4" fill="none"/>
+  
+  <!-- Inner ring -->
+  <circle cx="256" cy="256" r="160" stroke="#2a2a2a" stroke-width="2" fill="none"/>
+  
+  <!-- Geometric 'A' - flight indicator style -->
+  <path d="M256 80 L340 400 M256 80 L172 400" stroke="#ffffff" stroke-width="12" stroke-linecap="square" fill="none"/>
+  <path d="M190 300 L322 300" stroke="#ffffff" stroke-width="12" stroke-linecap="square" fill="none"/>
+  
+  <!-- Accent marks - like instrument tick marks -->
+  <line x1="256" y1="70" x2="256" y2="56" stroke="#00d4ff" stroke-width="4"/>
+  <line x1="256" y1="456" x2="256" y2="442" stroke="#00d4ff" stroke-width="4"/>
+  <line x1="56" y1="256" x2="70" y2="256" stroke="#00d4ff" stroke-width="4"/>
+  <line x1="442" y1="256" x2="456" y2="256" stroke="#00d4ff" stroke-width="4"/>
+</svg>
