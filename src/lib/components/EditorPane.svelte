@@ -691,7 +691,23 @@
   }
 
   .code-editor::selection {
-    background: rgba(100, 150, 255, 0.3);
+    background: rgba(0, 212, 255, 0.25);
+    color: inherit;
+  }
+
+  .code-editor::-moz-selection {
+    background: rgba(0, 212, 255, 0.25);
+    color: inherit;
+  }
+
+  .code-highlight ::selection {
+    background: rgba(0, 212, 255, 0.25);
+    color: inherit;
+  }
+
+  .code-highlight ::-moz-selection {
+    background: rgba(0, 212, 255, 0.25);
+    color: inherit;
   }
 
   .empty-state {
