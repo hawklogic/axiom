@@ -4,7 +4,7 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import Sidebar from '$lib/components/Sidebar.svelte';
-  import EditorArea from '$lib/components/EditorArea.svelte';
+  import EditorSplitView from '$lib/components/EditorSplitView.svelte';
   import Panel from '$lib/components/Panel.svelte';
   import StatusBar from '$lib/components/StatusBar.svelte';
   import Splash from '$lib/components/Splash.svelte';
@@ -12,7 +12,7 @@
   import Terminal from '$lib/components/Terminal.svelte';
   import MiniConsole from '$lib/components/MiniConsole.svelte';
   import { APP, PANELS } from '$lib/strings';
-  import { editorStore } from '$lib/stores';
+  import { editorPanes } from '$lib/stores/editorPanes';
   import { detectLanguage } from '$lib/utils/syntax';
 
   let ready = false;
@@ -127,7 +127,10 @@
       const { invoke } = await import('@tauri-apps/api/core');
       const content = await invoke<string>('read_file', { path });
       console.log('[Editor] File read, length:', content.length);
-      editorStore.openFile({
+      
+      // Open file in the first pane
+      const firstPane = $editorPanes.panes[0];
+      editorPanes.openFile(firstPane.id, {
         path,
         name,
         content,
@@ -174,7 +177,7 @@
             </Panel>
           {/if}
           
-          <EditorArea />
+          <EditorSplitView />
         </div>
         
         <!-- Vertical resize handle -->
