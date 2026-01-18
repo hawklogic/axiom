@@ -1,13 +1,22 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright 2024 HawkLogic Systems -->
-<!-- Axiom Logo Dark Variant -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" fill="none">
-  <!-- Geometric 'A' mark -->
-  <path d="M10 50 L30 10 L50 50 M18 38 L42 38" stroke="#1a1a1a" stroke-width="3" stroke-linecap="square" fill="none"/>
+<!-- Axiom Logo Dark Variant (for light backgrounds) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 60" fill="none">
+  <!-- Flight Instrument 'A' mark (scaled from axiom-icon.svg) -->
+  <g transform="translate(28, 30) scale(0.12)">
+    <circle cx="0" cy="0" r="200" stroke="#c0c0c0" stroke-width="4" fill="none"/>
+    <circle cx="0" cy="0" r="160" stroke="#d0d0d0" stroke-width="2" fill="none"/>
+    <path d="M0 -176 L84 144 M0 -176 L-84 144" stroke="#1a1a1a" stroke-width="12" stroke-linecap="square" fill="none"/>
+    <path d="M-66 44 L66 44" stroke="#1a1a1a" stroke-width="12" stroke-linecap="square" fill="none"/>
+    <line x1="0" y1="-186" x2="0" y2="-200" stroke="#0099cc" stroke-width="4"/>
+    <line x1="0" y1="200" x2="0" y2="186" stroke="#0099cc" stroke-width="4"/>
+    <line x1="-200" y1="0" x2="-186" y2="0" stroke="#0099cc" stroke-width="4"/>
+    <line x1="186" y1="0" x2="200" y2="0" stroke="#0099cc" stroke-width="4"/>
+  </g>
   
   <!-- AXIOM text -->
-  <text x="65" y="42" font-family="Inter, -apple-system, sans-serif" font-size="32" font-weight="300" letter-spacing="6" fill="#1a1a1a">AXIOM</text>
+  <text x="58" y="40" font-family="Inter, -apple-system, sans-serif" font-size="30" font-weight="300" letter-spacing="6" fill="#1a1a1a">AXIOM</text>
   
   <!-- Accent line -->
-  <line x1="65" y1="52" x2="230" y2="52" stroke="#0099cc" stroke-width="1"/>
+  <line x1="58" y1="50" x2="210" y2="50" stroke="#0099cc" stroke-width="1"/>
 </svg>

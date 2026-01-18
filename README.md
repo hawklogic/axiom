@@ -1,14 +1,5 @@
 <p align="center">
-  <img src="assets/brand/splash.svg" alt="Axiom" width="40%">
-</p>
-
-<p align="center">
-  Avionics-grade IDE for embedded systems engineers.<br>
-  <em>A HawkLogic Systems project.</em>
-</p>
-
-<p align="center">
-  <img src="assets/brand/axiom-logo.svg" alt="Axiom Logo" width="200">
+  <img src="assets/brand/splash.svg" alt="Axiom" width="600">
 </p>
 
 > **Status**: Work in progress — Backend crates scaffolded, UI forthcoming.
