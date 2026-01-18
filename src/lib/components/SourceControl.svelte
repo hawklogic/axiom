@@ -339,7 +339,7 @@
     </div>
 
     <!-- Commit Section -->
-    {#if status.staged.length > 0}
+    {#if combinedFiles.staged.length > 0}
       <div class="commit-section">
         {#if showCommitInput}
           <textarea
@@ -356,7 +356,7 @@
           />
           <div class="commit-actions">
             <button class="commit-button" on:click={handleCommit} disabled={!commitMessage.trim()}>
-              Commit ({status.staged.length})
+              Commit ({combinedFiles.staged.length})
             </button>
             <button class="cancel-button" on:click={() => { showCommitInput = false; commitMessage = ''; }}>
               Cancel
@@ -367,7 +367,7 @@
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M2 8h12M8 2v12"/>
             </svg>
-            Commit {status.staged.length} {status.staged.length === 1 ? 'file' : 'files'}
+            Commit {combinedFiles.staged.length} {combinedFiles.staged.length === 1 ? 'file' : 'files'}
           </button>
         {/if}
       </div>

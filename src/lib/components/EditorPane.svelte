@@ -5,6 +5,7 @@
   import { editorPanes, type EditorPane } from '$lib/stores/editorPanes';
   import { consoleStore } from '$lib/stores/console';
   import { ideStatus } from '$lib/stores/status';
+  import { settingsStore } from '$lib/stores/settings';
   import { EMPTY } from '$lib/strings';
   import { onMount } from 'svelte';
   
@@ -15,6 +16,21 @@
   
   let editorElement: HTMLTextAreaElement;
   let highlightElement: HTMLElement;
+  let lineNumbersElement: HTMLElement;
+  let showLineNumbers = true; // Default to true
+  
+  // Load line numbers preference from settings
+  $: if ($settingsStore) {
+    showLineNumbers = $settingsStore.editor.line_numbers;
+  }
+  
+  function toggleLineNumbers() {
+    showLineNumbers = !showLineNumbers;
+    if ($settingsStore) {
+      $settingsStore.editor.line_numbers = showLineNumbers;
+      settingsStore.save($settingsStore);
+    }
+  }
   
   onMount(() => {
     console.log('[EditorPane] Mounted, pane:', pane.id, 'files:', pane.files.length);
@@ -139,6 +155,9 @@
     if (highlightElement) {
       highlightElement.scrollTop = target.scrollTop;
       highlightElement.scrollLeft = target.scrollLeft;
+    }
+    if (lineNumbersElement) {
+      lineNumbersElement.scrollTop = target.scrollTop;
     }
   }
   
@@ -406,24 +425,49 @@
       {#if activeFile}
         <div class="file-info">
           <span class="file-path">{activeFile.path}</span>
-          <span class="file-lang">{getLanguageLabel(activeFile.language)}</span>
+          <div class="file-info-right">
+            <button 
+              class="toggle-line-numbers" 
+              on:click={toggleLineNumbers}
+              title={showLineNumbers ? 'Hide line numbers' : 'Show line numbers'}
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <line x1="6" y1="3" x2="14" y2="3"/>
+                <line x1="6" y1="8" x2="14" y2="8"/>
+                <line x1="6" y1="13" x2="14" y2="13"/>
+                <text x="2" y="5" font-size="5" fill="currentColor">1</text>
+                <text x="2" y="10" font-size="5" fill="currentColor">2</text>
+                <text x="2" y="15" font-size="5" fill="currentColor">3</text>
+              </svg>
+            </button>
+            <span class="file-lang">{getLanguageLabel(activeFile.language)}</span>
+          </div>
         </div>
-        <div class="editor-container">
-          <pre class="code-highlight" bind:this={highlightElement} aria-hidden="true"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
-          <textarea
-            bind:this={editorElement}
-            class="code-editor"
-            value={activeFile.content}
-            on:input={handleInput}
-            on:scroll={handleScroll}
-            on:keydown={handleKeyDown}
-            on:keyup={handleKeyUp}
-            on:click={handleClick}
-            spellcheck="false"
-            autocomplete="off"
-            autocorrect="off"
-            autocapitalize="off"
-          ></textarea>
+        <div class="editor-container" class:show-line-numbers={showLineNumbers}>
+          {#if showLineNumbers}
+            <div class="line-numbers" bind:this={lineNumbersElement} aria-hidden="true">
+              {#each activeFile.content.split('\n') as _, i}
+                <div class="line-number">{i + 1}</div>
+              {/each}
+            </div>
+          {/if}
+          <div class="editor-wrapper">
+            <pre class="code-highlight" bind:this={highlightElement} aria-hidden="true"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
+            <textarea
+              bind:this={editorElement}
+              class="code-editor"
+              value={activeFile.content}
+              on:input={handleInput}
+              on:scroll={handleScroll}
+              on:keydown={handleKeyDown}
+              on:keyup={handleKeyUp}
+              on:click={handleClick}
+              spellcheck="false"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+            ></textarea>
+          </div>
         </div>
       {/if}
     </div>
@@ -720,5 +764,64 @@
 
   .token-text {
     color: var(--color-text-primary);
+  }
+
+  /* Line numbers */
+  .file-info-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .toggle-line-numbers {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    transition: color 0.15s, background 0.15s;
+    border-radius: 3px;
+  }
+
+  .toggle-line-numbers:hover {
+    color: var(--color-text-primary);
+    background: var(--color-bg-hover);
+  }
+
+  .toggle-line-numbers svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .editor-container {
+    display: flex;
+  }
+
+  .line-numbers {
+    flex-shrink: 0;
+    width: 50px;
+    background: var(--color-bg-secondary);
+    border-right: 1px solid var(--color-border);
+    overflow: hidden;
+    user-select: none;
+    padding: 12px 0;
+  }
+
+  .line-number {
+    height: 19.5px; /* Match line-height of 1.5 * 13px font-size */
+    padding: 0 8px;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    opacity: 0.6;
+  }
+
+  .editor-wrapper {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
   }
 </style>
