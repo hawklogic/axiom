@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/splash.svg" alt="Axiom" width="100%">
+  <img src="assets/brand/splash.svg" alt="Axiom" width="40%">
 </p>
 
 <p align="center">
