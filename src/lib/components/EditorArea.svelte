@@ -9,6 +9,14 @@
   
   $: highlightedContent = $activeFile ? highlightCode($activeFile.content, $activeFile.language) : [];
   
+  // Debug: log tokens when they change
+  $: if (highlightedContent.length > 0) {
+    console.log('[Syntax] First 10 tokens:', highlightedContent.slice(0, 10).map(t => ({
+      type: t.type,
+      value: t.value.replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/ /g, '·')
+    })));
+  }
+  
   function selectTab(index: number) {
     activeIndex.set(index);
   }
@@ -57,13 +65,7 @@
           <span class="file-path">{$activeFile.path}</span>
           <span class="file-lang">{getLanguageLabel($activeFile.language)}</span>
         </div>
-        <pre class="code-view">
-          <code>
-            {#each highlightedContent as token}
-              <span class="token-{token.type}">{token.value}</span>
-            {/each}
-          </code>
-        </pre>
+        <pre class="code-view"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
       {/if}
     </div>
   {:else}
