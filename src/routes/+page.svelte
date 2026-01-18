@@ -4,7 +4,7 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import Sidebar from '$lib/components/Sidebar.svelte';
-  import EditorArea from '$lib/components/EditorArea.svelte';
+  import EditorSplitView from '$lib/components/EditorSplitView.svelte';
   import Panel from '$lib/components/Panel.svelte';
   import StatusBar from '$lib/components/StatusBar.svelte';
   import Splash from '$lib/components/Splash.svelte';
@@ -12,7 +12,8 @@
   import Terminal from '$lib/components/Terminal.svelte';
   import MiniConsole from '$lib/components/MiniConsole.svelte';
   import { APP, PANELS } from '$lib/strings';
-  import { editorStore } from '$lib/stores';
+  import { editorPanes } from '$lib/stores/editorPanes';
+  import { detectLanguage } from '$lib/utils/syntax';
 
   let ready = false;
   let activePanel = 'files';
@@ -112,41 +113,47 @@
     }
   });
 
-  function getLanguage(name: string): 'c' | 'cpp' | 'h' | 'hpp' | 'unknown' {
-    const ext = name.split('.').pop()?.toLowerCase() || '';
-    switch (ext) {
-      case 'c': return 'c';
-      case 'cpp':
-      case 'cc':
-      case 'cxx': return 'cpp';
-      case 'h': return 'h';
-      case 'hpp':
-      case 'hxx': return 'hpp';
-      default: return 'unknown';
-    }
-  }
-
   async function handleFileSelect(event: CustomEvent<{ path: string; name: string }>) {
     const { path, name } = event.detail;
+    console.log('[Editor] File selected:', path, name);
+    
+    // Check if file is already open in any pane
+    for (const pane of $editorPanes.panes) {
+      const fileIndex = pane.files.findIndex(f => f.path === path);
+      if (fileIndex >= 0) {
+        console.log('[Editor] File already open in', pane.id, 'at index', fileIndex);
+        // Switch to that file
+        editorPanes.setActiveFile(pane.id, fileIndex);
+        // Flash the tab
+        editorPanes.flashTab(pane.id, path);
+        return;
+      }
+    }
     
     if (!isTauri()) {
-      console.warn('File reading requires Tauri runtime');
+      console.warn('[Editor] File reading requires Tauri runtime');
       return;
     }
 
     try {
+      console.log('[Editor] Reading file...');
       const { invoke } = await import('@tauri-apps/api/core');
       const content = await invoke<string>('read_file', { path });
-      editorStore.openFile({
+      console.log('[Editor] File read, length:', content.length);
+      
+      // Open file in the first pane
+      const firstPane = $editorPanes.panes[0];
+      editorPanes.openFile(firstPane.id, {
         path,
         name,
         content,
-        language: getLanguage(name),
+        language: detectLanguage(name),
         modified: false,
         cursor: { line: 1, column: 1 },
       });
+      console.log('[Editor] File opened in editor');
     } catch (err) {
-      console.error('Failed to read file:', err);
+      console.error('[Editor] Failed to read file:', err);
     }
   }
 
@@ -183,7 +190,7 @@
             </Panel>
           {/if}
           
-          <EditorArea />
+          <EditorSplitView />
         </div>
         
         <!-- Vertical resize handle -->

@@ -2,6 +2,7 @@
 <!-- Copyright 2024 HawkLogic Systems -->
 <script lang="ts">
   import { workspace, hasWorkspace } from '$lib/stores/workspace';
+  import { editorPanes } from '$lib/stores/editorPanes';
   import TreeNode from './TreeNode.svelte';
   import { BUTTONS, EMPTY } from '$lib/strings';
   import { createEventDispatcher } from 'svelte';
@@ -9,6 +10,14 @@
   const dispatch = createEventDispatcher<{
     'file-select': { path: string; name: string };
   }>();
+  
+  // Create a set of open file paths for quick lookup from all panes
+  $: openFilePaths = new Set($editorPanes.panes.flatMap(pane => pane.files.map(f => f.path)));
+  
+  // Create a set of modified file paths
+  $: modifiedFilePaths = new Set($editorPanes.panes.flatMap(pane => 
+    pane.files.filter(f => f.modified).map(f => f.path)
+  ));
 
   let buttonMessage = '';
 
@@ -59,6 +68,8 @@
         <TreeNode 
           {node} 
           depth={0}
+          {openFilePaths}
+          {modifiedFilePaths}
           on:toggle={handleToggle}
           on:select={handleSelect}
         />

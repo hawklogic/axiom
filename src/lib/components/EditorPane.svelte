@@ -1,27 +1,28 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright 2024 HawkLogic Systems -->
 <script lang="ts">
+  import { highlightCode, type HighlightedToken } from '$lib/utils/syntax';
+  import { editorPanes, type EditorPane } from '$lib/stores/editorPanes';
+  import { consoleStore } from '$lib/stores/console';
   import { EMPTY } from '$lib/strings';
-  import { editorStore } from '$lib/stores/editor';
-  import { highlightCode, detectLanguage, type HighlightedToken } from '$lib/utils/syntax';
-  import { onMount, afterUpdate } from 'svelte';
+  import { onMount } from 'svelte';
   
-  const { files, activeIndex, activeFile } = editorStore;
-  
-  $: highlightedContent = $activeFile ? highlightCode($activeFile.content, $activeFile.language) : [];
-  
-  // Debug: log tokens when they change
-  $: if (highlightedContent.length > 0) {
-    console.log('[Syntax] First 10 tokens:', highlightedContent.slice(0, 10).map(t => ({
-      type: t.type,
-      value: t.value.replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/ /g, '·')
-    })));
-  }
+  export let pane: EditorPane;
+  export let onDragStart: (paneId: string, filePath: string) => void;
+  export let onDragEnd: () => void;
+  export let onDrop: (targetPaneId: string) => void;
   
   let editorElement: HTMLTextAreaElement;
   let highlightElement: HTMLElement;
   
-  // Undo/Redo state management
+  onMount(() => {
+    console.log('[EditorPane] Mounted, pane:', pane.id, 'files:', pane.files.length);
+  });
+  
+  $: activeFile = pane.activeIndex >= 0 ? pane.files[pane.activeIndex] : null;
+  $: highlightedContent = activeFile ? highlightCode(activeFile.content, activeFile.language) : [];
+  
+  // Undo/Redo state
   interface HistoryState {
     content: string;
     cursorPos: number;
@@ -29,52 +30,42 @@
   
   let undoStack: HistoryState[] = [];
   let redoStack: HistoryState[] = [];
-  let lastContent = '';
   let isUndoRedo = false;
-  let originalContent = ''; // Track the original content when file was opened
-  let currentFilePath = ''; // Track which file we're editing
+  let originalContent = '';
+  let currentFilePath = '';
   
-  // Track active file changes to reset history
-  $: if ($activeFile && $activeFile.path !== currentFilePath) {
-    // Switching to a different file - reset history
-    currentFilePath = $activeFile.path;
-    originalContent = $activeFile.content;
-    lastContent = $activeFile.content;
-    undoStack = [{ content: $activeFile.content, cursorPos: 0 }];
+  $: if (activeFile && activeFile.path !== currentFilePath) {
+    currentFilePath = activeFile.path;
+    originalContent = activeFile.content;
+    undoStack = [{ content: activeFile.content, cursorPos: 0 }];
     redoStack = [];
   }
   
   function pushHistory(content: string, cursorPos: number) {
-    // Don't push if content hasn't changed
     if (undoStack.length > 0 && undoStack[undoStack.length - 1].content === content) {
       return;
     }
-    
     undoStack.push({ content, cursorPos });
-    // Limit history size to 100 entries
     if (undoStack.length > 100) {
       undoStack.shift();
     }
-    // Clear redo stack on new change
     redoStack = [];
   }
   
   function undo() {
-    if (undoStack.length <= 1 || !$activeFile) return;
+    if (undoStack.length <= 1 || !activeFile) return;
     
     isUndoRedo = true;
     const current = undoStack.pop()!;
     redoStack.push(current);
     
     const previous = undoStack[undoStack.length - 1];
-    editorStore.updateContent($activeFile.path, previous.content);
+    editorPanes.updateContent(activeFile.path, previous.content);
     
-    // Check if we're back to original content
     if (previous.content === originalContent) {
-      editorStore.markSaved($activeFile.path);
+      editorPanes.markSaved(activeFile.path);
     }
     
-    // Restore cursor position
     if (editorElement) {
       setTimeout(() => {
         editorElement.selectionStart = editorElement.selectionEnd = previous.cursorPos;
@@ -86,20 +77,18 @@
   }
   
   function redo() {
-    if (redoStack.length === 0 || !$activeFile) return;
+    if (redoStack.length === 0 || !activeFile) return;
     
     isUndoRedo = true;
     const next = redoStack.pop()!;
     undoStack.push(next);
     
-    editorStore.updateContent($activeFile.path, next.content);
+    editorPanes.updateContent(activeFile.path, next.content);
     
-    // Check if we're back to original content
     if (next.content === originalContent) {
-      editorStore.markSaved($activeFile.path);
+      editorPanes.markSaved(activeFile.path);
     }
     
-    // Restore cursor position
     if (editorElement) {
       setTimeout(() => {
         editorElement.selectionStart = editorElement.selectionEnd = next.cursorPos;
@@ -112,9 +101,9 @@
   
   function handleInput(e: Event) {
     const target = e.target as HTMLTextAreaElement;
-    if ($activeFile && !isUndoRedo) {
+    if (activeFile && !isUndoRedo) {
       pushHistory(target.value, target.selectionStart);
-      editorStore.updateContent($activeFile.path, target.value);
+      editorPanes.updateContent(activeFile.path, target.value);
     }
   }
   
@@ -127,51 +116,40 @@
   }
   
   function handleKeyDown(e: KeyboardEvent) {
-    // Handle Ctrl+Z / Cmd+Z for undo
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
       undo();
       return;
     }
     
-    // Handle Ctrl+Y / Cmd+Shift+Z for redo
     if (((e.ctrlKey && e.key === 'y') || (e.metaKey && e.shiftKey && e.key === 'z'))) {
       e.preventDefault();
       redo();
       return;
     }
     
-    // Handle Ctrl+S / Cmd+S to save
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      if ($activeFile) {
-        saveFile($activeFile.path, $activeFile.content);
+      if (activeFile) {
+        saveFile(activeFile.path, activeFile.content);
       }
       return;
     }
     
-    // Handle Enter key for auto-indentation
     if (e.key === 'Enter') {
       e.preventDefault();
       const target = e.target as HTMLTextAreaElement;
       const start = target.selectionStart;
       const value = target.value;
       
-      // Find the start of the current line
       let lineStart = start - 1;
-      while (lineStart >= 0 && value[lineStart] !== '\n') {
-        lineStart--;
-      }
-      lineStart++; // Move past the newline or to start of file
+      while (lineStart >= 0 && value[lineStart] !== '\n') lineStart--;
+      lineStart++;
       
-      // Extract the current line
       let lineEnd = start;
-      while (lineEnd < value.length && value[lineEnd] !== '\n') {
-        lineEnd++;
-      }
+      while (lineEnd < value.length && value[lineEnd] !== '\n') lineEnd++;
       const currentLine = value.substring(lineStart, lineEnd);
       
-      // Count leading whitespace (spaces and tabs)
       let indent = '';
       for (let i = 0; i < currentLine.length; i++) {
         if (currentLine[i] === ' ' || currentLine[i] === '\t') {
@@ -181,28 +159,23 @@
         }
       }
       
-      // Check if current line ends with opening brace/bracket/paren for extra indent
       const trimmedLine = currentLine.trim();
       const needsExtraIndent = trimmedLine.endsWith('{') || 
                                 trimmedLine.endsWith('[') || 
                                 trimmedLine.endsWith('(') ||
                                 trimmedLine.endsWith(':');
       
-      // Insert newline with indentation
       let insertion = '\n' + indent;
       if (needsExtraIndent) {
-        insertion += '\t'; // Add extra tab for nested content
+        insertion += '\t';
       }
       
       target.value = value.substring(0, start) + insertion + value.substring(start);
       target.selectionStart = target.selectionEnd = start + insertion.length;
-      
-      // Trigger input event to update content
       target.dispatchEvent(new Event('input', { bubbles: true }));
       return;
     }
     
-    // Handle Tab key
     if (e.key === 'Tab') {
       e.preventDefault();
       const target = e.target as HTMLTextAreaElement;
@@ -210,11 +183,8 @@
       const end = target.selectionEnd;
       const value = target.value;
       
-      // Insert tab character
       target.value = value.substring(0, start) + '\t' + value.substring(end);
       target.selectionStart = target.selectionEnd = start + 1;
-      
-      // Trigger input event to update content
       target.dispatchEvent(new Event('input', { bubbles: true }));
     }
   }
@@ -223,8 +193,7 @@
     try {
       const { invoke } = await import('@tauri-apps/api/core');
       await invoke('write_file', { path, contents: content });
-      editorStore.markSaved(path);
-      // Update original content to current saved state
+      editorPanes.markSaved(path);
       originalContent = content;
       console.log('[Editor] File saved:', path);
     } catch (err) {
@@ -233,12 +202,125 @@
   }
   
   function selectTab(index: number) {
-    activeIndex.set(index);
+    editorPanes.setActiveFile(pane.id, index);
+  }
+  
+  function handleTabKeyDown(e: KeyboardEvent, index: number) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      selectTab(index);
+    }
   }
   
   function closeTab(e: MouseEvent, path: string) {
     e.stopPropagation();
-    editorStore.closeFile(path);
+    editorPanes.closeFile(pane.id, path);
+  }
+  
+  function handleTabMouseDown(e: MouseEvent, filePath: string) {
+    if (e.button !== 0) return; // Only left click
+    
+    e.preventDefault(); // Prevent text selection immediately
+    
+    console.log('[MOUSE] Tab mousedown:', filePath);
+    consoleStore.log('info', 'editor', `Mouse down on ${filePath.split('/').pop()}`);
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let isDragging = false;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault(); // Always prevent default during any mouse move
+      
+      const dx = Math.abs(e.clientX - startX);
+      const dy = Math.abs(e.clientY - startY);
+      
+      if (!isDragging && (dx > 5 || dy > 5)) {
+        isDragging = true;
+        console.log('[MOUSE] Started dragging');
+        consoleStore.log('info', 'editor', `Dragging ${filePath.split('/').pop()}`);
+        onDragStart(pane.id, filePath);
+        document.body.style.userSelect = 'none';
+        document.body.style.webkitUserSelect = 'none';
+        document.body.style.cursor = 'grabbing';
+      }
+      
+      if (isDragging) {
+        // Find which pane we're over
+        const elements = document.elementsFromPoint(e.clientX, e.clientY);
+        const paneWrapper = elements.find(el => el.classList.contains('pane-wrapper'));
+        if (paneWrapper) {
+          const targetPaneId = paneWrapper.getAttribute('data-pane-id');
+          if (targetPaneId) {
+            console.log('[MOUSE] Over pane:', targetPaneId);
+          }
+        }
+      }
+    };
+    
+    const handleMouseUp = (e: MouseEvent) => {
+      console.log('[MOUSE] Mouse up, isDragging:', isDragging);
+      
+      if (isDragging) {
+        e.preventDefault();
+        // Find which pane we dropped on
+        const elements = document.elementsFromPoint(e.clientX, e.clientY);
+        const paneWrapper = elements.find(el => el.classList.contains('pane-wrapper'));
+        if (paneWrapper) {
+          const targetPaneId = paneWrapper.getAttribute('data-pane-id');
+          if (targetPaneId) {
+            console.log('[MOUSE] Dropped on pane:', targetPaneId);
+            consoleStore.log('info', 'editor', `Dropped on ${targetPaneId}`);
+            onDrop(targetPaneId);
+          }
+        }
+        
+        // Restore cursor and text selection
+        document.body.style.userSelect = '';
+        document.body.style.webkitUserSelect = '';
+        document.body.style.cursor = '';
+      }
+      
+      onDragEnd();
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }
+  
+  function handleTabDragStart(e: DragEvent, filePath: string) {
+    if (!e.dataTransfer) return;
+    
+    console.log('[TAB DRAG] Starting drag for:', filePath);
+    consoleStore.log('info', 'editor', `Tab drag start: ${filePath.split('/').pop()}`);
+    
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', filePath);
+    e.dataTransfer.setData('application/x-axiom-file', filePath);
+    
+    // Create a custom drag image to avoid the tab blocking drops
+    const dragImage = document.createElement('div');
+    dragImage.textContent = filePath.split('/').pop() || '';
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    dragImage.style.padding = '8px 12px';
+    dragImage.style.background = '#58a6ff';
+    dragImage.style.color = 'white';
+    dragImage.style.borderRadius = '4px';
+    dragImage.style.fontWeight = '600';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
+    
+    console.log('[TAB DRAG] Drag data set, calling onDragStart');
+    onDragStart(pane.id, filePath);
+  }
+  
+  function handleTabDragEnd(e: DragEvent) {
+    console.log('[DragDrop] Drag ended');
+    onDragEnd();
   }
   
   function getLanguageLabel(lang: string): string {
@@ -251,20 +333,28 @@
       case 'assembly': return 'ARM Assembly';
       case 'makefile': return 'Makefile';
       case 'linker': return 'Linker Script';
+      case 'markdown': return 'Markdown';
       default: return 'Text';
     }
   }
 </script>
 
-<div class="editor-area">
-  {#if $files.length > 0}
+<div class="editor-pane" 
+     role="region"
+     aria-label="Editor pane">
+  {#if pane.files.length > 0}
     <div class="editor-tabs">
-      {#each $files as file, i (file.path)}
-        <button 
+      {#each pane.files as file, i (file.path)}
+        <div 
           class="tab" 
-          class:active={i === $activeIndex}
+          class:active={i === pane.activeIndex}
+          class:flashing={$editorPanes.flashingTab?.paneId === pane.id && $editorPanes.flashingTab?.filePath === file.path}
+          on:mousedown={(e) => handleTabMouseDown(e, file.path)}
           on:click={() => selectTab(i)}
+          on:keydown={(e) => handleTabKeyDown(e, i)}
           title={file.path}
+          role="button"
+          tabindex="0"
         >
           <span class="tab-name">{file.name}</span>
           {#if file.modified}
@@ -273,21 +363,21 @@
           <button class="close-btn" on:click={(e) => closeTab(e, file.path)} title="Close">
             ×
           </button>
-        </button>
+        </div>
       {/each}
     </div>
     <div class="editor-content">
-      {#if $activeFile}
+      {#if activeFile}
         <div class="file-info">
-          <span class="file-path">{$activeFile.path}</span>
-          <span class="file-lang">{getLanguageLabel($activeFile.language)}</span>
+          <span class="file-path">{activeFile.path}</span>
+          <span class="file-lang">{getLanguageLabel(activeFile.language)}</span>
         </div>
         <div class="editor-container">
           <pre class="code-highlight" bind:this={highlightElement} aria-hidden="true"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
           <textarea
             bind:this={editorElement}
             class="code-editor"
-            value={$activeFile.content}
+            value={activeFile.content}
             on:input={handleInput}
             on:scroll={handleScroll}
             on:keydown={handleKeyDown}
@@ -302,20 +392,21 @@
   {:else}
     <div class="empty-state">
       <p>{EMPTY.noFiles}</p>
-      <p class="hint">Open a file from the explorer to begin.</p>
+      <p class="hint">Open a file or drag a tab here</p>
     </div>
   {/if}
 </div>
 
 <style>
-  .editor-area {
+  .editor-pane {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     background: var(--color-bg-primary);
+    position: relative;
   }
-
+  
   .editor-tabs {
     display: flex;
     background: var(--color-bg-secondary);
@@ -338,9 +429,53 @@
     border: 1px solid var(--color-border);
     border-bottom: none;
     border-radius: 4px 4px 0 0;
-    cursor: pointer;
+    cursor: grab;
     white-space: nowrap;
     max-width: 160px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  
+  .tab:active {
+    cursor: grabbing;
+  }
+  
+  .tab.flashing {
+    animation: flash-tab 0.6s ease-out;
+  }
+  
+  @keyframes flash-tab {
+    0% {
+      background: var(--color-accent);
+      transform: scale(1);
+    }
+    50% {
+      background: var(--color-accent);
+      transform: scale(1.05);
+    }
+    100% {
+      background: var(--color-bg-tertiary);
+      transform: scale(1);
+    }
+  }
+  
+  .tab.active.flashing {
+    animation: flash-tab-active 0.6s ease-out;
+  }
+  
+  @keyframes flash-tab-active {
+    0% {
+      background: var(--color-accent);
+      transform: scale(1);
+    }
+    50% {
+      background: var(--color-accent);
+      transform: scale(1.05);
+    }
+    100% {
+      background: var(--color-bg-primary);
+      transform: scale(1);
+    }
   }
 
   .tab:hover {
@@ -504,44 +639,44 @@
 
   /* Syntax highlighting */
   .token-keyword {
-    color: #569cd6; /* Blue for keywords */
+    color: #569cd6;
     font-weight: 500;
   }
 
   .token-string {
-    color: #ce9178; /* Orange for strings */
+    color: #ce9178;
   }
 
   .token-comment {
-    color: #6a9955; /* Green for comments */
+    color: #6a9955;
     font-style: italic;
   }
 
   .token-number {
-    color: #b5cea8; /* Light green for numbers */
+    color: #b5cea8;
   }
 
   .token-operator {
-    color: #d4d4d4; /* Light gray for operators */
+    color: #d4d4d4;
   }
 
   .token-register {
-    color: #4fc1ff; /* Light blue for ARM registers */
+    color: #4fc1ff;
     font-weight: 500;
   }
 
   .token-directive {
-    color: #c586c0; /* Purple for assembly directives */
+    color: #c586c0;
     font-weight: 500;
   }
 
   .token-function {
-    color: #dcdcaa; /* Yellow for functions and labels */
+    color: #dcdcaa;
     font-weight: 500;
   }
 
   .token-type {
-    color: #4ec9b0; /* Teal for types and constants */
+    color: #4ec9b0;
     font-weight: 500;
   }
 

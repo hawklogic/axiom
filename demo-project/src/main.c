@@ -1,115 +1,56 @@
 /**
- * @file main.c
- * @brief Blink firmware main entry point
- * 
- * A minimal LED blink example demonstrating:
- * - GPIO configuration
- * - SysTick timing
- * - Main loop structure
+ * @file types.h
+ * @brief Common type definitions
  */
 
-#include "types.h"
-#include "config.h"
-#include "gpio.h"
-#include "systick.h"
+#ifndef TYPES_H
+#define TYPES_H
 
-/* Forward declarations */
-static void system_init(void);
-static void led_init(void);
-static void led_set(bool on);
-static void main_loop(void);
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 
-/**
- * Main entry point
- */
-int main(void)
-{
-    system_init();
-    led_init();
-    
-    DEBUG_PRINT("Blink firmware started\r\n");
-    DEBUG_PRINT("LED period: %d ms\r\n", BLINK_PERIOD_MS);
-    
-    main_loop();
-    
-    /* Should never reach here */
-    return 0;
-}
+/* Fixed-width types */
+typedef uint8_t   u8;
+typedef uint16_t  u16;
+typedef uint32_t  u32;
+typedef uint64_t  u64;
 
-/**
- * Initialize system peripherals
- */
-static void system_init(void)
-{
-    /* Initialize GPIO clocks */
-    gpio_init();
-    
-    /* Initialize SysTick for timing */
-    systick_init();
-}
+typedef int8_t    i8;
+typedef int16_t   i16;
+typedef int32_t   i32;
+typedef int64_t   i64;
 
-/**
- * Initialize LED GPIO pin
- */
-static void led_init(void)
-{
-    status_t status = gpio_configure(LED_PORT, LED_PIN, PIN_MODE_OUTPUT);
-    ASSERT(status == STATUS_OK);
-    
-    /* Start with LED off */
-    led_set(false);
-}
+/* Volatile types for hardware registers */
+typedef volatile uint8_t   vu8;
+typedef volatile uint16_t  vu16;
+typedef volatile uint32_t  vu32;
 
-/**
- * Set LED state
- * @param on true to turn LED on, false to turn off
- */
-static void led_set(bool on)
-{
-#if LED_ACTIVE_LOW
-    gpio_write(LED_PORT, LED_PIN, on ? PIN_LOW : PIN_HIGH);
-#else
-    gpio_write(LED_PORT, LED_PIN, on ? PIN_HIGH : PIN_LOW);
-#endif
-}
+/* Status codes */
+typedef enum {
+    STATUS_OK = 0,
+    STATUS_ERROR,
+    STATUS_BUSY,
+    STATUS_TIMEOUT,
+    STATUS_INVALID_PARAM,
+    STATUS_NOT_INITIALIZED,
+} status_t;
 
-/**
- * Main application loop
- */
-static void main_loop(void)
-{
-    bool led_state = false;
-    u32 last_toggle = 0;
-    
-    while (1) {
-        u32 now = systick_get_ticks();
-        
-        /* Toggle LED at configured interval */
-        if ((now - last_toggle) >= BLINK_PERIOD_MS) {
-            led_state = !led_state;
-            led_set(led_state);
-            last_toggle = now;
-            
-            DEBUG_PRINT("LED: %s\r\n", led_state ? "ON" : "OFF");
-        }
-        
-        /* Other periodic tasks would go here */
-    }
-}
+/* GPIO pin state */
+typedef enum {
+    PIN_LOW = 0,
+    PIN_HIGH = 1,
+} pin_state_t;
 
-/**
- * Fault handler - called on assertion failure
- */
-void fault_handler(const char *file, int line)
-{
-    /* Disable interrupts */
-    __asm volatile ("cpsid i");
-    
-    DEBUG_PRINT("FAULT: %s:%d\r\n", file, line);
-    
-    /* Infinite loop with fast LED blink to indicate fault */
-    while (1) {
-        gpio_toggle(LED_PORT, LED_PIN);
-        for (volatile int i = 0; i < 100000; i++);
-    }
-}
+/* GPIO pin mode */
+typedef enum {
+    PIN_MODE_INPUT,
+    PIN_MODE_OUTPUT,
+    PIN_MODE_ALTERNATE,
+    PIN_MODE_ANALOG,
+} pin_mode_t;
+
+/* Callback function type */
+typedef void (*callback_fn)(void *ctx);
+
+#endif /* TYPES_H */
