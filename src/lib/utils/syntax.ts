@@ -118,10 +118,17 @@ function highlightCLike(code: string, keywords: string[]): HighlightedToken[] {
   let pos = 0;
   
   while (pos < code.length) {
-    // Skip whitespace but preserve it
-    if (/\s/.test(code[pos])) {
+    // Handle newlines separately from other whitespace
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    // Handle other whitespace (spaces, tabs)
+    if (/[ \t\r]/.test(code[pos])) {
       const start = pos;
-      while (pos < code.length && /\s/.test(code[pos])) pos++;
+      while (pos < code.length && /[ \t\r]/.test(code[pos])) pos++;
       const whitespace = code.slice(start, pos);
       if (whitespace.length > 0) {
         tokens.push({ type: 'text', value: whitespace });
@@ -204,10 +211,17 @@ function highlightPython(code: string): HighlightedToken[] {
   let pos = 0;
   
   while (pos < code.length) {
-    // Skip whitespace but preserve it
-    if (/\s/.test(code[pos])) {
+    // Handle newlines separately from other whitespace
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    // Handle other whitespace (spaces, tabs)
+    if (/[ \t\r]/.test(code[pos])) {
       const start = pos;
-      while (pos < code.length && /\s/.test(code[pos])) pos++;
+      while (pos < code.length && /[ \t\r]/.test(code[pos])) pos++;
       const whitespace = code.slice(start, pos);
       if (whitespace.length > 0) {
         tokens.push({ type: 'text', value: whitespace });
@@ -289,10 +303,17 @@ function highlightAssembly(code: string): HighlightedToken[] {
   let pos = 0;
   
   while (pos < code.length) {
-    // Skip whitespace but preserve it
-    if (/\s/.test(code[pos])) {
+    // Handle newlines separately from other whitespace
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    // Handle other whitespace (spaces, tabs)
+    if (/[ \t\r]/.test(code[pos])) {
       const start = pos;
-      while (pos < code.length && /\s/.test(code[pos])) pos++;
+      while (pos < code.length && /[ \t\r]/.test(code[pos])) pos++;
       const whitespace = code.slice(start, pos);
       if (whitespace.length > 0) {
         tokens.push({ type: 'text', value: whitespace });
