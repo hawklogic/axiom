@@ -71,6 +71,8 @@
       case 'hpp': return 'C++ Header';
       case 'python': return 'Python';
       case 'assembly': return 'ARM Assembly';
+      case 'makefile': return 'Makefile';
+      case 'linker': return 'Linker Script';
       default: return 'Text';
     }
   }

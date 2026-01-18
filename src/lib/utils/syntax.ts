@@ -64,6 +64,13 @@ const ARM_INSTRUCTIONS = [
 
 export function detectLanguage(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase();
+  const basename = filename.split('/').pop()?.toLowerCase() || '';
+  
+  // Check for Makefile (no extension)
+  if (basename === 'makefile' || basename.startsWith('makefile.')) {
+    return 'makefile';
+  }
+  
   switch (ext) {
     case 'c':
     case 'h':
@@ -81,6 +88,10 @@ export function detectLanguage(filename: string): string {
     case 'S':
     case 'asm':
       return 'assembly';
+    case 'ld':
+      return 'linker';
+    case 'mk':
+      return 'makefile';
     default:
       return 'text';
   }
@@ -100,6 +111,10 @@ export function highlightCode(code: string, language: string): HighlightedToken[
       return highlightPython(code);
     case 'assembly':
       return highlightAssembly(code);
+    case 'makefile':
+      return highlightMakefile(code);
+    case 'linker':
+      return highlightLinker(code);
     default:
       return [{ type: 'text', value: code }];
   }
@@ -385,6 +400,255 @@ function highlightAssembly(code: string): HighlightedToken[] {
     }
     
     // Default: single character
+    tokens.push({ type: 'text', value: code[pos] });
+    pos++;
+  }
+  
+  return tokens;
+}
+
+
+function highlightMakefile(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  let pos = 0;
+  
+  // Makefile keywords and built-in functions
+  const MAKEFILE_KEYWORDS = [
+    'ifeq', 'ifneq', 'ifdef', 'ifndef', 'else', 'endif',
+    'include', 'sinclude', '-include', 'define', 'endef',
+    'export', 'unexport', 'override', 'private'
+  ];
+  
+  const MAKEFILE_FUNCTIONS = [
+    'subst', 'patsubst', 'strip', 'findstring', 'filter', 'filter-out',
+    'sort', 'word', 'wordlist', 'words', 'firstword', 'lastword',
+    'dir', 'notdir', 'suffix', 'basename', 'addsuffix', 'addprefix',
+    'join', 'wildcard', 'realpath', 'abspath', 'error', 'warning',
+    'shell', 'origin', 'flavor', 'foreach', 'if', 'or', 'and', 'call', 'eval'
+  ];
+  
+  while (pos < code.length) {
+    // Handle newlines separately
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    // Handle other whitespace
+    if (/[ \t\r]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[ \t\r]/.test(code[pos])) pos++;
+      tokens.push({ type: 'text', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Comments
+    if (code[pos] === '#') {
+      const start = pos;
+      while (pos < code.length && code[pos] !== '\n') pos++;
+      tokens.push({ type: 'comment', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Variable references $(VAR) or ${VAR}
+    if (code[pos] === '$' && pos + 1 < code.length && (code[pos + 1] === '(' || code[pos + 1] === '{')) {
+      const start = pos;
+      const closer = code[pos + 1] === '(' ? ')' : '}';
+      pos += 2;
+      
+      // Check for function call
+      let funcName = '';
+      const funcStart = pos;
+      while (pos < code.length && /[a-zA-Z_-]/.test(code[pos])) {
+        funcName += code[pos];
+        pos++;
+      }
+      
+      if (MAKEFILE_FUNCTIONS.includes(funcName)) {
+        tokens.push({ type: 'text', value: code.slice(start, funcStart) });
+        tokens.push({ type: 'function', value: funcName });
+        // Continue to closing bracket
+        while (pos < code.length && code[pos] !== closer) pos++;
+        if (pos < code.length) {
+          tokens.push({ type: 'text', value: code.slice(funcStart + funcName.length, pos + 1) });
+          pos++;
+        }
+      } else {
+        // Regular variable
+        while (pos < code.length && code[pos] !== closer) pos++;
+        if (pos < code.length) pos++;
+        tokens.push({ type: 'type', value: code.slice(start, pos) });
+      }
+      continue;
+    }
+    
+    // Automatic variables ($@, $<, $^, etc.)
+    if (code[pos] === '$' && pos + 1 < code.length && /[@<^+?*%|]/.test(code[pos + 1])) {
+      tokens.push({ type: 'type', value: code.slice(pos, pos + 2) });
+      pos += 2;
+      continue;
+    }
+    
+    // Target: dependency pattern (at start of line or after whitespace)
+    if (/[a-zA-Z0-9_.\-\/]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[a-zA-Z0-9_.\-\/]/.test(code[pos])) pos++;
+      const word = code.slice(start, pos);
+      
+      // Check if followed by colon (target)
+      let checkPos = pos;
+      while (checkPos < code.length && /[ \t]/.test(code[checkPos])) checkPos++;
+      if (checkPos < code.length && code[checkPos] === ':') {
+        tokens.push({ type: 'function', value: word });
+        continue;
+      }
+      
+      // Check for keywords
+      if (MAKEFILE_KEYWORDS.includes(word)) {
+        tokens.push({ type: 'keyword', value: word });
+      } else {
+        tokens.push({ type: 'text', value: word });
+      }
+      continue;
+    }
+    
+    // Strings
+    if (code[pos] === '"' || code[pos] === "'") {
+      const quote = code[pos];
+      const start = pos;
+      pos++;
+      while (pos < code.length && code[pos] !== quote) {
+        if (code[pos] === '\\') pos++;
+        pos++;
+      }
+      if (pos < code.length) pos++;
+      tokens.push({ type: 'string', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Operators and special characters
+    if (/[:=+?!]/.test(code[pos])) {
+      tokens.push({ type: 'operator', value: code[pos] });
+      pos++;
+      continue;
+    }
+    
+    // Default
+    tokens.push({ type: 'text', value: code[pos] });
+    pos++;
+  }
+  
+  return tokens;
+}
+
+function highlightLinker(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  let pos = 0;
+  
+  // Linker script keywords and commands
+  const LINKER_KEYWORDS = [
+    'MEMORY', 'SECTIONS', 'ENTRY', 'OUTPUT_FORMAT', 'OUTPUT_ARCH',
+    'STARTUP', 'SEARCH_DIR', 'INPUT', 'GROUP', 'AS_NEEDED',
+    'PROVIDE', 'PROVIDE_HIDDEN', 'KEEP', 'ALIGN', 'ALIGNOF',
+    'SIZEOF', 'ADDR', 'LOADADDR', 'ORIGIN', 'LENGTH',
+    'CREATE_OBJECT_SYMBOLS', 'CONSTRUCTORS', 'SORT', 'SORT_BY_NAME',
+    'SORT_BY_ALIGNMENT', 'SORT_BY_INIT_PRIORITY', 'COMMON',
+    'NOCROSSREFS', 'OUTPUT', 'ASSERT', 'EXTERN', 'FORCE_COMMON_ALLOCATION',
+    'INHIBIT_COMMON_ALLOCATION', 'INSERT', 'AFTER', 'BEFORE',
+    'INCLUDE', 'PHDRS', 'FILEHDR', 'AT', 'SUBALIGN', 'HIDDEN'
+  ];
+  
+  // Memory region attributes
+  const MEMORY_ATTRS = ['r', 'w', 'x', 'a', 'i', 'l', '!'];
+  
+  while (pos < code.length) {
+    // Handle newlines separately
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    // Handle other whitespace
+    if (/[ \t\r]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[ \t\r]/.test(code[pos])) pos++;
+      tokens.push({ type: 'text', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Comments (C-style)
+    if (code.slice(pos, pos + 2) === '/*') {
+      const start = pos;
+      pos += 2;
+      while (pos < code.length - 1 && code.slice(pos, pos + 2) !== '*/') pos++;
+      if (pos < code.length - 1) pos += 2;
+      tokens.push({ type: 'comment', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Hex numbers (0x...)
+    if (code.slice(pos, pos + 2) === '0x' || code.slice(pos, pos + 2) === '0X') {
+      const start = pos;
+      pos += 2;
+      while (pos < code.length && /[0-9a-fA-F]/.test(code[pos])) pos++;
+      tokens.push({ type: 'number', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Numbers
+    if (/\d/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[\dKkMm]/.test(code[pos])) pos++;
+      tokens.push({ type: 'number', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Section names (starts with .)
+    if (code[pos] === '.' && pos + 1 < code.length && /[a-zA-Z_]/.test(code[pos + 1])) {
+      const start = pos;
+      pos++;
+      while (pos < code.length && /[a-zA-Z0-9_.]/.test(code[pos])) pos++;
+      tokens.push({ type: 'directive', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Identifiers and keywords
+    if (/[a-zA-Z_]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[a-zA-Z0-9_]/.test(code[pos])) pos++;
+      const word = code.slice(start, pos);
+      
+      if (LINKER_KEYWORDS.includes(word)) {
+        tokens.push({ type: 'keyword', value: word });
+      } else {
+        tokens.push({ type: 'text', value: word });
+      }
+      continue;
+    }
+    
+    // Strings
+    if (code[pos] === '"') {
+      const start = pos;
+      pos++;
+      while (pos < code.length && code[pos] !== '"') {
+        if (code[pos] === '\\') pos++;
+        pos++;
+      }
+      if (pos < code.length) pos++;
+      tokens.push({ type: 'string', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Operators and special characters
+    if (/[=+\-*/><!&|(){}[\];:,]/.test(code[pos])) {
+      tokens.push({ type: 'operator', value: code[pos] });
+      pos++;
+      continue;
+    }
+    
+    // Default
     tokens.push({ type: 'text', value: code[pos] });
     pos++;
   }
