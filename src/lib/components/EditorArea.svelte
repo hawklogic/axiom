@@ -46,6 +46,58 @@
       return;
     }
     
+    // Handle Enter key for auto-indentation
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const target = e.target as HTMLTextAreaElement;
+      const start = target.selectionStart;
+      const value = target.value;
+      
+      // Find the start of the current line
+      let lineStart = start - 1;
+      while (lineStart >= 0 && value[lineStart] !== '\n') {
+        lineStart--;
+      }
+      lineStart++; // Move past the newline or to start of file
+      
+      // Extract the current line
+      let lineEnd = start;
+      while (lineEnd < value.length && value[lineEnd] !== '\n') {
+        lineEnd++;
+      }
+      const currentLine = value.substring(lineStart, lineEnd);
+      
+      // Count leading whitespace (spaces and tabs)
+      let indent = '';
+      for (let i = 0; i < currentLine.length; i++) {
+        if (currentLine[i] === ' ' || currentLine[i] === '\t') {
+          indent += currentLine[i];
+        } else {
+          break;
+        }
+      }
+      
+      // Check if current line ends with opening brace/bracket/paren for extra indent
+      const trimmedLine = currentLine.trim();
+      const needsExtraIndent = trimmedLine.endsWith('{') || 
+                                trimmedLine.endsWith('[') || 
+                                trimmedLine.endsWith('(') ||
+                                trimmedLine.endsWith(':');
+      
+      // Insert newline with indentation
+      let insertion = '\n' + indent;
+      if (needsExtraIndent) {
+        insertion += '\t'; // Add extra tab for nested content
+      }
+      
+      target.value = value.substring(0, start) + insertion + value.substring(start);
+      target.selectionStart = target.selectionEnd = start + insertion.length;
+      
+      // Trigger input event to update content
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+    
     // Handle Tab key
     if (e.key === 'Tab') {
       e.preventDefault();

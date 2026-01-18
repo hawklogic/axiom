@@ -1,3 +1,4 @@
+#define HELLO 9
 // Test file for syntax highlighting
 #include <stdio.h>
 #include <stdint.h>
