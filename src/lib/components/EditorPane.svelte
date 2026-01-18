@@ -3,6 +3,7 @@
 <script lang="ts">
   import { highlightCode, type HighlightedToken } from '$lib/utils/syntax';
   import { editorPanes, type EditorPane } from '$lib/stores/editorPanes';
+  import { consoleStore } from '$lib/stores/console';
   import { EMPTY } from '$lib/strings';
   import { onMount } from 'svelte';
   
@@ -238,6 +239,7 @@
     }
     if (!isDragOver) {
       console.log('[DragDrop] Drag over pane:', pane.id);
+      consoleStore.log('debug', 'editor', `Drag over ${pane.id}`);
       isDragOver = true;
     }
   }
@@ -249,6 +251,7 @@
     if (e.clientX < rect.left || e.clientX >= rect.right ||
         e.clientY < rect.top || e.clientY >= rect.bottom) {
       console.log('[DragDrop] Drag leave pane:', pane.id);
+      consoleStore.log('debug', 'editor', `Drag leave ${pane.id}`);
       isDragOver = false;
     }
   }
@@ -257,6 +260,7 @@
     e.preventDefault();
     e.stopPropagation();
     console.log('[DragDrop] Drop on pane:', pane.id);
+    consoleStore.log('info', 'editor', `Drop on ${pane.id}`);
     isDragOver = false;
     onDrop(pane.id);
   }
