@@ -8,6 +8,7 @@
 
 ---
 
+
 > Your compiler doesn't guess. Your debugger doesn't speculate. Why should your IDE?
 
 ---
@@ -123,7 +124,6 @@ flowchart TB
 - Explicit over implicit. Always.
 
 ---
-
 
 
 ## Installation

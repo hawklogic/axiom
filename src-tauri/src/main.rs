@@ -147,6 +147,7 @@ fn main() {
             // Git commands
             commands::git::git_status,
             commands::git::git_diff,
+            commands::git::git_file_diff,
             commands::git::git_stage,
             commands::git::git_unstage,
             commands::git::git_commit,

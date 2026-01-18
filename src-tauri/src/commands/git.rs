@@ -20,6 +20,13 @@ pub fn git_diff(path: String) -> Result<Vec<FileDiff>, String> {
     axiom_git::get_working_diff(&repo).map_err(|e| e.to_string())
 }
 
+/// Get git diff for a specific file.
+#[tauri::command]
+pub fn git_file_diff(repo_path: String, file_path: String) -> Result<Option<FileDiff>, String> {
+    let repo = Repository::discover(Path::new(&repo_path)).map_err(|e| e.to_string())?;
+    axiom_git::get_file_diff(&repo, Path::new(&file_path)).map_err(|e| e.to_string())
+}
+
 /// Stage a file.
 #[tauri::command]
 pub fn git_stage(repo_path: String, file_path: String) -> Result<(), String> {
