@@ -21,9 +21,86 @@
   let editorElement: HTMLTextAreaElement;
   let highlightElement: HTMLElement;
   
+  // Undo/Redo state management
+  interface HistoryState {
+    content: string;
+    cursorPos: number;
+  }
+  
+  let undoStack: HistoryState[] = [];
+  let redoStack: HistoryState[] = [];
+  let lastContent = '';
+  let isUndoRedo = false;
+  
+  // Track active file changes to reset history
+  $: if ($activeFile && $activeFile.content !== lastContent && !isUndoRedo) {
+    lastContent = $activeFile.content;
+    // Initialize history for new file
+    if (undoStack.length === 0) {
+      undoStack = [{ content: $activeFile.content, cursorPos: 0 }];
+    }
+  }
+  
+  function pushHistory(content: string, cursorPos: number) {
+    // Don't push if content hasn't changed
+    if (undoStack.length > 0 && undoStack[undoStack.length - 1].content === content) {
+      return;
+    }
+    
+    undoStack.push({ content, cursorPos });
+    // Limit history size to 100 entries
+    if (undoStack.length > 100) {
+      undoStack.shift();
+    }
+    // Clear redo stack on new change
+    redoStack = [];
+  }
+  
+  function undo() {
+    if (undoStack.length <= 1 || !$activeFile) return;
+    
+    isUndoRedo = true;
+    const current = undoStack.pop()!;
+    redoStack.push(current);
+    
+    const previous = undoStack[undoStack.length - 1];
+    editorStore.updateContent($activeFile.path, previous.content);
+    
+    // Restore cursor position
+    if (editorElement) {
+      setTimeout(() => {
+        editorElement.selectionStart = editorElement.selectionEnd = previous.cursorPos;
+        isUndoRedo = false;
+      }, 0);
+    } else {
+      isUndoRedo = false;
+    }
+  }
+  
+  function redo() {
+    if (redoStack.length === 0 || !$activeFile) return;
+    
+    isUndoRedo = true;
+    const next = redoStack.pop()!;
+    undoStack.push(next);
+    
+    editorStore.updateContent($activeFile.path, next.content);
+    
+    // Restore cursor position
+    if (editorElement) {
+      setTimeout(() => {
+        editorElement.selectionStart = editorElement.selectionEnd = next.cursorPos;
+        isUndoRedo = false;
+      }, 0);
+    } else {
+      isUndoRedo = false;
+    }
+  }
+  
   function handleInput(e: Event) {
     const target = e.target as HTMLTextAreaElement;
-    if ($activeFile) {
+    if ($activeFile && !isUndoRedo) {
+      pushHistory(target.value, target.selectionStart);
       editorStore.updateContent($activeFile.path, target.value);
     }
   }
@@ -37,6 +114,20 @@
   }
   
   function handleKeyDown(e: KeyboardEvent) {
+    // Handle Ctrl+Z / Cmd+Z for undo
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      undo();
+      return;
+    }
+    
+    // Handle Ctrl+Y / Cmd+Shift+Z for redo
+    if (((e.ctrlKey && e.key === 'y') || (e.metaKey && e.shiftKey && e.key === 'z'))) {
+      e.preventDefault();
+      redo();
+      return;
+    }
+    
     // Handle Ctrl+S / Cmd+S to save
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
