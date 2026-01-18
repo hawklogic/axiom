@@ -1399,6 +1399,24 @@
     resize: vertical;
     min-height: 60px;
     line-height: 1.4;
+    overflow-y: auto;
+  }
+
+  .commit-input::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .commit-input::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .commit-input::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+  }
+
+  .commit-input::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-focus);
   }
 
   .commit-button-icon {
