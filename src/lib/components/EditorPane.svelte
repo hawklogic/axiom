@@ -820,18 +820,18 @@
     border-right: 1px solid var(--color-border);
     overflow: hidden;
     user-select: none;
-    padding: 12px 0;
+    padding: 12px 0; /* Match editor padding */
   }
 
   .line-number {
-    height: 19.5px; /* Match line-height of 1.5 * 13px font-size */
     padding: 0 8px;
     text-align: right;
-    font-family: var(--font-mono);
+    font-family: var(--font-mono); /* Match editor font */
     font-size: 13px; /* Match editor font size */
     line-height: 1.5; /* Match editor line height */
     color: var(--color-text-muted);
     opacity: 0.6;
+    white-space: pre; /* Match editor whitespace handling */
   }
 
   .editor-wrapper {
