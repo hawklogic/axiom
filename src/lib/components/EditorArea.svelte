@@ -4,6 +4,7 @@
   import { EMPTY } from '$lib/strings';
   import { editorStore } from '$lib/stores/editor';
   import { highlightCode, detectLanguage, type HighlightedToken } from '$lib/utils/syntax';
+  import { onMount, afterUpdate } from 'svelte';
   
   const { files, activeIndex, activeFile } = editorStore;
   
@@ -15,6 +16,42 @@
       type: t.type,
       value: t.value.replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/ /g, '·')
     })));
+  }
+  
+  let editorElement: HTMLTextAreaElement;
+  let highlightElement: HTMLElement;
+  
+  function handleInput(e: Event) {
+    const target = e.target as HTMLTextAreaElement;
+    if ($activeFile) {
+      editorStore.updateContent($activeFile.path, target.value);
+    }
+  }
+  
+  function handleScroll(e: Event) {
+    const target = e.target as HTMLTextAreaElement;
+    if (highlightElement) {
+      highlightElement.scrollTop = target.scrollTop;
+      highlightElement.scrollLeft = target.scrollLeft;
+    }
+  }
+  
+  function handleKeyDown(e: KeyboardEvent) {
+    // Handle Tab key
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const target = e.target as HTMLTextAreaElement;
+      const start = target.selectionStart;
+      const end = target.selectionEnd;
+      const value = target.value;
+      
+      // Insert tab character
+      target.value = value.substring(0, start) + '\t' + value.substring(end);
+      target.selectionStart = target.selectionEnd = start + 1;
+      
+      // Trigger input event to update content
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+    }
   }
   
   function selectTab(index: number) {
@@ -65,7 +102,21 @@
           <span class="file-path">{$activeFile.path}</span>
           <span class="file-lang">{getLanguageLabel($activeFile.language)}</span>
         </div>
-        <pre class="code-view"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
+        <div class="editor-container">
+          <pre class="code-highlight" bind:this={highlightElement} aria-hidden="true"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
+          <textarea
+            bind:this={editorElement}
+            class="code-editor"
+            value={$activeFile.content}
+            on:input={handleInput}
+            on:scroll={handleScroll}
+            on:keydown={handleKeyDown}
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+          ></textarea>
+        </div>
       {/if}
     </div>
   {:else}
@@ -182,22 +233,53 @@
     font-weight: 500;
   }
 
-  .code-view {
+  .editor-container {
+    position: relative;
     flex: 1;
+    overflow: hidden;
+  }
+
+  .code-highlight,
+  .code-editor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     margin: 0;
     padding: 12px;
     overflow: auto;
     font-family: var(--font-mono);
     font-size: 13px;
     line-height: 1.5;
-    background: var(--color-bg-primary);
-    color: var(--color-text-primary);
     white-space: pre;
     tab-size: 4;
+    word-wrap: normal;
   }
 
-  .code-view code {
+  .code-highlight {
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .code-highlight code {
     display: block;
+  }
+
+  .code-editor {
+    background: transparent;
+    color: transparent;
+    caret-color: var(--color-text-primary);
+    border: none;
+    outline: none;
+    resize: none;
+    z-index: 2;
+  }
+
+  .code-editor::selection {
+    background: rgba(100, 150, 255, 0.3);
   }
 
   .empty-state {
@@ -218,21 +300,25 @@
   }
 
   /* Scrollbar styling */
-  .code-view::-webkit-scrollbar {
+  .code-highlight::-webkit-scrollbar,
+  .code-editor::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
-  .code-view::-webkit-scrollbar-track {
+  .code-highlight::-webkit-scrollbar-track,
+  .code-editor::-webkit-scrollbar-track {
     background: var(--color-bg-primary);
   }
 
-  .code-view::-webkit-scrollbar-thumb {
+  .code-highlight::-webkit-scrollbar-thumb,
+  .code-editor::-webkit-scrollbar-thumb {
     background: var(--color-border);
     border-radius: 4px;
   }
 
-  .code-view::-webkit-scrollbar-thumb:hover {
+  .code-highlight::-webkit-scrollbar-thumb:hover,
+  .code-editor::-webkit-scrollbar-thumb:hover {
     background: var(--color-border-focus);
   }
 
