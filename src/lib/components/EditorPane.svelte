@@ -208,23 +208,37 @@
     if (!e.dataTransfer) return;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', filePath);
+    console.log('[DragDrop] Drag started:', filePath, 'from pane:', pane.id);
     onDragStart(pane.id, filePath);
   }
   
   function handleDragOver(e: DragEvent) {
     e.preventDefault();
+    e.stopPropagation();
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = 'move';
     }
-    isDragOver = true;
+    if (!isDragOver) {
+      console.log('[DragDrop] Drag over pane:', pane.id);
+      isDragOver = true;
+    }
   }
   
-  function handleDragLeave() {
-    isDragOver = false;
+  function handleDragLeave(e: DragEvent) {
+    e.stopPropagation();
+    // Only set isDragOver to false if we're leaving the pane entirely
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX >= rect.right ||
+        e.clientY < rect.top || e.clientY >= rect.bottom) {
+      console.log('[DragDrop] Drag leave pane:', pane.id);
+      isDragOver = false;
+    }
   }
   
   function handleDrop(e: DragEvent) {
     e.preventDefault();
+    e.stopPropagation();
+    console.log('[DragDrop] Drop on pane:', pane.id);
     isDragOver = false;
     onDrop(pane.id);
   }
@@ -244,7 +258,18 @@
   }
 </script>
 
-<div class="editor-pane" class:drag-over={isDragOver} on:dragover={handleDragOver} on:dragleave={handleDragLeave} on:drop={handleDrop}>
+<div class="editor-pane" 
+     class:drag-over={isDragOver} 
+     on:dragover={handleDragOver} 
+     on:dragleave={handleDragLeave} 
+     on:drop={handleDrop}
+     role="region"
+     aria-label="Editor pane">
+  {#if isDragOver}
+    <div class="drop-indicator">
+      <div class="drop-message">Drop file here</div>
+    </div>
+  {/if}
   {#if pane.files.length > 0}
     <div class="editor-tabs">
       {#each pane.files as file, i (file.path)}
@@ -310,6 +335,29 @@
   .editor-pane.drag-over {
     outline: 2px solid var(--color-accent);
     outline-offset: -2px;
+  }
+  
+  .drop-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(88, 166, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    pointer-events: none;
+  }
+  
+  .drop-message {
+    padding: 16px 32px;
+    background: var(--color-accent);
+    color: var(--color-bg-primary);
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
   }
 
   .editor-tabs {
