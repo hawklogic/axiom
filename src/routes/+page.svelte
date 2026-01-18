@@ -128,15 +128,18 @@
 
   async function handleFileSelect(event: CustomEvent<{ path: string; name: string }>) {
     const { path, name } = event.detail;
+    console.log('[Editor] File selected:', path, name);
     
     if (!isTauri()) {
-      console.warn('File reading requires Tauri runtime');
+      console.warn('[Editor] File reading requires Tauri runtime');
       return;
     }
 
     try {
+      console.log('[Editor] Reading file...');
       const { invoke } = await import('@tauri-apps/api/core');
       const content = await invoke<string>('read_file', { path });
+      console.log('[Editor] File read, length:', content.length);
       editorStore.openFile({
         path,
         name,
@@ -145,8 +148,9 @@
         modified: false,
         cursor: { line: 1, column: 1 },
       });
+      console.log('[Editor] File opened in editor');
     } catch (err) {
-      console.error('Failed to read file:', err);
+      console.error('[Editor] Failed to read file:', err);
     }
   }
 
