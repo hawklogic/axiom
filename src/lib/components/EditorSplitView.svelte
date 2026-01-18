@@ -3,6 +3,7 @@
 <script lang="ts">
   import { editorPanes } from '$lib/stores/editorPanes';
   import { consoleStore } from '$lib/stores/console';
+  import { workspace } from '$lib/stores/workspace';
   import EditorPane from './EditorPane.svelte';
   import { onMount, onDestroy } from 'svelte';
   
@@ -10,6 +11,15 @@
   
   let draggedFile: { paneId: string; filePath: string } | null = null;
   let dragOverPaneId: string | null = null;
+  
+  async function handleOpenFolder() {
+    const success = await workspace.openFolder();
+    if (success) {
+      consoleStore.log('info', 'workspace', 'Folder opened successfully');
+    } else {
+      consoleStore.log('warn', 'workspace', 'No folder selected');
+    }
+  }
   
   onMount(() => {
     console.log('[EditorSplitView] Mounted, panes:', $editorPanes.panes.length);
@@ -164,6 +174,17 @@
       <span class="toggle-label">{leftPanelVisible ? 'Hide Panel' : 'Show Panel'}</span>
     </button>
     
+    <button 
+      class="open-folder-btn" 
+      on:click={handleOpenFolder}
+      title="Open Folder"
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 3.5C1 2.67157 1.67157 2 2.5 2H5.5L7 3.5H13.5C14.3284 3.5 15 4.17157 15 5V12.5C15 13.3284 14.3284 14 13.5 14H2.5C1.67157 14 1 13.3284 1 12.5V3.5Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+      </svg>
+      <span class="btn-label">Open Folder</span>
+    </button>
+    
     <div class="split-buttons">
       <button class="split-btn" on:click={handleSplitHorizontal} title="Split Editor Side by Side" disabled={$editorPanes.panes.length >= 4}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -272,6 +293,29 @@
   
   .toggle-label {
     white-space: nowrap;
+  }
+  
+  .open-folder-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.15s;
+    border: 1px solid var(--color-border);
+  }
+  
+  .open-folder-btn svg {
+    flex-shrink: 0;
+  }
+  
+  .open-folder-btn:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+    border-color: var(--color-accent);
   }
   
   .split-buttons {
