@@ -21,6 +21,7 @@
   let ready = false;
   let activePanel = 'files';
   let leftPanelVisible = true;
+  let sourceControlRef: any;
   
   // Resizable panel state
   let leftPanelWidth = 250;
@@ -230,7 +231,12 @@
             </Panel>
           {:else if activePanel === 'git'}
             <Panel title={PANELS.sourceControl}>
-              <SourceControl />
+              <svelte:fragment slot="header-actions">
+                <button class="panel-action-button" on:click={() => sourceControlRef?.refresh()} title="Refresh">
+                  ↻
+                </button>
+              </svelte:fragment>
+              <SourceControl bind:this={sourceControlRef} />
             </Panel>
           {:else if activePanel === 'ast'}
             <Panel title={PANELS.astViewer}>
@@ -308,6 +314,20 @@
     flex: 1;
     overflow: hidden;
     position: relative;
+  }
+
+  .panel-action-button {
+    padding: 2px 6px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    transition: color 0.15s;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+
+  .panel-action-button:hover {
+    color: var(--color-text-primary);
   }
 
   .left-panel {

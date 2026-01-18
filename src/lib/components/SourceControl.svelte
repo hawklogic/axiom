@@ -12,8 +12,13 @@
   let selectedFiles = new Set<string>();
   let showCommitInput = false;
 
-  $: ({ status, branch, loading } = $gitStore);
+  $: ({ status, branch, loading, lastCommit, remoteStatus } = $gitStore);
   $: workspacePath = $workspace.path;
+
+  // Export refresh function so parent can call it
+  export async function refresh() {
+    await handleRefresh();
+  }
 
   // Focus action for textarea
   function focusOnMount(node: HTMLTextAreaElement) {
@@ -72,12 +77,12 @@
       gitStore.refresh(workspacePath);
     }
 
-    // Auto-refresh every 5 seconds
+    // Auto-refresh every 10 seconds (increased from 5 to reduce flicker)
     refreshInterval = window.setInterval(() => {
-      if (workspacePath) {
+      if (workspacePath && !loading) {
         gitStore.refresh(workspacePath);
       }
-    }, 5000);
+    }, 10000);
   });
 
   onDestroy(() => {
@@ -91,6 +96,28 @@
     consoleStore.log('info', 'git', 'Refreshing git status...');
     await gitStore.refresh(workspacePath);
     consoleStore.log('info', 'git', 'Git status refreshed');
+  }
+
+  async function handlePush() {
+    if (!workspacePath || !branch) return;
+    try {
+      consoleStore.log('info', 'git', `Pushing to origin/${branch}...`);
+      await gitStore.push(workspacePath, 'origin', branch);
+      consoleStore.log('info', 'git', `Pushed to origin/${branch}`);
+    } catch (err) {
+      consoleStore.log('error', 'git', `Failed to push: ${err}`);
+    }
+  }
+
+  async function handlePull() {
+    if (!workspacePath) return;
+    try {
+      consoleStore.log('info', 'git', 'Pulling from origin...');
+      await gitStore.pull(workspacePath);
+      consoleStore.log('info', 'git', 'Pulled from origin');
+    } catch (err) {
+      consoleStore.log('error', 'git', `Failed to pull: ${err}`);
+    }
   }
 
   async function handleStage(file: StatusEntry) {
@@ -140,35 +167,39 @@
   async function handleViewDiff(path: string) {
     if (!workspacePath) return;
     try {
-      consoleStore.log('info', 'git', `Opening ${path}...`);
-      
-      // Open the file in the editor
-      const { invoke } = await import('@tauri-apps/api/core');
-      const fullPath = `${workspacePath}/${path}`;
-      const content = await invoke<string>('read_file', { path: fullPath });
+      consoleStore.log('info', 'git', `Opening diff for ${path}...`);
       
       // Import editorPanes
       const { editorPanes } = await import('$lib/stores/editorPanes');
-      const { detectLanguage } = await import('$lib/utils/syntax');
       
       // Get the current panes
       let currentPanes: any;
       editorPanes.subscribe(p => currentPanes = p)();
       
       if (currentPanes && currentPanes.panes.length > 0) {
-        const firstPane = currentPanes.panes[0];
-        editorPanes.openFile(firstPane.id, {
-          path: fullPath,
-          name: path.split('/').pop() || path,
-          content,
-          language: detectLanguage(path),
+        // Use the last active pane or the first one
+        const targetPane = currentPanes.panes[currentPanes.panes.length - 1];
+        
+        // Create a diff view "file"
+        const diffFile = {
+          path: `diff://${path}`,
+          name: `${path.split('/').pop()} (diff)`,
+          content: '', // Not used for diff views
+          language: 'text' as const,
           modified: false,
           cursor: { line: 1, column: 1 },
-        });
-        consoleStore.log('info', 'git', `Opened ${path}`);
+          type: 'diff' as const,
+          diffContext: {
+            repoPath: workspacePath,
+            filePath: path,
+          },
+        };
+        
+        editorPanes.openFile(targetPane.id, diffFile);
+        consoleStore.log('info', 'git', `Opened diff for ${path}`);
       }
     } catch (err) {
-      consoleStore.log('error', 'git', `Failed to open ${path}: ${err}`);
+      consoleStore.log('error', 'git', `Failed to open diff for ${path}: ${err}`);
     }
   }
 
@@ -239,6 +270,18 @@
     }
   }
 
+  function getStatusBgColor(status: string): string {
+    switch (status) {
+      case 'Modified': return 'rgba(226, 192, 141, 0.15)';
+      case 'Staged': return 'rgba(115, 201, 145, 0.2)';
+      case 'Untracked': return 'rgba(115, 201, 145, 0.2)';
+      case 'Deleted': return 'rgba(244, 135, 113, 0.15)';
+      case 'Renamed': return 'rgba(108, 182, 255, 0.15)';
+      case 'Conflicted': return 'rgba(244, 135, 113, 0.2)';
+      default: return 'rgba(171, 178, 191, 0.1)';
+    }
+  }
+
   function getStatusLabel(status: string): string {
     switch (status) {
       case 'Modified': return 'Modified';
@@ -272,11 +315,51 @@
       <div class="branch-info">
         <span class="branch-icon">⎇</span>
         <span class="branch-name">{branch || 'detached'}</span>
+        {#if remoteStatus && remoteStatus.has_remote}
+          {#if remoteStatus.ahead > 0}
+            <span class="sync-badge ahead" title="{remoteStatus.ahead} commit(s) ahead">
+              ↑{remoteStatus.ahead}
+            </span>
+          {/if}
+          {#if remoteStatus.behind > 0}
+            <span class="sync-badge behind" title="{remoteStatus.behind} commit(s) behind">
+              ↓{remoteStatus.behind}
+            </span>
+          {/if}
+          {#if remoteStatus.ahead === 0 && remoteStatus.behind === 0}
+            <span class="sync-badge synced" title="Up to date with origin">
+              ✓
+            </span>
+          {/if}
+        {/if}
       </div>
-      <button class="icon-button" on:click={handleRefresh} title="Refresh">
-        <span>↻</span>
-      </button>
+      <div class="header-actions">
+        <button class="text-icon-button" on:click={handlePull} title="Pull from origin">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M8 3v10M5 10l3 3 3-3"/>
+            <path d="M3 3h10" stroke-width="1"/>
+          </svg>
+          <span>Pull</span>
+        </button>
+        <button class="text-icon-button" on:click={handlePush} title="Push to origin">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M8 13V3M5 6l3-3 3 3"/>
+            <path d="M3 13h10" stroke-width="1"/>
+          </svg>
+          <span>Push</span>
+        </button>
+      </div>
     </div>
+
+    {#if lastCommit}
+      <div class="last-commit">
+        <div class="commit-header">
+          <span class="commit-id">{lastCommit.short_id}</span>
+          <span class="commit-author">{lastCommit.author}</span>
+        </div>
+        <div class="commit-message">{lastCommit.message.split('\n')[0]}</div>
+      </div>
+    {/if}
 
     <div class="changes-container">
       <!-- Staged Changes -->
@@ -295,7 +378,11 @@
                 on:click={() => handleViewDiff(file.path)}
                 on:keydown={(e) => e.key === 'Enter' && handleViewDiff(file.path)}
               >
-                <span class="status-badge staged" style="color: {getStatusColor(file.stagedStatus || 'Staged')}">
+                <span 
+                  class="status-badge staged" 
+                  style="color: {getStatusColor(file.stagedStatus || 'Staged')}; background: {getStatusBgColor(file.stagedStatus || 'Staged')}"
+                  title={getStatusLabel(file.stagedStatus || 'Staged')}
+                >
                   {getStatusIcon(file.stagedStatus || 'Staged')}
                 </span>
                 <span class="file-path">{file.path}</span>
@@ -333,7 +420,11 @@
                 on:click={() => handleViewDiff(file.path)}
                 on:keydown={(e) => e.key === 'Enter' && handleViewDiff(file.path)}
               >
-                <span class="status-badge unstaged" style="color: {getStatusColor(file.unstagedStatus || 'Modified')}">
+                <span 
+                  class="status-badge unstaged" 
+                  style="color: {getStatusColor(file.unstagedStatus || 'Modified')}; background: {getStatusBgColor(file.unstagedStatus || 'Modified')}"
+                  title={getStatusLabel(file.unstagedStatus || 'Modified')}
+                >
                   {getStatusIcon(file.unstagedStatus || 'Modified')}
                 </span>
                 <span class="file-path">{file.path}</span>
@@ -362,7 +453,11 @@
           <div class="file-list">
             {#each status.conflicted as file}
               <div class="file-item conflict">
-                <span class="status-badge" style="color: {getStatusColor(file.status)}">
+                <span 
+                  class="status-badge" 
+                  style="color: {getStatusColor(file.status)}; background: {getStatusBgColor(file.status)}"
+                  title={getStatusLabel(file.status)}
+                >
                   {getStatusIcon(file.status)}
                 </span>
                 <span class="file-path">{file.path}</span>
@@ -435,6 +530,12 @@
     background: var(--color-bg-secondary);
   }
 
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   .branch-info {
     display: flex;
     align-items: center;
@@ -452,6 +553,60 @@
     color: var(--color-text-primary);
   }
 
+  .sync-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-left: 6px;
+  }
+
+  .sync-badge.ahead {
+    background: rgba(115, 201, 145, 0.2);
+    color: #73c991;
+  }
+
+  .sync-badge.behind {
+    background: rgba(244, 135, 113, 0.2);
+    color: #f48771;
+  }
+
+  .sync-badge.synced {
+    background: rgba(0, 212, 255, 0.15);
+    color: var(--color-accent);
+  }
+
+  .last-commit {
+    padding: var(--space-sm);
+    background: var(--color-bg-tertiary);
+    border-bottom: 1px solid var(--color-border);
+    font-size: var(--font-size-xs);
+  }
+
+  .commit-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: 4px;
+  }
+
+  .commit-id {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  .commit-author {
+    color: var(--color-text-muted);
+  }
+
+  .commit-message {
+    color: var(--color-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .icon-button {
     padding: 4px 8px;
     font-size: 16px;
@@ -459,8 +614,37 @@
     transition: color 0.15s;
   }
 
+  .icon-button svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+  }
+
   .icon-button:hover {
     color: var(--color-text-primary);
+  }
+
+  .text-icon-button {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    transition: color 0.15s, background 0.15s;
+    border-radius: 3px;
+  }
+
+  .text-icon-button svg {
+    width: 10px;
+    height: 10px;
+    display: block;
+  }
+
+  .text-icon-button:hover {
+    color: var(--color-text-primary);
+    background: var(--color-bg-hover);
   }
 
   .changes-container {
@@ -532,19 +716,27 @@
 
   .status-badge {
     font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
-    font-size: 11px;
-    font-weight: 600;
-    width: 16px;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     flex-shrink: 0;
+    border-radius: 3px;
+    padding: 0 4px;
   }
 
   .status-badge.staged {
     opacity: 1;
+    background: rgba(115, 201, 145, 0.2);
   }
 
   .status-badge.unstaged {
-    opacity: 0.9;
+    opacity: 1;
+    background: rgba(226, 192, 141, 0.15);
   }
 
   .status-indicator {

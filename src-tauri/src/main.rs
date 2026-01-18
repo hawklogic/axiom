@@ -152,6 +152,10 @@ fn main() {
             commands::git::git_unstage,
             commands::git::git_commit,
             commands::git::git_branch,
+            commands::git::git_push,
+            commands::git::git_pull,
+            commands::git::git_last_commit,
+            commands::git::git_remote_status,
             // Terminal commands
             commands::terminal::terminal_create,
             commands::terminal::terminal_write,

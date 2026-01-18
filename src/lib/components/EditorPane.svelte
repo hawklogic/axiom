@@ -8,6 +8,7 @@
   import { settingsStore } from '$lib/stores/settings';
   import { EMPTY } from '$lib/strings';
   import { onMount } from 'svelte';
+  import DiffViewer from './DiffViewer.svelte';
   
   export let pane: EditorPane;
   export let onDragStart: (paneId: string, filePath: string) => void;
@@ -419,6 +420,7 @@
           class="tab" 
           class:active={i === pane.activeIndex}
           class:flashing={$editorPanes.flashingTab?.paneId === pane.id && $editorPanes.flashingTab?.filePath === file.path}
+          class:is-diff={file.type === 'diff'}
           on:mousedown={(e) => handleTabMouseDown(e, file.path)}
           on:click={() => selectTab(i)}
           on:keydown={(e) => handleTabKeyDown(e, i)}
@@ -426,6 +428,9 @@
           role="button"
           tabindex="0"
         >
+          {#if file.type === 'diff'}
+            <span class="diff-icon">±</span>
+          {/if}
           <span class="tab-name">{file.name}</span>
           {#if file.modified}
             <span class="modified-dot">●</span>
@@ -441,49 +446,60 @@
         <div class="file-info">
           <span class="file-path">{activeFile.path}</span>
           <div class="file-info-right">
-            <button 
-              class="toggle-line-numbers" 
-              on:click={toggleLineNumbers}
-              title={showLineNumbers ? 'Hide line numbers' : 'Show line numbers'}
-            >
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-                <line x1="6" y1="3" x2="14" y2="3"/>
-                <line x1="6" y1="8" x2="14" y2="8"/>
-                <line x1="6" y1="13" x2="14" y2="13"/>
-                <text x="2" y="5" font-size="5" fill="currentColor">1</text>
-                <text x="2" y="10" font-size="5" fill="currentColor">2</text>
-                <text x="2" y="15" font-size="5" fill="currentColor">3</text>
-              </svg>
-            </button>
-            <span class="file-lang">{getLanguageLabel(activeFile.language)}</span>
+            {#if activeFile.type !== 'diff'}
+              <button 
+                class="toggle-line-numbers" 
+                on:click={toggleLineNumbers}
+                title={showLineNumbers ? 'Hide line numbers' : 'Show line numbers'}
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <line x1="6" y1="3" x2="14" y2="3"/>
+                  <line x1="6" y1="8" x2="14" y2="8"/>
+                  <line x1="6" y1="13" x2="14" y2="13"/>
+                  <text x="2" y="5" font-size="5" fill="currentColor">1</text>
+                  <text x="2" y="10" font-size="5" fill="currentColor">2</text>
+                  <text x="2" y="15" font-size="5" fill="currentColor">3</text>
+                </svg>
+              </button>
+            {/if}
+            <span class="file-lang">{activeFile.type === 'diff' ? 'Diff' : getLanguageLabel(activeFile.language)}</span>
           </div>
         </div>
-        <div class="editor-container" class:show-line-numbers={showLineNumbers}>
-          {#if showLineNumbers}
-            <div class="line-numbers" bind:this={lineNumbersElement} aria-hidden="true">
-              {#each activeFile.content.split('\n') as _, i}
-                <div class="line-number">{i + 1}</div>
-              {/each}
+        {#if activeFile.type === 'diff' && activeFile.diffContext}
+          {#key activeFile.path}
+            <DiffViewer 
+              filePath={activeFile.diffContext.filePath}
+              repoPath={activeFile.diffContext.repoPath}
+            />
+          {/key}
+        {:else}
+          <div class="editor-container" class:show-line-numbers={showLineNumbers}>
+            {#if showLineNumbers}
+              <div class="line-numbers" bind:this={lineNumbersElement} aria-hidden="true">
+                {#each activeFile.content.split('\n') as _, i}
+                  <div class="line-number">{i + 1}</div>
+                {/each}
+              </div>
+            {/if}
+            <div class="editor-wrapper">
+              <pre class="code-highlight" bind:this={highlightElement} aria-hidden="true"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
+              <textarea
+                bind:this={editorElement}
+                class="code-editor"
+                value={activeFile.content}
+                on:input={handleInput}
+                on:scroll={handleScroll}
+                on:keydown={handleKeyDown}
+                on:keyup={handleKeyUp}
+                on:click={handleClick}
+                spellcheck="false"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+              ></textarea>
             </div>
-          {/if}
-          <div class="editor-wrapper">
-            <pre class="code-highlight" bind:this={highlightElement} aria-hidden="true"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
-            <textarea
-              bind:this={editorElement}
-              class="code-editor"
-              value={activeFile.content}
-              on:input={handleInput}
-              on:scroll={handleScroll}
-              on:keydown={handleKeyDown}
-              on:keyup={handleKeyUp}
-              on:click={handleClick}
-              spellcheck="false"
-              autocomplete="off"
-              autocorrect="off"
-              autocapitalize="off"
-            ></textarea>
           </div>
-        </div>
+        {/if}
       {/if}
     </div>
   {:else}
@@ -583,6 +599,16 @@
     color: var(--color-text-primary);
     background: var(--color-bg-primary);
     border-bottom-color: var(--color-bg-primary);
+  }
+
+  .tab.is-diff {
+    font-style: italic;
+  }
+
+  .diff-icon {
+    color: var(--color-accent);
+    font-weight: 600;
+    font-size: 14px;
   }
 
   .tab-name {

@@ -3,7 +3,7 @@
 
 //! Git command handlers.
 
-use axiom_git::{FileDiff, RepoStatus, Repository};
+use axiom_git::{CommitInfo, FileDiff, RemoteStatus, RepoStatus, Repository};
 use std::path::Path;
 
 /// Get git status for a repository.
@@ -53,4 +53,32 @@ pub fn git_commit(path: String, message: String) -> Result<String, String> {
 pub fn git_branch(path: String) -> Result<Option<String>, String> {
     let repo = Repository::discover(Path::new(&path)).map_err(|e| e.to_string())?;
     repo.current_branch().map_err(|e| e.to_string())
+}
+
+/// Push to remote.
+#[tauri::command]
+pub fn git_push(path: String, remote: String, branch: String) -> Result<(), String> {
+    let repo = Repository::discover(Path::new(&path)).map_err(|e| e.to_string())?;
+    repo.push(&remote, &branch).map_err(|e| e.to_string())
+}
+
+/// Pull from remote.
+#[tauri::command]
+pub fn git_pull(path: String) -> Result<(), String> {
+    let repo = Repository::discover(Path::new(&path)).map_err(|e| e.to_string())?;
+    repo.pull().map_err(|e| e.to_string())
+}
+
+/// Get the most recent commit info.
+#[tauri::command]
+pub fn git_last_commit(path: String) -> Result<Option<CommitInfo>, String> {
+    let repo = Repository::discover(Path::new(&path)).map_err(|e| e.to_string())?;
+    repo.last_commit().map_err(|e| e.to_string())
+}
+
+/// Check if local branch is ahead/behind remote.
+#[tauri::command]
+pub fn git_remote_status(path: String, branch: String) -> Result<RemoteStatus, String> {
+    let repo = Repository::discover(Path::new(&path)).map_err(|e| e.to_string())?;
+    repo.remote_status(&branch).map_err(|e| e.to_string())
 }

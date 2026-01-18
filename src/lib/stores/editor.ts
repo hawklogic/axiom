@@ -15,6 +15,11 @@ export interface OpenFile {
   language: Language;
   modified: boolean;
   cursor: { line: number; column: number };
+  type?: 'file' | 'diff';
+  diffContext?: {
+    repoPath: string;
+    filePath: string;
+  };
 }
 
 function createEditorStore() {
