@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2024 HawkLogic Systems
+
+[package]
+name = "axiom-symbols"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Axiom symbol index for deterministic autocomplete"
+
+[dependencies]
+axiom-core = { path = "../axiom-core" }
+axiom-parser = { path = "../axiom-parser" }
+serde = { workspace = true }

@@ -1,0 +1,47 @@
+{
+  "project": {
+    "name": "Axiom",
+    "steward": "HawkLogic Systems",
+    "license": "Apache-2.0",
+    "tagline": "Deterministic. Inspectable. Offline."
+  },
+  "philosophy_hash": "pending",
+  "branch": {
+    "current": "dev",
+    "active_workstream": "WS0"
+  },
+  "workstreams": {
+    "completed": [],
+    "pending": ["WS0", "WS1", "WS2", "WS3", "WS4", "WS5", "WS6", "WS7", "WS8", "WS9", "WS10", "WS11"],
+    "in_progress": "WS0"
+  },
+  "toolchain_versions": {
+    "rust": "1.75+",
+    "node": "20+",
+    "tauri": "2.x",
+    "tree_sitter": "0.20+",
+    "python_bundled": "3.11"
+  },
+  "ui_decisions": {
+    "framework": "Svelte",
+    "editor": "CodeMirror 6",
+    "theme_default": "dark",
+    "layout": "dockable_panels"
+  },
+  "build_status": {
+    "last_known_good": null,
+    "tests_passing": false,
+    "last_build_date": null
+  },
+  "next_step": "Complete WS0 file creation, then initialize Rust workspace and Tauri project",
+  "invariants": [
+    "No AI/ML code generation",
+    "No cloud services",
+    "No telemetry",
+    "Apache-2.0 only",
+    "SPDX headers on all source files",
+    "Axiom is product name, HawkLogic is steward",
+    "Deterministic autocomplete ordering",
+    "No PATH mutation"
+  ]
+}

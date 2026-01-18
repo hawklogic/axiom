@@ -1,0 +1,46 @@
+# Axiom IDE — Agent Rules
+# This file defines behavior for AI agents working on this codebase.
+
+## Identity (Non-Negotiable)
+- Product name: **Axiom**
+- Steward: **HawkLogic Systems**
+- License: Apache-2.0
+- Never rename to "HawkLogic Axiom" — Axiom is the instrument, HawkLogic signs the work
+
+## Philosophy Constraints
+- No generative AI features
+- No cloud services
+- No telemetry
+- No speculation or probabilistic behavior
+- Only reveal ground truth: compiler output, AST, ABI, ISA, debugger state
+
+## Code Standards
+- Every source file (.rs, .ts, .svelte, .css) MUST have SPDX header:
+  // SPDX-License-Identifier: Apache-2.0
+  // Copyright 2024 HawkLogic Systems
+- Run scripts/check_spdx.sh before committing
+- Backend before frontend in all workstreams
+- No direct commits to main branch
+- No force-push
+
+## Context Persistence
+- On session start: read .cursor/axiom_agent_state.json and .cursor/context.md
+- On workstream completion: update state files, commit, push, merge to dev
+- Never ask user to restate intent — resume from next_step field
+
+## Testing Requirements
+- All crates must have unit tests
+- Integration tests for cross-crate functionality
+- GUI smoke tests for UI changes
+- No speculative assertions — only verifiable facts
+
+## Toolchain Rules
+- Never mutate PATH
+- Use explicit paths for all toolchain binaries
+- Override precedence: User settings > Bundled > Detected
+
+## Autocomplete Rules
+- Tab-triggered only
+- Symbol-table + AST driven
+- Deterministic alphabetical ordering within kind
+- No AI/probabilistic ranking

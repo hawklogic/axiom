@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2024 HawkLogic Systems
+
+[package]
+name = "axiom-toolchain"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Axiom toolchain detection and compiler invocation"
+
+[dependencies]
+axiom-core = { path = "../axiom-core" }
+serde = { workspace = true }
+thiserror = { workspace = true }
