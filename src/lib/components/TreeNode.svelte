@@ -6,12 +6,14 @@
 
   export let node: TreeNode;
   export let depth: number = 0;
+  export let openFilePaths: Set<string> = new Set();
 
   const dispatch = createEventDispatcher<{
     'toggle': { path: string };
     'select': { path: string; name: string };
   }>();
-
+  
+  $: isOpen = !node.is_dir && openFilePaths.has(node.path);
   function handleClick() {
     if (node.is_dir) {
       dispatch('toggle', { path: node.path });
@@ -61,10 +63,14 @@
   <button 
     class="node-row" 
     class:directory={node.is_dir}
+    class:open={isOpen}
     on:click={handleClick}
   >
     <span class="node-icon">{getFileIcon(node)}</span>
     <span class="node-name">{node.name}</span>
+    {#if isOpen}
+      <span class="open-indicator" title="File is open">●</span>
+    {/if}
   </button>
 </div>
 
@@ -72,7 +78,8 @@
   {#each node.children as child (child.path)}
     <svelte:self 
       node={child} 
-      depth={depth + 1} 
+      depth={depth + 1}
+      {openFilePaths}
       on:toggle={forwardToggle}
       on:select={forwardSelect}
     />
@@ -122,5 +129,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
+  }
+  
+  .node-row.open {
+    color: var(--color-text-primary);
+  }
+  
+  .open-indicator {
+    font-size: 6px;
+    color: var(--color-accent);
+    margin-left: auto;
+    opacity: 0.8;
+    line-height: 1;
   }
 </style>
