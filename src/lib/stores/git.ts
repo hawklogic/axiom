@@ -42,6 +42,7 @@ function createGitStore() {
   const loading = writable(false);
   const lastCommit = writable<CommitInfo | null>(null);
   const remoteStatus = writable<RemoteStatus | null>(null);
+  const commitHistory = writable<CommitInfo[]>([]);
 
   const store = {
     subscribe(run: (value: { 
@@ -50,15 +51,17 @@ function createGitStore() {
       loading: boolean;
       lastCommit: CommitInfo | null;
       remoteStatus: RemoteStatus | null;
+      commitHistory: CommitInfo[];
     }) => void) {
       return derived(
-        [status, branch, loading, lastCommit, remoteStatus], 
-        ([$status, $branch, $loading, $lastCommit, $remoteStatus]) => ({
+        [status, branch, loading, lastCommit, remoteStatus, commitHistory], 
+        ([$status, $branch, $loading, $lastCommit, $remoteStatus, $commitHistory]) => ({
           status: $status,
           branch: $branch,
           loading: $loading,
           lastCommit: $lastCommit,
           remoteStatus: $remoteStatus,
+          commitHistory: $commitHistory,
         })
       ).subscribe(run);
     },
@@ -148,6 +151,17 @@ function createGitStore() {
     async pull(path: string) {
       await invoke('git_pull', { path });
       await store.refresh(path);
+    },
+
+    async loadHistory(path: string, limit: number = 50) {
+      try {
+        const history = await invoke<CommitInfo[]>('git_log', { path, limit });
+        console.log('[Git] Loaded commit history:', history.length, 'commits');
+        commitHistory.set(history);
+      } catch (e) {
+        console.error('Failed to load commit history:', e);
+        commitHistory.set([]);
+      }
     },
   };
 

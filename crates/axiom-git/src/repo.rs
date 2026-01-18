@@ -223,6 +223,35 @@ impl Repository {
             has_remote: true,
         })
     }
+
+    /// Get commit history.
+    pub fn log(&self, limit: usize) -> Result<Vec<CommitInfo>, GitError> {
+        let mut revwalk = self.inner.revwalk()?;
+        revwalk.push_head()?;
+        revwalk.set_sorting(git2::Sort::TIME)?;
+
+        let mut commits = Vec::new();
+        for oid in revwalk.take(limit) {
+            let oid = oid?;
+            let commit = self.inner.find_commit(oid)?;
+            
+            let id = commit.id().to_string();
+            let short_id = id[..7].to_string();
+            let message = commit.message().unwrap_or("").to_string();
+            let author = commit.author();
+            
+            commits.push(CommitInfo {
+                id,
+                short_id,
+                message,
+                author: author.name().unwrap_or("Unknown").to_string(),
+                email: author.email().unwrap_or("").to_string(),
+                timestamp: commit.time().seconds(),
+            });
+        }
+
+        Ok(commits)
+    }
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright 2024 HawkLogic Systems -->
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, afterUpdate } from 'svelte';
   import { gitStore } from '$lib/stores/git';
   import { workspace } from '$lib/stores/workspace';
   import { consoleStore } from '$lib/stores/console';
@@ -11,13 +11,114 @@
   let refreshInterval: number;
   let selectedFiles = new Set<string>();
   let showCommitInput = false;
+  let historyListElement: HTMLElement;
+  let savedScrollTop = 0;
+  
+  // Cache for change detection
+  let lastStatusJson = '';
+  let lastBranchJson = '';
+  let lastCommitJson = '';
+  let lastRemoteStatusJson = '';
+  let lastCommitHistoryJson = '';
 
-  $: ({ status, branch, loading, lastCommit, remoteStatus } = $gitStore);
+  $: ({ status: newStatus, branch: newBranch, loading: newLoading, lastCommit: newLastCommit, remoteStatus: newRemoteStatus, commitHistory: newCommitHistory } = $gitStore);
   $: workspacePath = $workspace.path;
+
+  // Only update when data actually changes
+  let status: typeof newStatus = null;
+  let branch: typeof newBranch = null;
+  let lastCommit: typeof newLastCommit = null;
+  let remoteStatus: typeof newRemoteStatus = null;
+  let commitHistory: typeof newCommitHistory = [];
+  let loading = false;
+
+  // Don't show loading state during refresh to prevent flicker
+  $: {
+    // Only show loading on initial load, not on refresh
+    if (newLoading && !status) {
+      loading = true;
+    } else if (!newLoading) {
+      loading = false;
+    }
+  }
+
+  $: {
+    const statusJson = JSON.stringify(newStatus);
+    if (statusJson !== lastStatusJson) {
+      lastStatusJson = statusJson;
+      status = newStatus;
+    }
+  }
+
+  $: {
+    const branchJson = JSON.stringify(newBranch);
+    if (branchJson !== lastBranchJson) {
+      lastBranchJson = branchJson;
+      branch = newBranch;
+    }
+  }
+
+  $: {
+    const commitJson = JSON.stringify(newLastCommit);
+    if (commitJson !== lastCommitJson) {
+      lastCommitJson = commitJson;
+      lastCommit = newLastCommit;
+    }
+  }
+
+  $: {
+    const remoteJson = JSON.stringify(newRemoteStatus);
+    if (remoteJson !== lastRemoteStatusJson) {
+      lastRemoteStatusJson = remoteJson;
+      remoteStatus = newRemoteStatus;
+    }
+  }
+
+  $: {
+    const historyJson = JSON.stringify(newCommitHistory);
+    if (historyJson !== lastCommitHistoryJson) {
+      lastCommitHistoryJson = historyJson;
+      commitHistory = newCommitHistory;
+    }
+  }
+
+  // Load commit history when workspace changes
+  $: {
+    console.log('[SourceControl] Workspace changed:', workspacePath);
+    if (workspacePath) {
+      console.log('[SourceControl] Loading history for:', workspacePath);
+      gitStore.loadHistory(workspacePath, 50);
+    }
+  }
+
+  // Debug log
+  $: {
+    console.log('[SourceControl] commitHistory length:', commitHistory?.length || 0);
+    console.log('[SourceControl] commitHistory:', commitHistory);
+  }
 
   // Export refresh function so parent can call it
   export async function refresh() {
     await handleRefresh();
+  }
+
+  afterUpdate(() => {
+    // Always restore scroll position, even if it's 0
+    if (historyListElement && savedScrollTop >= 0) {
+      // Use multiple methods to ensure scroll is restored
+      historyListElement.scrollTop = savedScrollTop;
+      requestAnimationFrame(() => {
+        if (historyListElement) {
+          historyListElement.scrollTop = savedScrollTop;
+        }
+      });
+    }
+  });
+
+  function handleHistoryScroll() {
+    if (historyListElement) {
+      savedScrollTop = historyListElement.scrollTop;
+    }
   }
 
   // Focus action for textarea
@@ -72,17 +173,27 @@
   })();
 
   onMount(() => {
+    console.log('[SourceControl] Component mounted, workspacePath:', workspacePath);
     // Initial refresh
     if (workspacePath) {
+      console.log('[SourceControl] Initial refresh');
       gitStore.refresh(workspacePath);
+      gitStore.loadHistory(workspacePath, 50);
     }
 
     // Auto-refresh every 10 seconds (increased from 5 to reduce flicker)
+    console.log('[SourceControl] Setting up auto-refresh interval');
     refreshInterval = window.setInterval(() => {
+      console.log('[SourceControl] Auto-refresh interval fired, loading:', loading, 'workspacePath:', workspacePath);
       if (workspacePath && !loading) {
+        console.log('[SourceControl] Auto-refresh triggered');
+        consoleStore.log('info', 'git', 'Auto-refreshing git status...');
         gitStore.refresh(workspacePath);
+        gitStore.loadHistory(workspacePath, 50);
       }
     }, 10000);
+    
+    console.log('[SourceControl] Interval ID:', refreshInterval);
   });
 
   onDestroy(() => {
@@ -95,6 +206,7 @@
     if (!workspacePath) return;
     consoleStore.log('info', 'git', 'Refreshing git status...');
     await gitStore.refresh(workspacePath);
+    await gitStore.loadHistory(workspacePath, 50);
     consoleStore.log('info', 'git', 'Git status refreshed');
   }
 
@@ -241,6 +353,8 @@
       consoleStore.log('info', 'git', `Committed: ${commitId.substring(0, 7)}`);
       commitMessage = '';
       showCommitInput = false;
+      // Reload history after commit
+      await gitStore.loadHistory(workspacePath, 50);
     } catch (err) {
       consoleStore.log('error', 'git', `Failed to commit: ${err}`);
     }
@@ -293,6 +407,22 @@
       default: return 'Unknown';
     }
   }
+
+  function formatTimestamp(timestamp: number): string {
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+  }
 </script>
 
 <div class="source-control">
@@ -311,7 +441,8 @@
       <p class="hint">Initialize git or open a git repository</p>
     </div>
   {:else}
-    <div class="header">
+    <div class="git-content">
+      <div class="header">
       <div class="branch-info">
         <span class="branch-icon">⎇</span>
         <span class="branch-name">{branch || 'detached'}</span>
@@ -510,11 +641,54 @@
         {/if}
       </div>
     {/if}
+
+    <!-- Commit History -->
+    <div class="commit-history">
+      <div class="history-header">
+        <span class="history-title">Commit History</span>
+      </div>
+      {#if commitHistory && commitHistory.length > 0}
+        <div class="history-list" bind:this={historyListElement} on:scroll={handleHistoryScroll}>
+          {#each commitHistory as commit, index (commit.id)}
+            <div class="history-item" class:is-latest={index === 0}>
+              <div class="commit-graph">
+                <div class="graph-line"></div>
+                <div class="graph-dot" class:latest-dot={index === 0}></div>
+              </div>
+              <div class="commit-details">
+                <div class="commit-info-row">
+                  <span class="commit-hash">{commit.short_id}</span>
+                  {#if index === 0}
+                    <span class="latest-badge">Latest</span>
+                  {/if}
+                  <span class="commit-time">{formatTimestamp(commit.timestamp)}</span>
+                </div>
+                <div class="commit-msg">{commit.message.split('\n')[0]}</div>
+                <div class="commit-author-small">{commit.author}</div>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="empty-state">
+          <p>No commits</p>
+          <p class="hint">History will appear here</p>
+        </div>
+      {/if}
+    </div>
+    </div>
   {/if}
 </div>
 
 <style>
   .source-control {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .git-content {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -608,21 +782,164 @@
     line-height: 1.4;
   }
 
-  .icon-button {
-    padding: 4px 8px;
-    font-size: 16px;
+  .commit-history {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-top: 1px solid var(--color-border);
+    min-height: 200px;
+    max-height: 50%;
+  }
+
+  .history-header {
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .history-title {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     color: var(--color-text-muted);
-    transition: color 0.15s;
   }
 
-  .icon-button svg {
-    width: 14px;
-    height: 14px;
-    display: block;
+  .history-list {
+    flex: 1;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    min-height: 0;
+    will-change: scroll-position;
+    contain: layout style paint;
   }
 
-  .icon-button:hover {
+  .history-list::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .history-list::-webkit-scrollbar-track {
+    background: var(--color-bg-primary);
+  }
+
+  .history-list::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+  }
+
+  .history-list::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-focus);
+  }
+
+  .history-item {
+    display: flex;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+    transition: background 0.15s;
+    will-change: auto;
+    contain: layout style;
+  }
+
+  .history-item.is-latest {
+    background: rgba(0, 212, 255, 0.08);
+  }
+
+  .history-item:hover {
+    background: var(--color-bg-hover);
+  }
+
+  .history-item.is-latest:hover {
+    background: rgba(0, 212, 255, 0.12);
+  }
+
+  .commit-graph {
+    position: relative;
+    width: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .graph-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: var(--color-border);
+    transform: translateX(-50%);
+  }
+
+  .graph-dot {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    border: 2px solid var(--color-bg-primary);
+    z-index: 1;
+  }
+
+  .graph-dot.latest-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3);
+  }
+
+  .commit-details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .commit-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-xs);
+    margin-bottom: 2px;
+  }
+
+  .commit-hash {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  .commit-time {
+    font-size: 10px;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  .latest-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: var(--color-accent);
+    color: var(--color-bg-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .commit-msg {
+    font-size: var(--font-size-xs);
     color: var(--color-text-primary);
+    overflow: hidden;
+    word-wrap: break-word;
+    white-space: normal;
+    line-height: 1.4;
+    margin-bottom: 2px;
+  }
+
+  .commit-author-small {
+    font-size: 10px;
+    color: var(--color-text-muted);
   }
 
   .text-icon-button {
@@ -649,9 +966,10 @@
   }
 
   .changes-container {
-    flex: 1;
+    flex: 0 1 auto;
     overflow-y: auto;
     overflow-x: hidden;
+    max-height: 40%;
   }
 
   .section {

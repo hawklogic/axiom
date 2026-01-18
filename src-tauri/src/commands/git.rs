@@ -82,3 +82,10 @@ pub fn git_remote_status(path: String, branch: String) -> Result<RemoteStatus, S
     let repo = Repository::discover(Path::new(&path)).map_err(|e| e.to_string())?;
     repo.remote_status(&branch).map_err(|e| e.to_string())
 }
+
+/// Get commit history.
+#[tauri::command]
+pub fn git_log(path: String, limit: usize) -> Result<Vec<CommitInfo>, String> {
+    let repo = Repository::discover(Path::new(&path)).map_err(|e| e.to_string())?;
+    repo.log(limit).map_err(|e| e.to_string())
+}
