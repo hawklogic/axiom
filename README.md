@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/splash.svg" alt="Axiom" width="600">
+  <img src="assets/brand/splash.png" alt="Axiom" width="700">
 </p>
 
 > **Status**: Work in progress — Backend crates scaffolded, UI forthcoming.
