@@ -382,13 +382,28 @@
     switch (lang) {
       case 'c': return 'C';
       case 'cpp': return 'C++';
-      case 'h': return 'C Header';
-      case 'hpp': return 'C++ Header';
       case 'python': return 'Python';
       case 'assembly': return 'ARM Assembly';
       case 'makefile': return 'Makefile';
       case 'linker': return 'Linker Script';
       case 'markdown': return 'Markdown';
+      case 'javascript': return 'JavaScript';
+      case 'typescript': return 'TypeScript';
+      case 'html': return 'HTML';
+      case 'css': return 'CSS';
+      case 'xml': return 'XML';
+      case 'json': return 'JSON';
+      case 'yaml': return 'YAML';
+      case 'svelte': return 'Svelte';
+      case 'astro': return 'Astro';
+      case 'dockerfile': return 'Dockerfile';
+      case 'gitignore': return 'Gitignore';
+      case 'bash': return 'Shell Script';
+      case 'rust': return 'Rust';
+      case 'go': return 'Go';
+      case 'java': return 'Java';
+      case 'sql': return 'SQL';
+      case 'text': return 'Text';
       default: return 'Text';
     }
   }
