@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2024 HawkLogic Systems
+
+[package]
+name = "axiom-settings"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Axiom settings management with TOML persistence"
+
+[dependencies]
+axiom-core = { path = "../axiom-core" }
+serde = { workspace = true }
+toml = { workspace = true }
+thiserror = { workspace = true }
+dirs = "5.0"
+
+[dev-dependencies]
+tempfile = { workspace = true }

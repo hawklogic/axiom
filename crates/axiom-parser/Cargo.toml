@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2024 HawkLogic Systems
+
+[package]
+name = "axiom-parser"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Axiom C/C++ parsing with tree-sitter"
+
+[dependencies]
+axiom-core = { path = "../axiom-core" }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tree-sitter = { workspace = true }
+tree-sitter-c = { workspace = true }
+tree-sitter-cpp = { workspace = true }

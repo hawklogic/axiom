@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2024 HawkLogic Systems
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/axiom-core",
+    "crates/axiom-settings",
+    "crates/axiom-toolchain",
+    "crates/axiom-parser",
+    "crates/axiom-symbols",
+    "crates/axiom-git",
+    "crates/axiom-terminal",
+    "src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["HawkLogic Systems"]
+license = "Apache-2.0"
+repository = "https://github.com/hawklogic/axiom"
+description = "Axiom — an avionics-grade IDE for embedded systems"
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Async
+tokio = { version = "1.35", features = ["full"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Parsing
+tree-sitter = "0.20"
+tree-sitter-c = "0.20"
+tree-sitter-cpp = "0.20"
+
+# Git
+git2 = "0.18"
+
+# Terminal
+portable-pty = "0.8"
+vte = "0.13"
+
+# Testing
+tempfile = "3.9"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
