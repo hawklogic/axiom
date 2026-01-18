@@ -4,6 +4,7 @@
   import { highlightCode, type HighlightedToken } from '$lib/utils/syntax';
   import { editorPanes, type EditorPane } from '$lib/stores/editorPanes';
   import { EMPTY } from '$lib/strings';
+  import { onMount } from 'svelte';
   
   export let pane: EditorPane;
   export let onDragStart: (paneId: string, filePath: string) => void;
@@ -12,6 +13,10 @@
   let editorElement: HTMLTextAreaElement;
   let highlightElement: HTMLElement;
   let isDragOver = false;
+  
+  onMount(() => {
+    console.log('[EditorPane] Mounted, pane:', pane.id, 'files:', pane.files.length);
+  });
   
   $: activeFile = pane.activeIndex >= 0 ? pane.files[pane.activeIndex] : null;
   $: highlightedContent = activeFile ? highlightCode(activeFile.content, activeFile.language) : [];

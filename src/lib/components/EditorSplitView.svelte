@@ -3,17 +3,27 @@
 <script lang="ts">
   import { editorPanes } from '$lib/stores/editorPanes';
   import EditorPane from './EditorPane.svelte';
+  import { onMount } from 'svelte';
   
   let draggedFile: { paneId: string; filePath: string } | null = null;
   
+  onMount(() => {
+    console.log('[EditorSplitView] Mounted, panes:', $editorPanes.panes.length);
+  });
+  
+  $: console.log('[EditorSplitView] Panes updated:', $editorPanes.panes.length, 'split:', $editorPanes.splitDirection);
+  
   function handleDragStart(paneId: string, filePath: string) {
+    console.log('[EditorSplitView] handleDragStart called:', paneId, filePath);
     draggedFile = { paneId, filePath };
   }
   
   function handleDrop(targetPaneId: string) {
+    console.log('[EditorSplitView] handleDrop called:', targetPaneId, 'draggedFile:', draggedFile);
     if (!draggedFile) return;
     
     if (draggedFile.paneId !== targetPaneId) {
+      console.log('[EditorSplitView] Moving file from', draggedFile.paneId, 'to', targetPaneId);
       editorPanes.moveFile(draggedFile.paneId, targetPaneId, draggedFile.filePath);
     }
     
@@ -21,10 +31,12 @@
   }
   
   function handleSplitHorizontal() {
+    console.log('[EditorSplitView] Split horizontal clicked');
     editorPanes.splitPane('horizontal');
   }
   
   function handleSplitVertical() {
+    console.log('[EditorSplitView] Split vertical clicked');
     editorPanes.splitPane('vertical');
   }
   
