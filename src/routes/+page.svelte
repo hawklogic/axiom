@@ -11,18 +11,55 @@
   import FileExplorer from '$lib/components/FileExplorer.svelte';
   import Terminal from '$lib/components/Terminal.svelte';
   import MiniConsole from '$lib/components/MiniConsole.svelte';
+  import AboutPanel from '$lib/components/AboutPanel.svelte';
   import { APP, PANELS } from '$lib/strings';
   import { editorPanes } from '$lib/stores/editorPanes';
+  import { ideStatus } from '$lib/stores/status';
   import { detectLanguage } from '$lib/utils/syntax';
 
   let ready = false;
   let activePanel = 'files';
   
   // Resizable panel state
+  let leftPanelWidth = 250;
   let bottomPanelHeight = 200;
   let terminalFlex = 3; // Terminal takes 3 parts, console takes 1 part
-  let workspaceEl: HTMLElement;
   let bottomSplitEl: HTMLElement;
+  let mainContentEl: HTMLElement;
+  
+  // Svelte action for left panel resize
+  function leftPanelResizer(node: HTMLElement) {
+    function onMouseDown(e: MouseEvent) {
+      e.preventDefault();
+      console.log('[Resize] Left panel mousedown');
+      
+      function onMouseMove(e: MouseEvent) {
+        if (!mainContentEl) return;
+        const rect = mainContentEl.getBoundingClientRect();
+        const newWidth = e.clientX - rect.left - 48; // Subtract sidebar width
+        leftPanelWidth = Math.max(150, Math.min(newWidth, 600));
+      }
+      
+      function onMouseUp() {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+      
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    }
+    
+    node.addEventListener('mousedown', onMouseDown);
+    return {
+      destroy() {
+        node.removeEventListener('mousedown', onMouseDown);
+      }
+    };
+  }
   
   // Svelte action for vertical resize
   function verticalResizer(node: HTMLElement) {
@@ -31,9 +68,9 @@
       console.log('[Resize] Vertical mousedown');
       
       function onMouseMove(e: MouseEvent) {
-        if (!workspaceEl) return;
-        const rect = workspaceEl.getBoundingClientRect();
-        const newHeight = rect.bottom - e.clientY;
+        const rect = document.querySelector('.app-container')?.getBoundingClientRect();
+        if (!rect) return;
+        const newHeight = rect.bottom - e.clientY - 22; // Subtract status bar height
         bottomPanelHeight = Math.max(100, Math.min(newHeight, rect.height - 100));
       }
       
@@ -107,6 +144,17 @@
       await new Promise(resolve => setTimeout(resolve, 300));
       console.log('[Axiom] Setting ready = true');
       ready = true;
+      
+      // Listen for menu events from Tauri
+      if (isTauri()) {
+        const { listen } = await import('@tauri-apps/api/event');
+        
+        // Handle "About" menu item
+        await listen('show-about', () => {
+          console.log('[Menu] Show about triggered');
+          activePanel = 'about';
+        });
+      }
     } catch (err) {
       console.error('[Axiom] onMount error:', err);
       ready = true; // Still show UI even on error
@@ -132,10 +180,13 @@
     
     if (!isTauri()) {
       console.warn('[Editor] File reading requires Tauri runtime');
+      ideStatus.error('File reading requires Tauri runtime');
+      setTimeout(() => ideStatus.ready(), 3000);
       return;
     }
 
     try {
+      ideStatus.loading(`Opening ${name}...`);
       console.log('[Editor] Reading file...');
       const { invoke } = await import('@tauri-apps/api/core');
       const content = await invoke<string>('read_file', { path });
@@ -152,8 +203,11 @@
         cursor: { line: 1, column: 1 },
       });
       console.log('[Editor] File opened in editor');
+      ideStatus.ready();
     } catch (err) {
       console.error('[Editor] Failed to read file:', err);
+      ideStatus.error(`Failed to open ${name}: ${err}`);
+      setTimeout(() => ideStatus.ready(), 3000);
     }
   }
 
@@ -163,57 +217,64 @@
   <Splash />
 {:else}
   <div class="app-container">
-    <div class="main-content">
+    <div class="main-content" bind:this={mainContentEl}>
       <Sidebar bind:activePanel />
       
-      <div class="workspace" bind:this={workspaceEl}>
-        <div class="editor-panels">
-          {#if activePanel === 'files'}
-            <Panel title={PANELS.fileExplorer}>
-              <FileExplorer on:file-select={handleFileSelect} />
-            </Panel>
-          {:else if activePanel === 'git'}
-            <Panel title={PANELS.sourceControl}>
-              <div class="panel-placeholder">Source Control</div>
-            </Panel>
-          {:else if activePanel === 'ast'}
-            <Panel title={PANELS.astViewer}>
-              <div class="panel-placeholder">AST Viewer</div>
-            </Panel>
-          {:else if activePanel === 'debug'}
-            <Panel title={PANELS.debugPanel}>
-              <div class="panel-placeholder">Debug Panel</div>
-            </Panel>
-          {:else if activePanel === 'settings'}
-            <Panel title={PANELS.settings}>
-              <div class="panel-placeholder">Settings</div>
-            </Panel>
-          {/if}
-          
-          <EditorSplitView />
+      <div class="left-panel" style="width: {leftPanelWidth}px;">
+        {#if activePanel === 'files'}
+          <Panel title={PANELS.fileExplorer}>
+            <FileExplorer on:file-select={handleFileSelect} />
+          </Panel>
+        {:else if activePanel === 'git'}
+          <Panel title={PANELS.sourceControl}>
+            <div class="panel-placeholder">Source Control</div>
+          </Panel>
+        {:else if activePanel === 'ast'}
+          <Panel title={PANELS.astViewer}>
+            <div class="panel-placeholder">AST Viewer</div>
+          </Panel>
+        {:else if activePanel === 'debug'}
+          <Panel title={PANELS.debugPanel}>
+            <div class="panel-placeholder">Debug Panel</div>
+          </Panel>
+        {:else if activePanel === 'settings'}
+          <Panel title={PANELS.settings}>
+            <div class="panel-placeholder">Settings</div>
+          </Panel>
+        {:else if activePanel === 'about'}
+          <Panel title="About Axiom">
+            <AboutPanel />
+          </Panel>
+        {/if}
+      </div>
+      
+      <!-- Left panel resize handle -->
+      <div class="resize-handle-left" use:leftPanelResizer></div>
+      
+      <div class="editor-area">
+        <EditorSplitView />
+      </div>
+    </div>
+    
+    <!-- Vertical resize handle -->
+    <div class="resize-handle-vertical" use:verticalResizer></div>
+    
+    <div class="bottom-panel" style="height: {bottomPanelHeight}px;">
+      <div class="bottom-split" bind:this={bottomSplitEl}>
+        <div class="terminal-pane" style="flex: {terminalFlex};">
+          <div class="pane-header">Terminal</div>
+          <div class="pane-content">
+            <Terminal />
+          </div>
         </div>
         
-        <!-- Vertical resize handle -->
-        <div class="resize-handle-vertical" use:verticalResizer></div>
+        <!-- Horizontal resize handle -->
+        <div class="resize-handle-horizontal" use:horizontalResizer></div>
         
-        <div class="bottom-panel" style="height: {bottomPanelHeight}px;">
-          <div class="bottom-split" bind:this={bottomSplitEl}>
-            <div class="terminal-pane" style="flex: {terminalFlex};">
-              <div class="pane-header">Terminal</div>
-              <div class="pane-content">
-                <Terminal />
-              </div>
-            </div>
-            
-            <!-- Horizontal resize handle -->
-            <div class="resize-handle-horizontal" use:horizontalResizer></div>
-            
-            <div class="console-pane" style="flex: 1;">
-              <div class="pane-header">Console</div>
-              <div class="pane-content">
-                <MiniConsole />
-              </div>
-            </div>
+        <div class="console-pane" style="flex: 1;">
+          <div class="pane-header">Console</div>
+          <div class="pane-content">
+            <MiniConsole />
           </div>
         </div>
       </div>
@@ -236,18 +297,36 @@
     flex: 1;
     overflow: hidden;
   }
-
-  .workspace {
+  
+  .editor-area {
     display: flex;
     flex-direction: column;
     flex: 1;
     overflow: hidden;
   }
 
-  .editor-panels {
+  .left-panel {
+    min-width: 150px;
+    max-width: 600px;
     display: flex;
-    flex: 1;
+    flex-direction: column;
+    flex-shrink: 0;
     overflow: hidden;
+  }
+  
+  .resize-handle-left {
+    width: 4px;
+    background: var(--color-border);
+    cursor: ew-resize;
+    flex-shrink: 0;
+    transition: background 0.15s;
+    position: relative;
+    z-index: 10;
+  }
+  
+  .resize-handle-left:hover,
+  .resize-handle-left:active {
+    background: var(--color-accent);
   }
 
   .resize-handle-vertical {

@@ -1,25 +1,40 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright 2024 HawkLogic Systems -->
 <script lang="ts">
-  import { STATUS, APP } from '$lib/strings';
+  import { APP } from '$lib/strings';
+  import { editorPanes } from '$lib/stores/editorPanes';
+  import { ideStatus } from '$lib/stores/status';
   
-  // These would be reactive based on actual state
-  let status = STATUS.ready;
   let encoding = 'UTF-8';
-  let position = 'Ln 1, Col 1';
   let branch = 'dev';
   let toolchain = 'Clang 15.0.0';
   
   const version = '0.1.0';
+  
+  // Get cursor position from active file in any pane
+  $: activeFile = $editorPanes.panes
+    .flatMap(pane => pane.activeIndex >= 0 ? [pane.files[pane.activeIndex]] : [])
+    [0];
+  
+  $: position = activeFile?.cursor 
+    ? `Ln ${activeFile.cursor.line}, Col ${activeFile.cursor.column}`
+    : 'Ln 1, Col 1';
 </script>
 
 <footer class="status-bar no-select">
   <div class="status-left">
     <span class="status-item branch">⎇ {branch}</span>
-    <span class="status-item">{status}</span>
+    <span class="status-item" class:status-error={$ideStatus.type === 'error'} class:status-loading={$ideStatus.type === 'loading' || $ideStatus.type === 'saving' || $ideStatus.type === 'building'}>
+      {$ideStatus.message}
+    </span>
   </div>
   <div class="status-center">
-    <span class="branding">{APP.name} v{version} · {APP.steward}</span>
+    <span class="branding">
+      {APP.name} v{version} · 
+      <a href="https://hawklogicsystems.com/" target="_blank" rel="noopener noreferrer" class="company-link">
+        {APP.steward}
+      </a>
+    </span>
   </div>
   <div class="status-right">
     <span class="status-item">{toolchain}</span>
@@ -62,6 +77,16 @@
     opacity: 0.7;
     letter-spacing: 0.3px;
   }
+  
+  .company-link {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  
+  .company-link:hover {
+    color: var(--color-accent);
+  }
 
   .status-item {
     display: flex;
@@ -71,5 +96,13 @@
 
   .branch {
     color: var(--color-accent);
+  }
+  
+  .status-error {
+    color: #f85149;
+  }
+  
+  .status-loading {
+    color: #f0ad4e;
   }
 </style>

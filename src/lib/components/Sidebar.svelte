@@ -9,10 +9,15 @@
     { id: 'ast', icon: '🌳', label: 'AST' },
     { id: 'debug', icon: '🔧', label: 'Debug' },
     { id: 'settings', icon: '⚙', label: 'Settings' },
+    { id: 'about', icon: 'ℹ', label: 'About' },
   ];
 </script>
 
 <aside class="sidebar no-select">
+  <div class="logo-section">
+    <img src="/assets/axiom-icon.svg" alt="Axiom" class="logo-icon" />
+  </div>
+  
   <nav class="nav">
     {#each items as item}
       <button
@@ -35,12 +40,34 @@
     display: flex;
     flex-direction: column;
   }
+  
+  .logo-section {
+    padding: var(--space-sm) 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid var(--color-border);
+  }
+  
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    transition: all 0.2s ease;
+    cursor: default;
+    filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.3));
+  }
+  
+  .logo-icon:hover {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.5));
+  }
 
   .nav {
     display: flex;
     flex-direction: column;
     padding: var(--space-xs);
     gap: var(--space-xs);
+    flex: 1;
   }
 
   .nav-item {

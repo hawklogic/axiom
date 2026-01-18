@@ -4,6 +4,7 @@
   import { highlightCode, type HighlightedToken } from '$lib/utils/syntax';
   import { editorPanes, type EditorPane } from '$lib/stores/editorPanes';
   import { consoleStore } from '$lib/stores/console';
+  import { ideStatus } from '$lib/stores/status';
   import { EMPTY } from '$lib/strings';
   import { onMount } from 'svelte';
   
@@ -104,6 +105,32 @@
     if (activeFile && !isUndoRedo) {
       pushHistory(target.value, target.selectionStart);
       editorPanes.updateContent(activeFile.path, target.value);
+      updateCursorPosition(target);
+    }
+  }
+  
+  function updateCursorPosition(target: HTMLTextAreaElement) {
+    if (!activeFile) return;
+    
+    const text = target.value.substring(0, target.selectionStart);
+    const lines = text.split('\n');
+    const line = lines.length;
+    const column = lines[lines.length - 1].length + 1;
+    
+    editorPanes.updateCursor(activeFile.path, line, column);
+  }
+  
+  function handleClick(e: MouseEvent) {
+    const target = e.target as HTMLTextAreaElement;
+    if (activeFile) {
+      updateCursorPosition(target);
+    }
+  }
+  
+  function handleKeyUp(e: KeyboardEvent) {
+    const target = e.target as HTMLTextAreaElement;
+    if (activeFile) {
+      updateCursorPosition(target);
     }
   }
   
@@ -191,13 +218,22 @@
   
   async function saveFile(path: string, content: string) {
     try {
+      const filename = path.split('/').pop() || 'file';
+      ideStatus.saving(filename);
+      
       const { invoke } = await import('@tauri-apps/api/core');
       await invoke('write_file', { path, contents: content });
       editorPanes.markSaved(path);
       originalContent = content;
       console.log('[Editor] File saved:', path);
+      
+      // Show success briefly then return to ready
+      ideStatus.custom('ready', `Saved ${filename}`);
+      setTimeout(() => ideStatus.ready(), 2000);
     } catch (err) {
       console.error('[Editor] Failed to save file:', err);
+      ideStatus.error(`Failed to save: ${err}`);
+      setTimeout(() => ideStatus.ready(), 3000);
     }
   }
   
@@ -381,6 +417,8 @@
             on:input={handleInput}
             on:scroll={handleScroll}
             on:keydown={handleKeyDown}
+            on:keyup={handleKeyUp}
+            on:click={handleClick}
             spellcheck="false"
             autocomplete="off"
             autocorrect="off"

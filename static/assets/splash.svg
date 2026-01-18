@@ -1,0 +1,32 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Copyright 2024 HawkLogic Systems -->
+<!-- Axiom Splash Screen - Widescreen -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 255" preserveAspectRatio="xMidYMid meet" fill="none">
+  <!-- Background -->
+  <rect width="800" height="255" fill="#1a1a1a"/>
+  
+  <!-- Center logo - Flight Instrument 'A' (scaled from axiom-icon.svg) -->
+  <g transform="translate(400, 85) scale(0.27)">
+    <!-- Outer ring - instrument bezel -->
+    <circle cx="0" cy="0" r="200" stroke="#3a3a3a" stroke-width="4" fill="none"/>
+    <!-- Inner ring -->
+    <circle cx="0" cy="0" r="160" stroke="#2a2a2a" stroke-width="2" fill="none"/>
+    <!-- Geometric 'A' - flight indicator style -->
+    <path d="M0 -176 L84 144 M0 -176 L-84 144" stroke="#ffffff" stroke-width="12" stroke-linecap="square" fill="none"/>
+    <path d="M-66 44 L66 44" stroke="#ffffff" stroke-width="12" stroke-linecap="square" fill="none"/>
+    <!-- Accent marks - like instrument tick marks -->
+    <line x1="0" y1="-186" x2="0" y2="-200" stroke="#00d4ff" stroke-width="4"/>
+    <line x1="0" y1="200" x2="0" y2="186" stroke="#00d4ff" stroke-width="4"/>
+    <line x1="-200" y1="0" x2="-186" y2="0" stroke="#00d4ff" stroke-width="4"/>
+    <line x1="186" y1="0" x2="200" y2="0" stroke="#00d4ff" stroke-width="4"/>
+  </g>
+  
+  <!-- AXIOM text -->
+  <text x="400" y="185" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="42" font-weight="300" letter-spacing="10" fill="#ffffff">AXIOM</text>
+  
+  <!-- Accent line -->
+  <line x1="300" y1="203" x2="500" y2="203" stroke="#00d4ff" stroke-width="1"/>
+  
+  <!-- Tagline -->
+  <text x="400" y="235" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="13" font-style="italic" letter-spacing="1" fill="#888888">Deterministic. Inspectable. Offline.</text>
+</svg>

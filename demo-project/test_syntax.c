@@ -12,6 +12,7 @@ typedef struct {
     bool enabled;
 } register_t;
 
+
 /* Multi-line comment
    for testing purposes */
 static volatile register_t gpio_regs[8];

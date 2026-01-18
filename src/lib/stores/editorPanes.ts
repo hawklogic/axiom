@@ -108,6 +108,21 @@ function createEditorPanesStore() {
     },
 
     /**
+     * Update cursor position for a file
+     */
+    updateCursor(filePath: string, line: number, column: number) {
+      update(layout => {
+        for (const pane of layout.panes) {
+          const file = pane.files.find(f => f.path === filePath);
+          if (file) {
+            file.cursor = { line, column };
+          }
+        }
+        return { ...layout };
+      });
+    },
+
+    /**
      * Mark file as saved
      */
     markSaved(filePath: string) {

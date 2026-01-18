@@ -30,7 +30,9 @@
   <p class="philosophy">{ABOUT.philosophy}</p>
   
   <div class="steward">
-    <span>{APP.steward}</span>
+    <a href="https://hawklogicsystems.com/" target="_blank" rel="noopener noreferrer" class="company-link">
+      {APP.steward}
+    </a>
   </div>
   
   <div class="links">
@@ -120,8 +122,18 @@
 
   .steward {
     font-size: var(--font-size-sm);
-    color: var(--color-accent);
     margin-bottom: var(--space-lg);
+  }
+  
+  .company-link {
+    color: var(--color-accent);
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  
+  .company-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
   }
 
   .links {
