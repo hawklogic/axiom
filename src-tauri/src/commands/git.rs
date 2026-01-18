@@ -89,3 +89,10 @@ pub fn git_log(path: String, limit: usize) -> Result<Vec<CommitInfo>, String> {
     let repo = Repository::discover(Path::new(&path)).map_err(|e| e.to_string())?;
     repo.log(limit).map_err(|e| e.to_string())
 }
+
+/// Get files changed in a commit.
+#[tauri::command]
+pub fn git_commit_files(path: String, commit_id: String) -> Result<Vec<String>, String> {
+    let repo = Repository::discover(Path::new(&path)).map_err(|e| e.to_string())?;
+    repo.commit_files(&commit_id).map_err(|e| e.to_string())
+}

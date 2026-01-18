@@ -252,6 +252,40 @@ impl Repository {
 
         Ok(commits)
     }
+
+    /// Get files changed in a commit.
+    pub fn commit_files(&self, commit_id: &str) -> Result<Vec<String>, GitError> {
+        let oid = git2::Oid::from_str(commit_id)?;
+        let commit = self.inner.find_commit(oid)?;
+        
+        let tree = commit.tree()?;
+        let parent_tree = if commit.parent_count() > 0 {
+            Some(commit.parent(0)?.tree()?)
+        } else {
+            None
+        };
+
+        let diff = self.inner.diff_tree_to_tree(
+            parent_tree.as_ref(),
+            Some(&tree),
+            None,
+        )?;
+
+        let mut files = Vec::new();
+        diff.foreach(
+            &mut |delta, _| {
+                if let Some(path) = delta.new_file().path() {
+                    files.push(path.to_string_lossy().to_string());
+                }
+                true
+            },
+            None,
+            None,
+            None,
+        )?;
+
+        Ok(files)
+    }
 }
 
 #[cfg(test)]

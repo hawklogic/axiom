@@ -157,6 +157,7 @@ fn main() {
             commands::git::git_last_commit,
             commands::git::git_remote_status,
             commands::git::git_log,
+            commands::git::git_commit_files,
             // Terminal commands
             commands::terminal::terminal_create,
             commands::terminal::terminal_write,

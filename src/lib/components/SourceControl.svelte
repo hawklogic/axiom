@@ -14,6 +14,10 @@
   let historyListElement: HTMLElement;
   let savedScrollTop = 0;
   
+  // Selected commit for viewing details
+  let selectedCommit: typeof newCommitHistory[0] | null = null;
+  let selectedCommitFiles: string[] = [];
+  
   // Cache for change detection
   let lastStatusJson = '';
   let lastBranchJson = '';
@@ -423,6 +427,33 @@
     
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
   }
+
+  async function handleCommitClick(commit: typeof commitHistory[0]) {
+    if (!workspacePath) return;
+    
+    try {
+      selectedCommit = commit;
+      const { invoke } = await import('@tauri-apps/api/core');
+      const files = await invoke<string[]>('git_commit_files', {
+        path: workspacePath,
+        commitId: commit.id,
+      });
+      selectedCommitFiles = files;
+      consoleStore.log('info', 'git', `Loaded ${files.length} files from commit ${commit.short_id}`);
+    } catch (err) {
+      consoleStore.log('error', 'git', `Failed to load commit files: ${err}`);
+    }
+  }
+
+  function closeCommitDetails() {
+    selectedCommit = null;
+    selectedCommitFiles = [];
+  }
+
+  async function handleCommitFileClick(filePath: string) {
+    if (!workspacePath || !selectedCommit) return;
+    handleViewDiff(filePath);
+  }
 </script>
 
 <div class="source-control">
@@ -485,14 +516,59 @@
     {#if lastCommit}
       <div class="last-commit">
         <div class="commit-header">
-          <span class="commit-id">{lastCommit.short_id}</span>
-          <span class="commit-author">{lastCommit.author}</span>
+          <div class="commit-header-left">
+            <span class="latest-indicator">●</span>
+            <span class="commit-id">{lastCommit.short_id}</span>
+            <span class="commit-author">{lastCommit.author}</span>
+          </div>
+          <span class="latest-label">Latest Commit</span>
         </div>
         <div class="commit-message">{lastCommit.message.split('\n')[0]}</div>
       </div>
     {/if}
 
-    <div class="changes-container">
+    {#if selectedCommit}
+      <div class="commit-details-panel">
+        <div class="commit-details-header">
+          <div class="commit-details-info">
+            <span class="commit-id">{selectedCommit.short_id}</span>
+            <span class="commit-author">{selectedCommit.author}</span>
+            <span class="commit-time">{formatTimestamp(selectedCommit.timestamp)}</span>
+          </div>
+          <div class="commit-details-actions">
+            {#if combinedFiles.staged.length > 0 || combinedFiles.unstaged.length > 0}
+              <button class="back-to-changes-button" on:click={closeCommitDetails} title="Back to uncommitted changes">
+                <span>Uncommitted Changes</span>
+              </button>
+            {/if}
+            <button class="close-button" on:click={closeCommitDetails} title="Close">×</button>
+          </div>
+        </div>
+        <div class="commit-details-content">
+          <div class="commit-details-message">{selectedCommit.message}</div>
+          <div class="commit-details-files">
+            <div class="section-header">
+              <span class="section-title">Files Changed ({selectedCommitFiles.length})</span>
+            </div>
+            <div class="file-list">
+              {#each selectedCommitFiles as file}
+                <div 
+                  class="file-item"
+                  role="button"
+                  tabindex="0"
+                  on:click={() => handleCommitFileClick(file)}
+                  on:keydown={(e) => e.key === 'Enter' && handleCommitFileClick(file)}
+                >
+                  <span class="status-badge" style="color: #e2c08d; background: rgba(226, 192, 141, 0.15)">M</span>
+                  <span class="file-path">{file}</span>
+                </div>
+              {/each}
+            </div>
+          </div>
+        </div>
+      </div>
+    {:else}
+      <div class="changes-container">
       <!-- Staged Changes -->
       {#if combinedFiles.staged.length > 0}
         <div class="section">
@@ -605,41 +681,38 @@
           <p class="hint">Working tree clean</p>
         </div>
       {/if}
-    </div>
+      </div>
 
-    <!-- Commit Section -->
-    {#if combinedFiles.staged.length > 0}
-      <div class="commit-section">
-        {#if showCommitInput}
-          <textarea
-            class="commit-input"
-            bind:value={commitMessage}
-            placeholder="Commit message (Ctrl+Enter to commit)..."
-            rows="3"
-            use:focusOnMount
-            on:keydown={(e) => {
-              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && commitMessage.trim()) {
-                handleCommit();
-              }
-            }}
-          />
-          <div class="commit-actions">
-            <button class="commit-button" on:click={handleCommit} disabled={!commitMessage.trim()}>
-              Commit ({combinedFiles.staged.length})
-            </button>
-            <button class="cancel-button" on:click={() => { showCommitInput = false; commitMessage = ''; }}>
-              Cancel
+      <!-- Commit Section -->
+      {#if combinedFiles.staged.length > 0}
+        <div class="commit-section">
+          <div class="commit-input-wrapper">
+            <textarea
+              class="commit-input"
+              bind:value={commitMessage}
+              placeholder="Commit message (Enter to commit)..."
+              rows="2"
+              use:focusOnMount
+              on:keydown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && commitMessage.trim()) {
+                  e.preventDefault();
+                  handleCommit();
+                }
+              }}
+            />
+            <button 
+              class="commit-button-icon" 
+              on:click={handleCommit} 
+              disabled={!commitMessage.trim()}
+              title="Commit ({combinedFiles.staged.length} file{combinedFiles.staged.length === 1 ? '' : 's'})"
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M3 8l3 3 7-7"/>
+              </svg>
             </button>
           </div>
-        {:else}
-          <button class="show-commit-button" on:click={() => showCommitInput = true}>
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M2 8h12M8 2v12"/>
-            </svg>
-            Commit {combinedFiles.staged.length} {combinedFiles.staged.length === 1 ? 'file' : 'files'}
-          </button>
-        {/if}
-      </div>
+        </div>
+      {/if}
     {/if}
 
     <!-- Commit History -->
@@ -650,7 +723,15 @@
       {#if commitHistory && commitHistory.length > 0}
         <div class="history-list" bind:this={historyListElement} on:scroll={handleHistoryScroll}>
           {#each commitHistory as commit, index (commit.id)}
-            <div class="history-item" class:is-latest={index === 0}>
+            <div 
+              class="history-item" 
+              class:is-latest={index === 0}
+              class:is-selected={selectedCommit?.id === commit.id}
+              role="button"
+              tabindex="0"
+              on:click={() => handleCommitClick(commit)}
+              on:keydown={(e) => e.key === 'Enter' && handleCommitClick(commit)}
+            >
               <div class="commit-graph">
                 <div class="graph-line"></div>
                 <div class="graph-dot" class:latest-dot={index === 0}></div>
@@ -752,16 +833,50 @@
 
   .last-commit {
     padding: var(--space-sm);
-    background: var(--color-bg-tertiary);
+    background: rgba(0, 212, 255, 0.08);
     border-bottom: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-accent);
     font-size: var(--font-size-xs);
   }
 
   .commit-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: var(--space-xs);
     margin-bottom: 4px;
+  }
+
+  .commit-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .latest-indicator {
+    color: var(--color-accent);
+    font-size: 8px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  .latest-label {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--color-accent);
+    color: var(--color-bg-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .commit-id {
@@ -840,10 +955,17 @@
     transition: background 0.15s;
     will-change: auto;
     contain: layout style;
+    cursor: pointer;
   }
 
   .history-item.is-latest {
     background: rgba(0, 212, 255, 0.08);
+  }
+
+  .history-item.is-selected {
+    background: rgba(0, 212, 255, 0.15);
+    border-left: 3px solid var(--color-accent);
+    padding-left: calc(var(--space-sm) - 3px);
   }
 
   .history-item:hover {
@@ -852,6 +974,10 @@
 
   .history-item.is-latest:hover {
     background: rgba(0, 212, 255, 0.12);
+  }
+
+  .history-item.is-selected:hover {
+    background: rgba(0, 212, 255, 0.2);
   }
 
   .commit-graph {
@@ -942,6 +1068,150 @@
     color: var(--color-text-muted);
   }
 
+  .commit-details-panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-tertiary);
+    border-bottom: 1px solid var(--color-border);
+    flex: 0 1 auto;
+    max-height: 50%;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .commit-details-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+  }
+
+  .commit-details-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--font-size-xs);
+    flex: 1;
+  }
+
+  .commit-details-info .commit-time {
+    margin-left: auto;
+  }
+
+  .commit-details-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-left: var(--space-md);
+  }
+
+  .back-to-changes-button {
+    display: flex;
+    align-items: center;
+    padding: 3px 6px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #e2c08d;
+    background: rgba(226, 192, 141, 0.15);
+    border: 1px solid rgba(226, 192, 141, 0.3);
+    border-radius: 3px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .back-to-changes-button:hover {
+    background: rgba(226, 192, 141, 0.25);
+    border-color: rgba(226, 192, 141, 0.5);
+  }
+
+  .close-button {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--color-text-muted);
+    border-radius: 3px;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .close-button:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+  }
+
+  .commit-details-message {
+    padding: var(--space-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    border-bottom: 1px solid var(--color-border);
+    max-height: 120px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .commit-details-message::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .commit-details-message::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .commit-details-message::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+  }
+
+  .commit-details-content {
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .commit-details-files {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    max-height: 180px;
+    overflow: hidden;
+  }
+
+  .commit-details-files .section-header {
+    flex-shrink: 0;
+  }
+
+  .commit-details-files .file-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .commit-details-files .file-list::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .commit-details-files .file-list::-webkit-scrollbar-track {
+    background: var(--color-bg-primary);
+  }
+
+  .commit-details-files .file-list::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+  }
+
+  .commit-details-files .file-list::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-focus);
+  }
   .text-icon-button {
     display: flex;
     align-items: center;
@@ -1110,9 +1380,16 @@
     background: var(--color-bg-secondary);
   }
 
+  .commit-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+  }
+
   .commit-input {
-    width: 100%;
+    flex: 1;
     padding: var(--space-xs);
+    padding-right: 40px;
     font-size: var(--font-size-sm);
     font-family: inherit;
     background: var(--color-bg-primary);
@@ -1122,6 +1399,37 @@
     resize: vertical;
     min-height: 60px;
     line-height: 1.4;
+  }
+
+  .commit-button-icon {
+    position: absolute;
+    right: 6px;
+    top: 6px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-accent);
+    color: var(--color-bg-primary);
+    border-radius: 4px;
+    transition: opacity 0.15s, transform 0.1s;
+    cursor: pointer;
+  }
+
+  .commit-button-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .commit-button-icon:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+
+  .commit-button-icon:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   .commit-input::placeholder {

@@ -24,7 +24,7 @@
   let sourceControlRef: any;
   
   // Resizable panel state
-  let leftPanelWidth = 250;
+  let leftPanelWidth = 300;
   let bottomPanelHeight = 200;
   let terminalFlex = 3; // Terminal takes 3 parts, console takes 1 part
   let bottomSplitEl: HTMLElement;
