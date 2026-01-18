@@ -1,10 +1,25 @@
-# Axiom
+<p align="center">
+  <img src="assets/brand/axiom-logo.svg" alt="Axiom Logo" width="280">
+</p>
 
-**Deterministic. Inspectable. Offline.**
+<h1 align="center">Axiom</h1>
 
-Axiom is an avionics-grade IDE for embedded systems engineers. Built for those who work close to the metal.
+<p align="center">
+  <strong>Deterministic. Inspectable. Offline.</strong>
+</p>
 
-*A HawkLogic Systems project.*
+<p align="center">
+  Avionics-grade IDE for embedded systems engineers.<br>
+  Built for those who work close to the metal.
+</p>
+
+<p align="center">
+  <em>A HawkLogic Systems project.</em>
+</p>
+
+<p align="center">
+  <img src="assets/brand/splash.svg" alt="Axiom Splash" width="600">
+</p>
 
 > **Status**: Work in progress — Backend crates scaffolded, UI forthcoming.
 
@@ -213,6 +228,25 @@ This avoids system Python dependencies. The bundled interpreter is located at `v
 - [ADR-0001: Project Scope](docs/adr/0001-project-scope.md)
 - [ADR-0002: Toolchains](docs/adr/0002-toolchains.md)
 - [ADR-0003: UI Layout](docs/adr/0003-ui-layout.md)
+
+## Brand Assets
+
+Visual identity follows the **ICARUS aesthetic** — flight-control energy, minimal, geometric, high contrast.
+
+<table>
+  <tr>
+    <td align="center"><strong>App Icon</strong></td>
+    <td align="center"><strong>Logo (Dark)</strong></td>
+    <td align="center"><strong>HawkLogic Badge</strong></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/brand/axiom-icon.svg" alt="Axiom Icon" width="80"></td>
+    <td align="center"><img src="assets/brand/axiom-logo-dark.svg" alt="Axiom Logo Dark" width="160"></td>
+    <td align="center"><img src="assets/brand/hawklogic-badge.svg" alt="HawkLogic Badge" width="120"></td>
+  </tr>
+</table>
+
+See [docs/brand.md](docs/brand.md) for full visual identity guidelines.
 
 ## Contributing
 
