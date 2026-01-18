@@ -4,6 +4,7 @@
 //! Git repository operations.
 
 use git2::Repository as Git2Repo;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 /// Git error type.
@@ -17,6 +18,25 @@ pub enum GitError {
 
     #[error("No commits in repository")]
     NoCommits,
+}
+
+/// Commit information.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommitInfo {
+    pub id: String,
+    pub short_id: String,
+    pub message: String,
+    pub author: String,
+    pub email: String,
+    pub timestamp: i64,
+}
+
+/// Remote tracking status.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemoteStatus {
+    pub ahead: usize,
+    pub behind: usize,
+    pub has_remote: bool,
 }
 
 /// Git repository wrapper.
@@ -114,6 +134,157 @@ impl Repository {
     /// Get the inner git2 repository (for advanced operations).
     pub fn inner(&self) -> &Git2Repo {
         &self.inner
+    }
+
+    /// Push to remote.
+    pub fn push(&self, remote_name: &str, branch: &str) -> Result<(), GitError> {
+        let mut remote = self.inner.find_remote(remote_name)?;
+        let refspec = format!("refs/heads/{}", branch);
+        remote.push(&[&refspec], None)?;
+        Ok(())
+    }
+
+    /// Pull from remote (fast-forward only).
+    pub fn pull(&self) -> Result<(), GitError> {
+        // Get current branch
+        let head = self.inner.head()?;
+        let branch_name = head.shorthand().ok_or(GitError::NotARepository)?;
+        
+        // Fetch from origin
+        let mut remote = self.inner.find_remote("origin")?;
+        remote.fetch(&[branch_name], None, None)?;
+        
+        // Fast-forward merge
+        let fetch_head = self.inner.find_reference("FETCH_HEAD")?;
+        let fetch_commit = self.inner.reference_to_annotated_commit(&fetch_head)?;
+        
+        let analysis = self.inner.merge_analysis(&[&fetch_commit])?;
+        
+        if analysis.0.is_up_to_date() {
+            return Ok(());
+        } else if analysis.0.is_fast_forward() {
+            let refname = format!("refs/heads/{}", branch_name);
+            let mut reference = self.inner.find_reference(&refname)?;
+            reference.set_target(fetch_commit.id(), "Fast-forward")?;
+            self.inner.set_head(&refname)?;
+            self.inner.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
+            Ok(())
+        } else {
+            Err(GitError::Git2(git2::Error::from_str("Cannot fast-forward")))
+        }
+    }
+
+    /// Get the most recent commit.
+    pub fn last_commit(&self) -> Result<Option<CommitInfo>, GitError> {
+        let head = match self.inner.head() {
+            Ok(head) => head,
+            Err(_) => return Ok(None),
+        };
+
+        let commit = head.peel_to_commit()?;
+        let id = commit.id().to_string();
+        let short_id = id[..7].to_string();
+        let message = commit.message().unwrap_or("").to_string();
+        let author = commit.author();
+        
+        Ok(Some(CommitInfo {
+            id,
+            short_id,
+            message,
+            author: author.name().unwrap_or("Unknown").to_string(),
+            email: author.email().unwrap_or("").to_string(),
+            timestamp: commit.time().seconds(),
+        }))
+    }
+
+    /// Check if local branch is ahead/behind remote.
+    pub fn remote_status(&self, branch: &str) -> Result<RemoteStatus, GitError> {
+        let local_ref = format!("refs/heads/{}", branch);
+        let remote_ref = format!("refs/remotes/origin/{}", branch);
+
+        let local = match self.inner.find_reference(&local_ref) {
+            Ok(r) => r,
+            Err(_) => return Ok(RemoteStatus { ahead: 0, behind: 0, has_remote: false }),
+        };
+
+        let remote = match self.inner.find_reference(&remote_ref) {
+            Ok(r) => r,
+            Err(_) => return Ok(RemoteStatus { ahead: 0, behind: 0, has_remote: false }),
+        };
+
+        let local_oid = local.target().ok_or(GitError::NotARepository)?;
+        let remote_oid = remote.target().ok_or(GitError::NotARepository)?;
+
+        let (ahead, behind) = self.inner.graph_ahead_behind(local_oid, remote_oid)?;
+
+        Ok(RemoteStatus {
+            ahead,
+            behind,
+            has_remote: true,
+        })
+    }
+
+    /// Get commit history.
+    pub fn log(&self, limit: usize) -> Result<Vec<CommitInfo>, GitError> {
+        let mut revwalk = self.inner.revwalk()?;
+        revwalk.push_head()?;
+        revwalk.set_sorting(git2::Sort::TIME)?;
+
+        let mut commits = Vec::new();
+        for oid in revwalk.take(limit) {
+            let oid = oid?;
+            let commit = self.inner.find_commit(oid)?;
+            
+            let id = commit.id().to_string();
+            let short_id = id[..7].to_string();
+            let message = commit.message().unwrap_or("").to_string();
+            let author = commit.author();
+            
+            commits.push(CommitInfo {
+                id,
+                short_id,
+                message,
+                author: author.name().unwrap_or("Unknown").to_string(),
+                email: author.email().unwrap_or("").to_string(),
+                timestamp: commit.time().seconds(),
+            });
+        }
+
+        Ok(commits)
+    }
+
+    /// Get files changed in a commit.
+    pub fn commit_files(&self, commit_id: &str) -> Result<Vec<String>, GitError> {
+        let oid = git2::Oid::from_str(commit_id)?;
+        let commit = self.inner.find_commit(oid)?;
+        
+        let tree = commit.tree()?;
+        let parent_tree = if commit.parent_count() > 0 {
+            Some(commit.parent(0)?.tree()?)
+        } else {
+            None
+        };
+
+        let diff = self.inner.diff_tree_to_tree(
+            parent_tree.as_ref(),
+            Some(&tree),
+            None,
+        )?;
+
+        let mut files = Vec::new();
+        diff.foreach(
+            &mut |delta, _| {
+                if let Some(path) = delta.new_file().path() {
+                    files.push(path.to_string_lossy().to_string());
+                }
+                true
+            },
+            None,
+            None,
+            None,
+        )?;
+
+        Ok(files)
     }
 }
 

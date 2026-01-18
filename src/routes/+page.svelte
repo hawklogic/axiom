@@ -12,6 +12,7 @@
   import Terminal from '$lib/components/Terminal.svelte';
   import MiniConsole from '$lib/components/MiniConsole.svelte';
   import AboutPanel from '$lib/components/AboutPanel.svelte';
+  import SourceControl from '$lib/components/SourceControl.svelte';
   import { APP, PANELS } from '$lib/strings';
   import { editorPanes } from '$lib/stores/editorPanes';
   import { ideStatus } from '$lib/stores/status';
@@ -20,9 +21,10 @@
   let ready = false;
   let activePanel = 'files';
   let leftPanelVisible = true;
+  let sourceControlRef: any;
   
   // Resizable panel state
-  let leftPanelWidth = 250;
+  let leftPanelWidth = 300;
   let bottomPanelHeight = 200;
   let terminalFlex = 3; // Terminal takes 3 parts, console takes 1 part
   let bottomSplitEl: HTMLElement;
@@ -229,7 +231,12 @@
             </Panel>
           {:else if activePanel === 'git'}
             <Panel title={PANELS.sourceControl}>
-              <div class="panel-placeholder">Source Control</div>
+              <svelte:fragment slot="header-actions">
+                <button class="panel-action-button" on:click={() => sourceControlRef?.refresh()} title="Refresh">
+                  ↻
+                </button>
+              </svelte:fragment>
+              <SourceControl bind:this={sourceControlRef} />
             </Panel>
           {:else if activePanel === 'ast'}
             <Panel title={PANELS.astViewer}>
@@ -307,6 +314,20 @@
     flex: 1;
     overflow: hidden;
     position: relative;
+  }
+
+  .panel-action-button {
+    padding: 2px 6px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    transition: color 0.15s;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+
+  .panel-action-button:hover {
+    color: var(--color-text-primary);
   }
 
   .left-panel {

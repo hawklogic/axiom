@@ -62,16 +62,107 @@ const ARM_INSTRUCTIONS = [
   'bhi', 'bls', 'bge', 'blt', 'bgt', 'ble', 'bal', 'nop'
 ];
 
-export function detectLanguage(filename: string): string {
+const JS_KEYWORDS = [
+  'async', 'await', 'break', 'case', 'catch', 'class', 'const', 'continue',
+  'debugger', 'default', 'delete', 'do', 'else', 'export', 'extends', 'false',
+  'finally', 'for', 'function', 'if', 'import', 'in', 'instanceof', 'let',
+  'new', 'null', 'return', 'static', 'super', 'switch', 'this', 'throw',
+  'true', 'try', 'typeof', 'var', 'void', 'while', 'with', 'yield'
+];
+
+const TS_KEYWORDS = [
+  ...JS_KEYWORDS,
+  'abstract', 'as', 'asserts', 'any', 'boolean', 'constructor', 'declare',
+  'enum', 'from', 'get', 'implements', 'interface', 'is', 'keyof', 'module',
+  'namespace', 'never', 'number', 'object', 'of', 'package', 'private',
+  'protected', 'public', 'readonly', 'require', 'set', 'string', 'symbol',
+  'type', 'undefined', 'unique', 'unknown'
+];
+
+const HTML_TAGS = [
+  'a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base',
+  'bdi', 'bdo', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption',
+  'cite', 'code', 'col', 'colgroup', 'data', 'datalist', 'dd', 'del', 'details',
+  'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption',
+  'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head',
+  'header', 'hr', 'html', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'label',
+  'legend', 'li', 'link', 'main', 'map', 'mark', 'meta', 'meter', 'nav',
+  'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param',
+  'picture', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script',
+  'section', 'select', 'small', 'source', 'span', 'strong', 'style', 'sub',
+  'summary', 'sup', 'table', 'tbody', 'td', 'template', 'textarea', 'tfoot',
+  'th', 'thead', 'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video', 'wbr'
+];
+
+const CSS_PROPERTIES = [
+  'align', 'animation', 'background', 'border', 'bottom', 'box', 'clear',
+  'clip', 'color', 'content', 'cursor', 'display', 'filter', 'flex', 'float',
+  'font', 'grid', 'height', 'justify', 'left', 'letter', 'line', 'list',
+  'margin', 'max', 'min', 'opacity', 'outline', 'overflow', 'padding',
+  'position', 'right', 'text', 'top', 'transform', 'transition', 'vertical',
+  'visibility', 'white', 'width', 'word', 'z-index'
+];
+
+const RUST_KEYWORDS = [
+  'as', 'async', 'await', 'break', 'const', 'continue', 'crate', 'dyn', 'else',
+  'enum', 'extern', 'false', 'fn', 'for', 'if', 'impl', 'in', 'let', 'loop',
+  'match', 'mod', 'move', 'mut', 'pub', 'ref', 'return', 'self', 'Self',
+  'static', 'struct', 'super', 'trait', 'true', 'type', 'unsafe', 'use',
+  'where', 'while', 'abstract', 'become', 'box', 'do', 'final', 'macro',
+  'override', 'priv', 'typeof', 'unsized', 'virtual', 'yield'
+];
+
+const GO_KEYWORDS = [
+  'break', 'case', 'chan', 'const', 'continue', 'default', 'defer', 'else',
+  'fallthrough', 'for', 'func', 'go', 'goto', 'if', 'import', 'interface',
+  'map', 'package', 'range', 'return', 'select', 'struct', 'switch', 'type',
+  'var', 'bool', 'byte', 'complex64', 'complex128', 'error', 'float32',
+  'float64', 'int', 'int8', 'int16', 'int32', 'int64', 'rune', 'string',
+  'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'uintptr'
+];
+
+const JAVA_KEYWORDS = [
+  'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char',
+  'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum',
+  'extends', 'final', 'finally', 'float', 'for', 'goto', 'if', 'implements',
+  'import', 'instanceof', 'int', 'interface', 'long', 'native', 'new', 'package',
+  'private', 'protected', 'public', 'return', 'short', 'static', 'strictfp',
+  'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient',
+  'try', 'void', 'volatile', 'while', 'true', 'false', 'null'
+];
+
+const SQL_KEYWORDS = [
+  'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP',
+  'ALTER', 'TABLE', 'INDEX', 'VIEW', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER',
+  'ON', 'AS', 'AND', 'OR', 'NOT', 'NULL', 'IS', 'IN', 'LIKE', 'BETWEEN',
+  'ORDER', 'BY', 'GROUP', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL',
+  'DISTINCT', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'PRIMARY', 'KEY',
+  'FOREIGN', 'REFERENCES', 'CONSTRAINT', 'DEFAULT', 'AUTO_INCREMENT'
+];
+
+export type Language = 
+  | 'c' | 'cpp' | 'python' | 'assembly' | 'makefile' | 'linker' | 'markdown'
+  | 'javascript' | 'typescript' | 'html' | 'css' | 'xml' | 'json' | 'yaml'
+  | 'svelte' | 'astro' | 'dockerfile' | 'gitignore' | 'bash' | 'rust'
+  | 'go' | 'java' | 'sql' | 'text';
+
+export function detectLanguage(filename: string): Language {
   const ext = filename.split('.').pop()?.toLowerCase();
   const basename = filename.split('/').pop()?.toLowerCase() || '';
   
-  // Check for Makefile (no extension)
+  // Check for special filenames without extensions
   if (basename === 'makefile' || basename.startsWith('makefile.')) {
     return 'makefile';
   }
+  if (basename === 'dockerfile' || basename.startsWith('dockerfile.')) {
+    return 'dockerfile';
+  }
+  if (basename === '.gitignore' || basename === '.dockerignore' || basename === '.npmignore') {
+    return 'gitignore';
+  }
   
   switch (ext) {
+    // C/C++
     case 'c':
     case 'h':
       return 'c';
@@ -81,13 +172,66 @@ export function detectLanguage(filename: string): string {
     case 'hpp':
     case 'hxx':
       return 'cpp';
+    
+    // Python
     case 'py':
     case 'pyw':
       return 'python';
+    
+    // Assembly
     case 's':
     case 'S':
     case 'asm':
       return 'assembly';
+    
+    // Web languages
+    case 'js':
+    case 'mjs':
+    case 'cjs':
+      return 'javascript';
+    case 'ts':
+    case 'mts':
+    case 'cts':
+      return 'typescript';
+    case 'html':
+    case 'htm':
+      return 'html';
+    case 'css':
+    case 'scss':
+    case 'sass':
+    case 'less':
+      return 'css';
+    case 'xml':
+    case 'svg':
+      return 'xml';
+    case 'json':
+    case 'jsonc':
+      return 'json';
+    case 'yaml':
+    case 'yml':
+      return 'yaml';
+    
+    // Framework-specific
+    case 'svelte':
+      return 'svelte';
+    case 'astro':
+      return 'astro';
+    
+    // Other languages
+    case 'rs':
+      return 'rust';
+    case 'go':
+      return 'go';
+    case 'java':
+      return 'java';
+    case 'sql':
+      return 'sql';
+    case 'sh':
+    case 'bash':
+    case 'zsh':
+      return 'bash';
+    
+    // Build/config files
     case 'ld':
       return 'linker';
     case 'mk':
@@ -95,6 +239,7 @@ export function detectLanguage(filename: string): string {
     case 'md':
     case 'markdown':
       return 'markdown';
+    
     default:
       return 'text';
   }
@@ -120,6 +265,38 @@ export function highlightCode(code: string, language: string): HighlightedToken[
       return highlightLinker(code);
     case 'markdown':
       return highlightMarkdown(code);
+    case 'javascript':
+      return highlightJavaScript(code);
+    case 'typescript':
+      return highlightTypeScript(code);
+    case 'html':
+      return highlightHTML(code);
+    case 'css':
+      return highlightCSS(code);
+    case 'xml':
+      return highlightXML(code);
+    case 'json':
+      return highlightJSON(code);
+    case 'yaml':
+      return highlightYAML(code);
+    case 'svelte':
+      return highlightSvelte(code);
+    case 'astro':
+      return highlightAstro(code);
+    case 'dockerfile':
+      return highlightDockerfile(code);
+    case 'gitignore':
+      return highlightGitignore(code);
+    case 'bash':
+      return highlightBash(code);
+    case 'rust':
+      return highlightRust(code);
+    case 'go':
+      return highlightGo(code);
+    case 'java':
+      return highlightJava(code);
+    case 'sql':
+      return highlightSQL(code);
     default:
       return [{ type: 'text', value: code }];
   }
@@ -767,6 +944,639 @@ function highlightMarkdown(code: string): HighlightedToken[] {
     if (i < lines.length - 1) {
       tokens.push({ type: 'text', value: '\n' });
     }
+  }
+  
+  return tokens;
+}
+
+
+function highlightJavaScript(code: string): HighlightedToken[] {
+  return highlightCLike(code, JS_KEYWORDS);
+}
+
+function highlightTypeScript(code: string): HighlightedToken[] {
+  return highlightCLike(code, TS_KEYWORDS);
+}
+
+function highlightHTML(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  let pos = 0;
+  
+  while (pos < code.length) {
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    // HTML comments
+    if (code.slice(pos, pos + 4) === '<!--') {
+      const end = code.indexOf('-->', pos + 4);
+      if (end !== -1) {
+        tokens.push({ type: 'comment', value: code.slice(pos, end + 3) });
+        pos = end + 3;
+      } else {
+        tokens.push({ type: 'comment', value: code.slice(pos) });
+        break;
+      }
+      continue;
+    }
+    
+    // Tags
+    if (code[pos] === '<') {
+      const tagEnd = code.indexOf('>', pos);
+      if (tagEnd !== -1) {
+        const tagContent = code.slice(pos + 1, tagEnd);
+        tokens.push({ type: 'operator', value: '<' });
+        
+        // Parse tag name
+        const spaceIdx = tagContent.search(/[\s/>]/);
+        const tagName = spaceIdx !== -1 ? tagContent.slice(0, spaceIdx) : tagContent;
+        const cleanTagName = tagName.replace('/', '');
+        
+        if (tagName.startsWith('/')) {
+          tokens.push({ type: 'operator', value: '/' });
+        }
+        
+        if (HTML_TAGS.includes(cleanTagName.toLowerCase())) {
+          tokens.push({ type: 'keyword', value: cleanTagName });
+        } else {
+          tokens.push({ type: 'function', value: cleanTagName });
+        }
+        
+        // Parse attributes
+        if (spaceIdx !== -1) {
+          const attrs = tagContent.slice(spaceIdx);
+          let attrPos = 0;
+          while (attrPos < attrs.length) {
+            if (/\s/.test(attrs[attrPos])) {
+              tokens.push({ type: 'text', value: attrs[attrPos] });
+              attrPos++;
+              continue;
+            }
+            
+            if (attrs[attrPos] === '/' || attrs[attrPos] === '>') {
+              attrPos++;
+              continue;
+            }
+            
+            // Attribute name
+            const attrStart = attrPos;
+            while (attrPos < attrs.length && /[a-zA-Z0-9\-:]/.test(attrs[attrPos])) attrPos++;
+            if (attrPos > attrStart) {
+              tokens.push({ type: 'type', value: attrs.slice(attrStart, attrPos) });
+            }
+            
+            // Skip whitespace
+            while (attrPos < attrs.length && /\s/.test(attrs[attrPos])) {
+              tokens.push({ type: 'text', value: attrs[attrPos] });
+              attrPos++;
+            }
+            
+            // Equals sign
+            if (attrPos < attrs.length && attrs[attrPos] === '=') {
+              tokens.push({ type: 'operator', value: '=' });
+              attrPos++;
+              
+              // Skip whitespace
+              while (attrPos < attrs.length && /\s/.test(attrs[attrPos])) {
+                tokens.push({ type: 'text', value: attrs[attrPos] });
+                attrPos++;
+              }
+              
+              // Attribute value
+              if (attrPos < attrs.length && (attrs[attrPos] === '"' || attrs[attrPos] === "'")) {
+                const quote = attrs[attrPos];
+                const valueStart = attrPos;
+                attrPos++;
+                while (attrPos < attrs.length && attrs[attrPos] !== quote) attrPos++;
+                if (attrPos < attrs.length) attrPos++;
+                tokens.push({ type: 'string', value: attrs.slice(valueStart, attrPos) });
+              }
+            }
+          }
+        }
+        
+        if (tagContent.endsWith('/')) {
+          tokens.push({ type: 'operator', value: '/' });
+        }
+        
+        tokens.push({ type: 'operator', value: '>' });
+        pos = tagEnd + 1;
+        continue;
+      }
+    }
+    
+    // Text content
+    const textStart = pos;
+    while (pos < code.length && code[pos] !== '<' && code[pos] !== '\n') pos++;
+    if (pos > textStart) {
+      tokens.push({ type: 'text', value: code.slice(textStart, pos) });
+    }
+  }
+  
+  return tokens;
+}
+
+function highlightXML(code: string): HighlightedToken[] {
+  return highlightHTML(code); // XML uses similar syntax to HTML
+}
+
+function highlightCSS(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  let pos = 0;
+  
+  while (pos < code.length) {
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    if (/\s/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[ \t\r]/.test(code[pos])) pos++;
+      tokens.push({ type: 'text', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Comments
+    if (code.slice(pos, pos + 2) === '/*') {
+      const end = code.indexOf('*/', pos + 2);
+      if (end !== -1) {
+        tokens.push({ type: 'comment', value: code.slice(pos, end + 2) });
+        pos = end + 2;
+      } else {
+        tokens.push({ type: 'comment', value: code.slice(pos) });
+        break;
+      }
+      continue;
+    }
+    
+    // Strings
+    if (code[pos] === '"' || code[pos] === "'") {
+      const quote = code[pos];
+      const start = pos;
+      pos++;
+      while (pos < code.length && code[pos] !== quote) {
+        if (code[pos] === '\\') pos++;
+        pos++;
+      }
+      if (pos < code.length) pos++;
+      tokens.push({ type: 'string', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Selectors (before {)
+    if (code[pos] === '.' || code[pos] === '#') {
+      const start = pos;
+      pos++;
+      while (pos < code.length && /[a-zA-Z0-9_-]/.test(code[pos])) pos++;
+      tokens.push({ type: 'function', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Property names (before :)
+    if (/[a-zA-Z-]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[a-zA-Z0-9-]/.test(code[pos])) pos++;
+      const word = code.slice(start, pos);
+      
+      // Check if it's a property
+      const nextNonSpace = code.slice(pos).search(/\S/);
+      if (nextNonSpace !== -1 && code[pos + nextNonSpace] === ':') {
+        tokens.push({ type: 'type', value: word });
+      } else {
+        tokens.push({ type: 'keyword', value: word });
+      }
+      continue;
+    }
+    
+    // Numbers and units
+    if (/\d/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[\d.]/.test(code[pos])) pos++;
+      // Check for units
+      if (pos < code.length && /[a-z%]/.test(code[pos])) {
+        while (pos < code.length && /[a-z%]/.test(code[pos])) pos++;
+      }
+      tokens.push({ type: 'number', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Operators and punctuation
+    if (/[{}:;,()[\]>+~*]/.test(code[pos])) {
+      tokens.push({ type: 'operator', value: code[pos] });
+      pos++;
+      continue;
+    }
+    
+    tokens.push({ type: 'text', value: code[pos] });
+    pos++;
+  }
+  
+  return tokens;
+}
+
+function highlightJSON(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  let pos = 0;
+  
+  while (pos < code.length) {
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    if (/\s/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[ \t\r]/.test(code[pos])) pos++;
+      tokens.push({ type: 'text', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Strings (keys and values)
+    if (code[pos] === '"') {
+      const start = pos;
+      pos++;
+      while (pos < code.length && code[pos] !== '"') {
+        if (code[pos] === '\\') pos++;
+        pos++;
+      }
+      if (pos < code.length) pos++;
+      
+      // Check if it's a key (followed by :)
+      const nextNonSpace = code.slice(pos).search(/\S/);
+      if (nextNonSpace !== -1 && code[pos + nextNonSpace] === ':') {
+        tokens.push({ type: 'type', value: code.slice(start, pos) });
+      } else {
+        tokens.push({ type: 'string', value: code.slice(start, pos) });
+      }
+      continue;
+    }
+    
+    // Numbers
+    if (/[\d-]/.test(code[pos])) {
+      const start = pos;
+      if (code[pos] === '-') pos++;
+      while (pos < code.length && /[\d.eE+\-]/.test(code[pos])) pos++;
+      tokens.push({ type: 'number', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Keywords (true, false, null)
+    if (/[a-z]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[a-z]/.test(code[pos])) pos++;
+      const word = code.slice(start, pos);
+      if (['true', 'false', 'null'].includes(word)) {
+        tokens.push({ type: 'keyword', value: word });
+      } else {
+        tokens.push({ type: 'text', value: word });
+      }
+      continue;
+    }
+    
+    // Operators
+    if (/[{}[\]:,]/.test(code[pos])) {
+      tokens.push({ type: 'operator', value: code[pos] });
+      pos++;
+      continue;
+    }
+    
+    tokens.push({ type: 'text', value: code[pos] });
+    pos++;
+  }
+  
+  return tokens;
+}
+
+function highlightYAML(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  const lines = code.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let pos = 0;
+    
+    // Leading whitespace
+    while (pos < line.length && /[ \t]/.test(line[pos])) {
+      tokens.push({ type: 'text', value: line[pos] });
+      pos++;
+    }
+    
+    // Comments
+    if (line[pos] === '#') {
+      tokens.push({ type: 'comment', value: line.slice(pos) });
+      if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+      continue;
+    }
+    
+    // List items
+    if (line[pos] === '-' && (pos + 1 >= line.length || /\s/.test(line[pos + 1]))) {
+      tokens.push({ type: 'operator', value: '-' });
+      pos++;
+      if (pos < line.length) {
+        tokens.push({ type: 'text', value: line.slice(pos) });
+      }
+      if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+      continue;
+    }
+    
+    // Key-value pairs
+    const colonIdx = line.indexOf(':', pos);
+    if (colonIdx !== -1) {
+      const key = line.slice(pos, colonIdx).trim();
+      if (key) {
+        tokens.push({ type: 'type', value: line.slice(pos, colonIdx) });
+        tokens.push({ type: 'operator', value: ':' });
+        
+        const value = line.slice(colonIdx + 1);
+        if (value.trim()) {
+          // Check for strings
+          if (value.trim().startsWith('"') || value.trim().startsWith("'")) {
+            tokens.push({ type: 'string', value });
+          } else if (/^\s*[\d.-]/.test(value)) {
+            tokens.push({ type: 'number', value });
+          } else if (/^\s*(true|false|null|yes|no|on|off)\s*$/.test(value)) {
+            tokens.push({ type: 'keyword', value });
+          } else {
+            tokens.push({ type: 'text', value });
+          }
+        }
+      } else {
+        tokens.push({ type: 'text', value: line.slice(pos) });
+      }
+    } else {
+      tokens.push({ type: 'text', value: line.slice(pos) });
+    }
+    
+    if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+  }
+  
+  return tokens;
+}
+
+function highlightSvelte(code: string): HighlightedToken[] {
+  // Svelte is HTML + JS/TS, use HTML highlighter as base
+  return highlightHTML(code);
+}
+
+function highlightAstro(code: string): HighlightedToken[] {
+  // Astro is similar to HTML with frontmatter
+  return highlightHTML(code);
+}
+
+function highlightDockerfile(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  const lines = code.split('\n');
+  
+  const DOCKER_KEYWORDS = [
+    'FROM', 'RUN', 'CMD', 'LABEL', 'EXPOSE', 'ENV', 'ADD', 'COPY',
+    'ENTRYPOINT', 'VOLUME', 'USER', 'WORKDIR', 'ARG', 'ONBUILD',
+    'STOPSIGNAL', 'HEALTHCHECK', 'SHELL', 'MAINTAINER'
+  ];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let pos = 0;
+    
+    // Leading whitespace
+    while (pos < line.length && /\s/.test(line[pos])) {
+      tokens.push({ type: 'text', value: line[pos] });
+      pos++;
+    }
+    
+    // Comments
+    if (line[pos] === '#') {
+      tokens.push({ type: 'comment', value: line.slice(pos) });
+      if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+      continue;
+    }
+    
+    // Docker keywords
+    const wordMatch = line.slice(pos).match(/^[A-Z]+/);
+    if (wordMatch && DOCKER_KEYWORDS.includes(wordMatch[0])) {
+      tokens.push({ type: 'keyword', value: wordMatch[0] });
+      pos += wordMatch[0].length;
+      tokens.push({ type: 'text', value: line.slice(pos) });
+    } else {
+      tokens.push({ type: 'text', value: line.slice(pos) });
+    }
+    
+    if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+  }
+  
+  return tokens;
+}
+
+function highlightGitignore(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  const lines = code.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    if (line.trim().startsWith('#')) {
+      tokens.push({ type: 'comment', value: line });
+    } else if (line.trim().startsWith('!')) {
+      tokens.push({ type: 'keyword', value: line });
+    } else if (line.trim()) {
+      tokens.push({ type: 'string', value: line });
+    } else {
+      tokens.push({ type: 'text', value: line });
+    }
+    
+    if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+  }
+  
+  return tokens;
+}
+
+function highlightBash(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  let pos = 0;
+  
+  const BASH_KEYWORDS = [
+    'if', 'then', 'else', 'elif', 'fi', 'case', 'esac', 'for', 'while',
+    'until', 'do', 'done', 'in', 'function', 'select', 'time', 'coproc',
+    'echo', 'export', 'source', 'alias', 'unalias', 'set', 'unset',
+    'readonly', 'local', 'declare', 'typeset', 'return', 'exit', 'break',
+    'continue', 'shift', 'test', 'true', 'false'
+  ];
+  
+  while (pos < code.length) {
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    if (/\s/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[ \t\r]/.test(code[pos])) pos++;
+      tokens.push({ type: 'text', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Comments
+    if (code[pos] === '#') {
+      const start = pos;
+      while (pos < code.length && code[pos] !== '\n') pos++;
+      tokens.push({ type: 'comment', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Strings
+    if (code[pos] === '"' || code[pos] === "'" || code[pos] === '`') {
+      const quote = code[pos];
+      const start = pos;
+      pos++;
+      while (pos < code.length && code[pos] !== quote) {
+        if (code[pos] === '\\') pos++;
+        pos++;
+      }
+      if (pos < code.length) pos++;
+      tokens.push({ type: 'string', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Variables
+    if (code[pos] === '$') {
+      const start = pos;
+      pos++;
+      if (code[pos] === '{') {
+        pos++;
+        while (pos < code.length && code[pos] !== '}') pos++;
+        if (pos < code.length) pos++;
+      } else {
+        while (pos < code.length && /[a-zA-Z0-9_]/.test(code[pos])) pos++;
+      }
+      tokens.push({ type: 'type', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Keywords
+    if (/[a-zA-Z_]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[a-zA-Z0-9_]/.test(code[pos])) pos++;
+      const word = code.slice(start, pos);
+      
+      if (BASH_KEYWORDS.includes(word)) {
+        tokens.push({ type: 'keyword', value: word });
+      } else {
+        tokens.push({ type: 'text', value: word });
+      }
+      continue;
+    }
+    
+    // Operators
+    if (/[|&;<>()[\]{}!]/.test(code[pos])) {
+      tokens.push({ type: 'operator', value: code[pos] });
+      pos++;
+      continue;
+    }
+    
+    tokens.push({ type: 'text', value: code[pos] });
+    pos++;
+  }
+  
+  return tokens;
+}
+
+function highlightRust(code: string): HighlightedToken[] {
+  return highlightCLike(code, RUST_KEYWORDS);
+}
+
+function highlightGo(code: string): HighlightedToken[] {
+  return highlightCLike(code, GO_KEYWORDS);
+}
+
+function highlightJava(code: string): HighlightedToken[] {
+  return highlightCLike(code, JAVA_KEYWORDS);
+}
+
+function highlightSQL(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  let pos = 0;
+  
+  while (pos < code.length) {
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    if (/\s/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[ \t\r]/.test(code[pos])) pos++;
+      tokens.push({ type: 'text', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Comments
+    if (code.slice(pos, pos + 2) === '--') {
+      const start = pos;
+      while (pos < code.length && code[pos] !== '\n') pos++;
+      tokens.push({ type: 'comment', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    if (code.slice(pos, pos + 2) === '/*') {
+      const start = pos;
+      pos += 2;
+      while (pos < code.length - 1 && code.slice(pos, pos + 2) !== '*/') pos++;
+      if (pos < code.length - 1) pos += 2;
+      tokens.push({ type: 'comment', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Strings
+    if (code[pos] === "'" || code[pos] === '"') {
+      const quote = code[pos];
+      const start = pos;
+      pos++;
+      while (pos < code.length && code[pos] !== quote) {
+        if (code[pos] === '\\') pos++;
+        pos++;
+      }
+      if (pos < code.length) pos++;
+      tokens.push({ type: 'string', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Numbers
+    if (/\d/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[\d.]/.test(code[pos])) pos++;
+      tokens.push({ type: 'number', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Keywords
+    if (/[a-zA-Z_]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[a-zA-Z0-9_]/.test(code[pos])) pos++;
+      const word = code.slice(start, pos);
+      
+      if (SQL_KEYWORDS.includes(word.toUpperCase())) {
+        tokens.push({ type: 'keyword', value: word });
+      } else {
+        tokens.push({ type: 'text', value: word });
+      }
+      continue;
+    }
+    
+    // Operators
+    if (/[=<>!+\-*/%(),.;]/.test(code[pos])) {
+      tokens.push({ type: 'operator', value: code[pos] });
+      pos++;
+      continue;
+    }
+    
+    tokens.push({ type: 'text', value: code[pos] });
+    pos++;
   }
   
   return tokens;

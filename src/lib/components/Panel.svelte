@@ -15,9 +15,12 @@
 <div class="panel" class:collapsed>
   <header class="panel-header no-select" on:click={toggle} role="button" tabindex="0" on:keypress={toggle}>
     <span class="panel-title">{title}</span>
-    {#if collapsible}
-      <span class="collapse-icon">{collapsed ? '▶' : '▼'}</span>
-    {/if}
+    <div class="panel-header-actions" on:click={(e) => e.stopPropagation()}>
+      <slot name="header-actions" />
+      {#if collapsible}
+        <span class="collapse-icon">{collapsed ? '▶' : '▼'}</span>
+      {/if}
+    </div>
   </header>
   {#if !collapsed}
     <div class="panel-content">
@@ -59,6 +62,12 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--color-text-secondary);
+  }
+
+  .panel-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .collapse-icon {

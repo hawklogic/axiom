@@ -6,14 +6,20 @@
  */
 
 import { writable, derived } from 'svelte/store';
+import type { Language } from '$lib/utils/syntax';
 
 export interface OpenFile {
   path: string;
   name: string;
   content: string;
-  language: 'c' | 'cpp' | 'h' | 'hpp' | 'unknown';
+  language: Language;
   modified: boolean;
   cursor: { line: number; column: number };
+  type?: 'file' | 'diff';
+  diffContext?: {
+    repoPath: string;
+    filePath: string;
+  };
 }
 
 function createEditorStore() {

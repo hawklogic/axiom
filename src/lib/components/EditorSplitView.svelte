@@ -20,6 +20,42 @@
       consoleStore.log('warn', 'workspace', 'No folder selected');
     }
   }
+
+  async function handleSaveAndCloseAll() {
+    // Collect all files first (before any modifications)
+    const allFilesToClose: Array<{ paneId: string; filePath: string; file: any }> = [];
+    const modifiedFiles: any[] = [];
+    
+    for (const pane of $editorPanes.panes) {
+      for (const file of pane.files) {
+        allFilesToClose.push({ paneId: pane.id, filePath: file.path, file });
+        if (file.modified) {
+          modifiedFiles.push(file);
+        }
+      }
+    }
+    
+    if (modifiedFiles.length > 0) {
+      consoleStore.log('info', 'editor', `Saving ${modifiedFiles.length} modified files...`);
+      // Save all modified files
+      for (const file of modifiedFiles) {
+        try {
+          const { invoke } = await import('@tauri-apps/api/core');
+          await invoke('write_file', { path: file.path, content: file.content });
+          editorPanes.markSaved(file.path);
+        } catch (err) {
+          consoleStore.log('error', 'editor', `Failed to save ${file.path}: ${err}`);
+        }
+      }
+    }
+    
+    // Close all files (now safe since we collected them first)
+    consoleStore.log('info', 'editor', `Closing ${allFilesToClose.length} tabs...`);
+    for (const { paneId, filePath } of allFilesToClose) {
+      editorPanes.closeFile(paneId, filePath);
+    }
+    consoleStore.log('info', 'editor', 'All tabs closed');
+  }
   
   onMount(() => {
     console.log('[EditorSplitView] Mounted, panes:', $editorPanes.panes.length);
@@ -184,6 +220,19 @@
       </svg>
       <span class="btn-label">Open Folder</span>
     </button>
+
+    {#if $editorPanes.panes.some(p => p.files.length > 0)}
+      <button 
+        class="save-close-all-btn"
+        on:click={handleSaveAndCloseAll}
+        title="Save and close all open tabs"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 3L13 13M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span class="btn-label">Save & Close All</span>
+      </button>
+    {/if}
     
     <div class="split-buttons">
       <button class="split-btn" on:click={handleSplitHorizontal} title="Split Editor Side by Side" disabled={$editorPanes.panes.length >= 4}>
@@ -316,6 +365,29 @@
     background: var(--color-bg-hover);
     color: var(--color-text-primary);
     border-color: var(--color-accent);
+  }
+
+  .save-close-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.15s;
+    border: 1px solid var(--color-border);
+  }
+  
+  .save-close-all-btn svg {
+    flex-shrink: 0;
+  }
+  
+  .save-close-all-btn:hover {
+    background: rgba(244, 135, 113, 0.15);
+    color: #f48771;
+    border-color: #f48771;
   }
   
   .split-buttons {

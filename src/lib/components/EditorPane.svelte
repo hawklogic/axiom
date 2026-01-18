@@ -5,8 +5,10 @@
   import { editorPanes, type EditorPane } from '$lib/stores/editorPanes';
   import { consoleStore } from '$lib/stores/console';
   import { ideStatus } from '$lib/stores/status';
+  import { settingsStore } from '$lib/stores/settings';
   import { EMPTY } from '$lib/strings';
   import { onMount } from 'svelte';
+  import DiffViewer from './DiffViewer.svelte';
   
   export let pane: EditorPane;
   export let onDragStart: (paneId: string, filePath: string) => void;
@@ -15,6 +17,21 @@
   
   let editorElement: HTMLTextAreaElement;
   let highlightElement: HTMLElement;
+  let lineNumbersElement: HTMLElement;
+  let showLineNumbers = true; // Default to true
+  
+  // Load line numbers preference from settings
+  $: if ($settingsStore) {
+    showLineNumbers = $settingsStore.editor.line_numbers;
+  }
+  
+  function toggleLineNumbers() {
+    showLineNumbers = !showLineNumbers;
+    if ($settingsStore) {
+      $settingsStore.editor.line_numbers = showLineNumbers;
+      settingsStore.save($settingsStore);
+    }
+  }
   
   onMount(() => {
     console.log('[EditorPane] Mounted, pane:', pane.id, 'files:', pane.files.length);
@@ -139,6 +156,9 @@
     if (highlightElement) {
       highlightElement.scrollTop = target.scrollTop;
       highlightElement.scrollLeft = target.scrollLeft;
+    }
+    if (lineNumbersElement) {
+      lineNumbersElement.scrollTop = target.scrollTop;
     }
   }
   
@@ -363,13 +383,28 @@
     switch (lang) {
       case 'c': return 'C';
       case 'cpp': return 'C++';
-      case 'h': return 'C Header';
-      case 'hpp': return 'C++ Header';
       case 'python': return 'Python';
       case 'assembly': return 'ARM Assembly';
       case 'makefile': return 'Makefile';
       case 'linker': return 'Linker Script';
       case 'markdown': return 'Markdown';
+      case 'javascript': return 'JavaScript';
+      case 'typescript': return 'TypeScript';
+      case 'html': return 'HTML';
+      case 'css': return 'CSS';
+      case 'xml': return 'XML';
+      case 'json': return 'JSON';
+      case 'yaml': return 'YAML';
+      case 'svelte': return 'Svelte';
+      case 'astro': return 'Astro';
+      case 'dockerfile': return 'Dockerfile';
+      case 'gitignore': return 'Gitignore';
+      case 'bash': return 'Shell Script';
+      case 'rust': return 'Rust';
+      case 'go': return 'Go';
+      case 'java': return 'Java';
+      case 'sql': return 'SQL';
+      case 'text': return 'Text';
       default: return 'Text';
     }
   }
@@ -385,6 +420,7 @@
           class="tab" 
           class:active={i === pane.activeIndex}
           class:flashing={$editorPanes.flashingTab?.paneId === pane.id && $editorPanes.flashingTab?.filePath === file.path}
+          class:is-diff={file.type === 'diff'}
           on:mousedown={(e) => handleTabMouseDown(e, file.path)}
           on:click={() => selectTab(i)}
           on:keydown={(e) => handleTabKeyDown(e, i)}
@@ -392,6 +428,9 @@
           role="button"
           tabindex="0"
         >
+          {#if file.type === 'diff'}
+            <span class="diff-icon">±</span>
+          {/if}
           <span class="tab-name">{file.name}</span>
           {#if file.modified}
             <span class="modified-dot">●</span>
@@ -406,25 +445,61 @@
       {#if activeFile}
         <div class="file-info">
           <span class="file-path">{activeFile.path}</span>
-          <span class="file-lang">{getLanguageLabel(activeFile.language)}</span>
+          <div class="file-info-right">
+            {#if activeFile.type !== 'diff'}
+              <button 
+                class="toggle-line-numbers" 
+                on:click={toggleLineNumbers}
+                title={showLineNumbers ? 'Hide line numbers' : 'Show line numbers'}
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <line x1="6" y1="3" x2="14" y2="3"/>
+                  <line x1="6" y1="8" x2="14" y2="8"/>
+                  <line x1="6" y1="13" x2="14" y2="13"/>
+                  <text x="2" y="5" font-size="5" fill="currentColor">1</text>
+                  <text x="2" y="10" font-size="5" fill="currentColor">2</text>
+                  <text x="2" y="15" font-size="5" fill="currentColor">3</text>
+                </svg>
+              </button>
+            {/if}
+            <span class="file-lang">{activeFile.type === 'diff' ? 'Diff' : getLanguageLabel(activeFile.language)}</span>
+          </div>
         </div>
-        <div class="editor-container">
-          <pre class="code-highlight" bind:this={highlightElement} aria-hidden="true"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
-          <textarea
-            bind:this={editorElement}
-            class="code-editor"
-            value={activeFile.content}
-            on:input={handleInput}
-            on:scroll={handleScroll}
-            on:keydown={handleKeyDown}
-            on:keyup={handleKeyUp}
-            on:click={handleClick}
-            spellcheck="false"
-            autocomplete="off"
-            autocorrect="off"
-            autocapitalize="off"
-          ></textarea>
-        </div>
+        {#if activeFile.type === 'diff' && activeFile.diffContext}
+          {#key activeFile.path}
+            <DiffViewer 
+              filePath={activeFile.diffContext.filePath}
+              repoPath={activeFile.diffContext.repoPath}
+            />
+          {/key}
+        {:else}
+          <div class="editor-container" class:show-line-numbers={showLineNumbers}>
+            {#if showLineNumbers}
+              <div class="line-numbers" bind:this={lineNumbersElement} aria-hidden="true">
+                {#each activeFile.content.split('\n') as _, i}
+                  <div class="line-number">{i + 1}</div>
+                {/each}
+              </div>
+            {/if}
+            <div class="editor-wrapper">
+              <pre class="code-highlight" bind:this={highlightElement} aria-hidden="true"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
+              <textarea
+                bind:this={editorElement}
+                class="code-editor"
+                value={activeFile.content}
+                on:input={handleInput}
+                on:scroll={handleScroll}
+                on:keydown={handleKeyDown}
+                on:keyup={handleKeyUp}
+                on:click={handleClick}
+                spellcheck="false"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+              ></textarea>
+            </div>
+          </div>
+        {/if}
       {/if}
     </div>
   {:else}
@@ -524,6 +599,16 @@
     color: var(--color-text-primary);
     background: var(--color-bg-primary);
     border-bottom-color: var(--color-bg-primary);
+  }
+
+  .tab.is-diff {
+    font-style: italic;
+  }
+
+  .diff-icon {
+    color: var(--color-accent);
+    font-weight: 600;
+    font-size: 14px;
   }
 
   .tab-name {
@@ -632,7 +717,23 @@
   }
 
   .code-editor::selection {
-    background: rgba(100, 150, 255, 0.3);
+    background: rgba(0, 212, 255, 0.25);
+    color: inherit;
+  }
+
+  .code-editor::-moz-selection {
+    background: rgba(0, 212, 255, 0.25);
+    color: inherit;
+  }
+
+  .code-highlight ::selection {
+    background: rgba(0, 212, 255, 0.25);
+    color: inherit;
+  }
+
+  .code-highlight ::-moz-selection {
+    background: rgba(0, 212, 255, 0.25);
+    color: inherit;
   }
 
   .empty-state {
@@ -720,5 +821,64 @@
 
   .token-text {
     color: var(--color-text-primary);
+  }
+
+  /* Line numbers */
+  .file-info-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .toggle-line-numbers {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    transition: color 0.15s, background 0.15s;
+    border-radius: 3px;
+  }
+
+  .toggle-line-numbers:hover {
+    color: var(--color-text-primary);
+    background: var(--color-bg-hover);
+  }
+
+  .toggle-line-numbers svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .editor-container {
+    display: flex;
+  }
+
+  .line-numbers {
+    flex-shrink: 0;
+    width: 50px;
+    background: var(--color-bg-secondary);
+    border-right: 1px solid var(--color-border);
+    overflow: hidden;
+    user-select: none;
+    padding: 12px 0; /* Match editor padding */
+  }
+
+  .line-number {
+    padding: 0 8px;
+    text-align: right;
+    font-family: var(--font-mono); /* Match editor font */
+    font-size: 13px; /* Match editor font size */
+    line-height: 1.5; /* Match editor line height */
+    color: var(--color-text-muted);
+    opacity: 0.6;
+    white-space: pre; /* Match editor whitespace handling */
+  }
+
+  .editor-wrapper {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
   }
 </style>
