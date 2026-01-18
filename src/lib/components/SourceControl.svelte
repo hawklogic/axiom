@@ -137,6 +137,41 @@
     }
   }
 
+  async function handleViewDiff(path: string) {
+    if (!workspacePath) return;
+    try {
+      consoleStore.log('info', 'git', `Opening ${path}...`);
+      
+      // Open the file in the editor
+      const { invoke } = await import('@tauri-apps/api/core');
+      const fullPath = `${workspacePath}/${path}`;
+      const content = await invoke<string>('read_file', { path: fullPath });
+      
+      // Import editorPanes
+      const { editorPanes } = await import('$lib/stores/editorPanes');
+      const { detectLanguage } = await import('$lib/utils/syntax');
+      
+      // Get the current panes
+      let currentPanes: any;
+      editorPanes.subscribe(p => currentPanes = p)();
+      
+      if (currentPanes && currentPanes.panes.length > 0) {
+        const firstPane = currentPanes.panes[0];
+        editorPanes.openFile(firstPane.id, {
+          path: fullPath,
+          name: path.split('/').pop() || path,
+          content,
+          language: detectLanguage(path),
+          modified: false,
+          cursor: { line: 1, column: 1 },
+        });
+        consoleStore.log('info', 'git', `Opened ${path}`);
+      }
+    } catch (err) {
+      consoleStore.log('error', 'git', `Failed to open ${path}: ${err}`);
+    }
+  }
+
   async function handleStageAll() {
     if (!workspacePath || !status) return;
     const files = [...status.modified, ...status.untracked, ...status.deleted];
@@ -257,8 +292,8 @@
                 class="file-item" 
                 role="button" 
                 tabindex="0"
-                on:click={() => handleUnstagePath(file.path)}
-                on:keydown={(e) => e.key === 'Enter' && handleUnstagePath(file.path)}
+                on:click={() => handleViewDiff(file.path)}
+                on:keydown={(e) => e.key === 'Enter' && handleViewDiff(file.path)}
               >
                 <span class="status-badge staged" style="color: {getStatusColor(file.stagedStatus || 'Staged')}">
                   {getStatusIcon(file.stagedStatus || 'Staged')}
@@ -269,7 +304,11 @@
                     {getStatusIcon(file.unstagedStatus)}
                   </span>
                 {/if}
-                <button class="action-button" title="Unstage">−</button>
+                <button 
+                  class="action-button" 
+                  title="Unstage"
+                  on:click={(e) => { e.stopPropagation(); handleUnstagePath(file.path); }}
+                >−</button>
               </div>
             {/each}
           </div>
@@ -291,8 +330,8 @@
                 class="file-item" 
                 role="button" 
                 tabindex="0"
-                on:click={() => handleStagePath(file.path)}
-                on:keydown={(e) => e.key === 'Enter' && handleStagePath(file.path)}
+                on:click={() => handleViewDiff(file.path)}
+                on:keydown={(e) => e.key === 'Enter' && handleViewDiff(file.path)}
               >
                 <span class="status-badge unstaged" style="color: {getStatusColor(file.unstagedStatus || 'Modified')}">
                   {getStatusIcon(file.unstagedStatus || 'Modified')}
@@ -303,7 +342,11 @@
                     ✓
                   </span>
                 {/if}
-                <button class="action-button" title="Stage">+</button>
+                <button 
+                  class="action-button" 
+                  title="Stage"
+                  on:click={(e) => { e.stopPropagation(); handleStagePath(file.path); }}
+                >+</button>
               </div>
             {/each}
           </div>
