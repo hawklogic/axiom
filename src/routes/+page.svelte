@@ -16,7 +16,6 @@
 
   let ready = false;
   let activePanel = 'files';
-  let activeBottomTab: 'terminal' | 'console' = 'terminal';
 
   /** Check if running inside Tauri */
   function isTauri(): boolean {
@@ -103,28 +102,19 @@
         </div>
         
         <div class="bottom-panel">
-          <div class="bottom-tabs">
-            <button 
-              class="bottom-tab" 
-              class:active={activeBottomTab === 'terminal'}
-              on:click={() => activeBottomTab = 'terminal'}
-            >
-              Terminal
-            </button>
-            <button 
-              class="bottom-tab" 
-              class:active={activeBottomTab === 'console'}
-              on:click={() => activeBottomTab = 'console'}
-            >
-              Console
-            </button>
-          </div>
-          <div class="bottom-content">
-            {#if activeBottomTab === 'terminal'}
-              <Terminal />
-            {:else}
-              <MiniConsole />
-            {/if}
+          <div class="bottom-split">
+            <div class="terminal-pane">
+              <div class="pane-header">Terminal</div>
+              <div class="pane-content">
+                <Terminal />
+              </div>
+            </div>
+            <div class="console-pane">
+              <div class="pane-header">Console</div>
+              <div class="pane-content">
+                <MiniConsole />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -168,36 +158,40 @@
     flex-direction: column;
   }
 
-  .bottom-tabs {
+  .bottom-split {
     display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .terminal-pane {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .console-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-left: 1px solid var(--color-border);
+  }
+
+  .pane-header {
+    padding: 4px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
     background: var(--color-bg-secondary);
     border-bottom: 1px solid var(--color-border);
-    padding: 0 4px;
-    gap: 2px;
+    user-select: none;
   }
 
-  .bottom-tab {
-    padding: 6px 12px;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--color-text-muted);
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: color 0.1s, border-color 0.1s;
-  }
-
-  .bottom-tab:hover {
-    color: var(--color-text-secondary);
-  }
-
-  .bottom-tab.active {
-    color: var(--color-text-primary);
-    border-bottom-color: var(--color-accent);
-  }
-
-  .bottom-content {
+  .pane-content {
     flex: 1;
     overflow: hidden;
   }

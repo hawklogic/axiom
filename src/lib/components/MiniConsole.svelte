@@ -55,28 +55,25 @@
 </script>
 
 <div class="mini-console">
-  <div class="console-header">
-    <span class="console-title">Backend Console</span>
-    <div class="console-controls">
-      <select 
-        class="filter-select" 
-        value={$filter} 
-        on:change={handleFilterChange}
-      >
-        <option value="all">All</option>
-        <option value="debug">Debug</option>
-        <option value="info">Info</option>
-        <option value="warn">Warn</option>
-        <option value="error">Error</option>
-      </select>
-      <button 
-        class="clear-btn" 
-        on:click={() => consoleStore.clear()}
-        title="Clear console"
-      >
-        Clear
-      </button>
-    </div>
+  <div class="console-toolbar">
+    <select 
+      class="filter-select" 
+      value={$filter} 
+      on:change={handleFilterChange}
+    >
+      <option value="all">All</option>
+      <option value="debug">Debug</option>
+      <option value="info">Info</option>
+      <option value="warn">Warn</option>
+      <option value="error">Error</option>
+    </select>
+    <button 
+      class="clear-btn" 
+      on:click={() => consoleStore.clear()}
+      title="Clear console"
+    >
+      Clear
+    </button>
   </div>
   
   <div 
@@ -85,10 +82,8 @@
     on:scroll={handleScroll}
   >
     {#each $filteredEntries as entry (entry.timestamp + entry.message)}
-      <div class="log-entry {getLevelClass(entry.level)}">
-        <span class="log-time">{formatTime(entry.timestamp)}</span>
-        <span class="log-level">[{entry.level.toUpperCase()}]</span>
-        <span class="log-source">{entry.source}:</span>
+      <div class="log-entry {getLevelClass(entry.level)}" title="{entry.source}: {entry.message}">
+        <span class="log-level">[{entry.level.charAt(0).toUpperCase()}]</span>
         <span class="log-message">{entry.message}</span>
       </div>
     {/each}
@@ -108,28 +103,15 @@
     font-size: 11px;
   }
 
-  .console-header {
+  .console-toolbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 4px 8px;
+    justify-content: flex-end;
+    padding: 2px 4px;
+    gap: 4px;
     background: var(--color-bg-secondary);
     border-bottom: 1px solid var(--color-border);
     user-select: none;
-  }
-
-  .console-title {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--color-text-muted);
-  }
-
-  .console-controls {
-    display: flex;
-    gap: 8px;
-    align-items: center;
   }
 
   .filter-select {
@@ -174,36 +156,31 @@
 
   .log-entry {
     display: flex;
-    gap: 6px;
-    padding: 2px 4px;
-    line-height: 1.4;
+    gap: 4px;
+    padding: 1px 4px;
+    line-height: 1.3;
     border-radius: 2px;
-    word-break: break-word;
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .log-entry:hover {
     background: var(--color-bg-hover);
   }
 
-  .log-time {
-    color: var(--color-text-muted);
-    flex-shrink: 0;
-  }
-
   .log-level {
     flex-shrink: 0;
     font-weight: 600;
-    min-width: 50px;
-  }
-
-  .log-source {
-    color: var(--color-accent);
-    flex-shrink: 0;
+    width: 18px;
   }
 
   .log-message {
     color: var(--color-text-secondary);
     flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Level-specific colors */
