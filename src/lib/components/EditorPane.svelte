@@ -828,8 +828,8 @@
     padding: 0 8px;
     text-align: right;
     font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 1.5;
+    font-size: 13px; /* Match editor font size */
+    line-height: 1.5; /* Match editor line height */
     color: var(--color-text-muted);
     opacity: 0.6;
   }

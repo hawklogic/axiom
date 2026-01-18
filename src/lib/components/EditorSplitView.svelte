@@ -22,8 +22,18 @@
   }
 
   async function handleSaveAndCloseAll() {
-    const allFiles = $editorPanes.panes.flatMap(pane => pane.files);
-    const modifiedFiles = allFiles.filter(f => f.modified);
+    // Collect all files first (before any modifications)
+    const allFilesToClose: Array<{ paneId: string; filePath: string; file: any }> = [];
+    const modifiedFiles: any[] = [];
+    
+    for (const pane of $editorPanes.panes) {
+      for (const file of pane.files) {
+        allFilesToClose.push({ paneId: pane.id, filePath: file.path, file });
+        if (file.modified) {
+          modifiedFiles.push(file);
+        }
+      }
+    }
     
     if (modifiedFiles.length > 0) {
       consoleStore.log('info', 'editor', `Saving ${modifiedFiles.length} modified files...`);
@@ -39,14 +49,12 @@
       }
     }
     
-    // Close all files in all panes
-    consoleStore.log('info', 'editor', `Closing ${allFiles.length} files...`);
-    for (const pane of $editorPanes.panes) {
-      for (const file of pane.files) {
-        editorPanes.closeFile(pane.id, file.path);
-      }
+    // Close all files (now safe since we collected them first)
+    consoleStore.log('info', 'editor', `Closing ${allFilesToClose.length} tabs...`);
+    for (const { paneId, filePath } of allFilesToClose) {
+      editorPanes.closeFile(paneId, filePath);
     }
-    consoleStore.log('info', 'editor', 'All files closed');
+    consoleStore.log('info', 'editor', 'All tabs closed');
   }
   
   onMount(() => {
@@ -217,12 +225,12 @@
       <button 
         class="save-close-all-btn"
         on:click={handleSaveAndCloseAll}
-        title="Save and close all open files"
+        title="Save and close all open tabs"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M3 3L13 13M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        <span class="btn-label">Close All</span>
+        <span class="btn-label">Save & Close All</span>
       </button>
     {/if}
     
