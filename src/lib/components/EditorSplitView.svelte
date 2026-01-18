@@ -82,7 +82,20 @@
   
   <div class="panes-container" class:horizontal={$editorPanes.splitDirection === 'horizontal'} class:vertical={$editorPanes.splitDirection === 'vertical'}>
     {#each $editorPanes.panes as pane (pane.id)}
-      <div class="pane-wrapper">
+      <div 
+        class="pane-wrapper"
+        class:drag-over={draggedFile && draggedFile.paneId !== pane.id}
+        on:dragover={(e) => {
+          e.preventDefault();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+          consoleStore.log('debug', 'editor', `Drag over ${pane.id}`);
+        }}
+        on:drop={(e) => {
+          e.preventDefault();
+          consoleStore.log('info', 'editor', `Drop on ${pane.id}`);
+          handleDrop(pane.id);
+        }}
+      >
         {#if $editorPanes.panes.length > 1}
           <button class="close-pane-btn" on:click={() => handleClosePane(pane.id)} title="Close Pane">
             ×
@@ -168,6 +181,13 @@
     position: relative;
     min-width: 200px;
     min-height: 200px;
+    transition: outline 0.2s;
+  }
+  
+  .pane-wrapper.drag-over {
+    outline: 3px solid var(--color-accent);
+    outline-offset: -3px;
+    background: rgba(88, 166, 255, 0.05);
   }
   
   .panes-container.horizontal .pane-wrapper:not(:last-child) {
