@@ -31,14 +31,17 @@
   let redoStack: HistoryState[] = [];
   let lastContent = '';
   let isUndoRedo = false;
+  let originalContent = ''; // Track the original content when file was opened
+  let currentFilePath = ''; // Track which file we're editing
   
   // Track active file changes to reset history
-  $: if ($activeFile && $activeFile.content !== lastContent && !isUndoRedo) {
+  $: if ($activeFile && $activeFile.path !== currentFilePath) {
+    // Switching to a different file - reset history
+    currentFilePath = $activeFile.path;
+    originalContent = $activeFile.content;
     lastContent = $activeFile.content;
-    // Initialize history for new file
-    if (undoStack.length === 0) {
-      undoStack = [{ content: $activeFile.content, cursorPos: 0 }];
-    }
+    undoStack = [{ content: $activeFile.content, cursorPos: 0 }];
+    redoStack = [];
   }
   
   function pushHistory(content: string, cursorPos: number) {
@@ -66,6 +69,11 @@
     const previous = undoStack[undoStack.length - 1];
     editorStore.updateContent($activeFile.path, previous.content);
     
+    // Check if we're back to original content
+    if (previous.content === originalContent) {
+      editorStore.markSaved($activeFile.path);
+    }
+    
     // Restore cursor position
     if (editorElement) {
       setTimeout(() => {
@@ -85,6 +93,11 @@
     undoStack.push(next);
     
     editorStore.updateContent($activeFile.path, next.content);
+    
+    // Check if we're back to original content
+    if (next.content === originalContent) {
+      editorStore.markSaved($activeFile.path);
+    }
     
     // Restore cursor position
     if (editorElement) {
@@ -211,6 +224,8 @@
       const { invoke } = await import('@tauri-apps/api/core');
       await invoke('write_file', { path, contents: content });
       editorStore.markSaved(path);
+      // Update original content to current saved state
+      originalContent = content;
       console.log('[Editor] File saved:', path);
     } catch (err) {
       console.error('[Editor] Failed to save file:', err);
