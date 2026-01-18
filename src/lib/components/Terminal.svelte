@@ -61,6 +61,13 @@
       fitAddon?.fit();
     }, 0);
 
+    // Check if Tauri is available
+    if (!terminalStore.isTauriAvailable()) {
+      terminal?.write('\r\n\x1b[33mTerminal requires native Tauri app.\x1b[0m\r\n');
+      terminal?.write('\x1b[90mRun with: npm run tauri dev\x1b[0m\r\n');
+      return;
+    }
+
     try {
       // Create PTY session
       sessionId = await terminalStore.create();
@@ -71,7 +78,7 @@
       await terminalStore.resize(sessionId, rows, cols);
 
       // Handle input from xterm -> PTY
-      terminal.onData(async (data) => {
+      terminal.onData(async (data: string) => {
         if (sessionId !== null) {
           try {
             await terminalStore.write(sessionId, data);

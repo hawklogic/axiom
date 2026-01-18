@@ -6,8 +6,7 @@
  */
 
 import { writable, derived } from 'svelte/store';
-import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
+import { browser } from '$app/environment';
 
 export interface DirEntry {
   name: string;
@@ -21,6 +20,29 @@ export interface TreeNode extends DirEntry {
   children?: TreeNode[];
   expanded?: boolean;
   loading?: boolean;
+}
+
+/** Check if running inside Tauri */
+function isTauri(): boolean {
+  return browser && typeof window !== 'undefined' && '__TAURI__' in window;
+}
+
+/** Lazy import invoke to avoid errors in browser */
+async function getInvoke() {
+  if (!isTauri()) {
+    throw new Error('Not running in Tauri');
+  }
+  const { invoke } = await import('@tauri-apps/api/core');
+  return invoke;
+}
+
+/** Lazy import dialog to avoid errors in browser */
+async function getDialog() {
+  if (!isTauri()) {
+    throw new Error('Not running in Tauri');
+  }
+  const { open } = await import('@tauri-apps/plugin-dialog');
+  return open;
 }
 
 function createWorkspaceStore() {
@@ -37,19 +59,32 @@ function createWorkspaceStore() {
   return {
     subscribe,
 
+    /** Check if Tauri is available */
+    isTauriAvailable: isTauri,
+
     /**
      * Open folder picker dialog and load workspace.
      */
     async openFolder(): Promise<boolean> {
-      const selected = await open({
-        directory: true,
-        multiple: false,
-        title: 'Open Workspace',
-      });
+      if (!isTauri()) {
+        console.warn('Folder picker requires Tauri runtime');
+        return false;
+      }
 
-      if (selected && typeof selected === 'string') {
-        await this.loadWorkspace(selected);
-        return true;
+      try {
+        const open = await getDialog();
+        const selected = await open({
+          directory: true,
+          multiple: false,
+          title: 'Open Workspace',
+        });
+
+        if (selected && typeof selected === 'string') {
+          await this.loadWorkspace(selected);
+          return true;
+        }
+      } catch (e) {
+        console.error('Failed to open folder:', e);
       }
       return false;
     },
@@ -58,53 +93,35 @@ function createWorkspaceStore() {
      * Load a workspace from a given path.
      */
     async loadWorkspace(folderPath: string): Promise<void> {
-      const name = folderPath.split('/').pop() || folderPath;
-      const entries = await invoke<DirEntry[]>('read_dir', { path: folderPath });
-      
-      const tree: TreeNode[] = entries.map(entry => ({
-        ...entry,
-        expanded: false,
-        children: entry.is_dir ? undefined : undefined,
-      }));
+      if (!isTauri()) {
+        console.warn('Workspace loading requires Tauri runtime');
+        return;
+      }
 
-      set({ path: folderPath, name, tree });
+      try {
+        const invoke = await getInvoke();
+        const name = folderPath.split('/').pop() || folderPath;
+        const entries = await invoke<DirEntry[]>('read_dir', { path: folderPath });
+        
+        const tree: TreeNode[] = entries.map(entry => ({
+          ...entry,
+          expanded: false,
+          children: entry.is_dir ? undefined : undefined,
+        }));
+
+        set({ path: folderPath, name, tree });
+      } catch (e) {
+        console.error('Failed to load workspace:', e);
+      }
     },
 
     /**
      * Toggle expansion of a directory node.
      */
     async toggleNode(nodePath: string): Promise<void> {
-      update(state => {
-        const toggleInTree = async (nodes: TreeNode[]): Promise<TreeNode[]> => {
-          return Promise.all(nodes.map(async node => {
-            if (node.path === nodePath && node.is_dir) {
-              if (node.expanded) {
-                // Collapse
-                return { ...node, expanded: false };
-              } else {
-                // Expand - load children if not loaded
-                if (!node.children) {
-                  const entries = await invoke<DirEntry[]>('read_dir', { path: node.path });
-                  const children: TreeNode[] = entries.map(entry => ({
-                    ...entry,
-                    expanded: false,
-                  }));
-                  return { ...node, expanded: true, children };
-                }
-                return { ...node, expanded: true };
-              }
-            }
-            if (node.children) {
-              return { ...node, children: await toggleInTree(node.children) };
-            }
-            return node;
-          }));
-        };
+      if (!isTauri()) return;
 
-        // We need to handle this synchronously for the update
-        // So we'll trigger an async update separately
-        return state;
-      });
+      const invoke = await getInvoke();
 
       // Handle async tree update
       const state = await new Promise<{ path: string | null; name: string | null; tree: TreeNode[] }>(resolve => {

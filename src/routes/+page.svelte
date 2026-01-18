@@ -2,6 +2,7 @@
 <!-- Copyright 2024 HawkLogic Systems -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import EditorArea from '$lib/components/EditorArea.svelte';
   import Panel from '$lib/components/Panel.svelte';
@@ -12,11 +13,15 @@
   import MiniConsole from '$lib/components/MiniConsole.svelte';
   import { APP, PANELS } from '$lib/strings';
   import { editorStore } from '$lib/stores';
-  import { invoke } from '@tauri-apps/api/core';
 
   let ready = false;
   let activePanel = 'files';
   let activeBottomTab: 'terminal' | 'console' = 'terminal';
+
+  /** Check if running inside Tauri */
+  function isTauri(): boolean {
+    return browser && typeof window !== 'undefined' && '__TAURI__' in window;
+  }
 
   onMount(async () => {
     // Simulate backend initialization
@@ -40,7 +45,14 @@
 
   async function handleFileSelect(event: CustomEvent<{ path: string; name: string }>) {
     const { path, name } = event.detail;
+    
+    if (!isTauri()) {
+      console.warn('File reading requires Tauri runtime');
+      return;
+    }
+
     try {
+      const { invoke } = await import('@tauri-apps/api/core');
       const content = await invoke<string>('read_file', { path });
       editorStore.openFile({
         path,

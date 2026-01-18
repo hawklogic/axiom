@@ -6,7 +6,6 @@
  */
 
 import { writable, derived } from 'svelte/store';
-import { listen } from '@tauri-apps/api/event';
 import { browser } from '$app/environment';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -19,6 +18,11 @@ export interface LogEntry {
 }
 
 const MAX_ENTRIES = 500;
+
+/** Check if running inside Tauri */
+function isTauri(): boolean {
+  return browser && typeof window !== 'undefined' && '__TAURI__' in window;
+}
 
 function createConsoleStore() {
   const entries = writable<LogEntry[]>([]);
@@ -50,7 +54,23 @@ function createConsoleStore() {
       initialized.subscribe(v => isInit = v)();
       if (isInit) return;
 
+      // Check if running in Tauri
+      if (!isTauri()) {
+        // Not in Tauri, just show a message
+        entries.update(e => [...e, {
+          level: 'warn',
+          message: 'Backend console requires Tauri runtime',
+          source: 'frontend',
+          timestamp: Date.now(),
+        }]);
+        initialized.set(true);
+        return;
+      }
+
       try {
+        // Dynamically import Tauri event API
+        const { listen } = await import('@tauri-apps/api/event');
+        
         // Listen for backend log events
         await listen<LogEntry>('backend-log', (event) => {
           entries.update(current => {
