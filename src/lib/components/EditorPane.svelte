@@ -212,6 +212,11 @@
     onDragStart(pane.id, filePath);
   }
   
+  function handleTabDragEnd(e: DragEvent) {
+    console.log('[DragDrop] Drag ended');
+    isDragOver = false;
+  }
+  
   function handleDragOver(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -273,13 +278,16 @@
   {#if pane.files.length > 0}
     <div class="editor-tabs">
       {#each pane.files as file, i (file.path)}
-        <button 
+        <div 
           class="tab" 
           class:active={i === pane.activeIndex}
           draggable="true"
           on:dragstart={(e) => handleTabDragStart(e, file.path)}
+          on:dragend={handleTabDragEnd}
           on:click={() => selectTab(i)}
           title={file.path}
+          role="button"
+          tabindex="0"
         >
           <span class="tab-name">{file.name}</span>
           {#if file.modified}
@@ -288,7 +296,7 @@
           <button class="close-btn" on:click={(e) => closeTab(e, file.path)} title="Close">
             ×
           </button>
-        </button>
+        </div>
       {/each}
     </div>
     <div class="editor-content">
