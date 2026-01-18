@@ -87,6 +87,10 @@ export function detectLanguage(filename: string): string {
 }
 
 export function highlightCode(code: string, language: string): HighlightedToken[] {
+  if (!code.trim()) {
+    return [{ type: 'text', value: code }];
+  }
+  
   switch (language) {
     case 'c':
       return highlightC(code);
@@ -111,89 +115,85 @@ function highlightCpp(code: string): HighlightedToken[] {
 
 function highlightCLike(code: string, keywords: string[]): HighlightedToken[] {
   const tokens: HighlightedToken[] = [];
-  const lines = code.split('\n');
+  let pos = 0;
   
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    let pos = 0;
+  while (pos < code.length) {
+    // Skip whitespace but preserve it
+    if (/\s/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /\s/.test(code[pos])) pos++;
+      const whitespace = code.slice(start, pos);
+      if (whitespace.length > 0) {
+        tokens.push({ type: 'text', value: whitespace });
+      }
+      continue;
+    }
     
-    while (pos < line.length) {
-      // Skip whitespace
-      if (/\s/.test(line[pos])) {
-        const start = pos;
-        while (pos < line.length && /\s/.test(line[pos])) pos++;
-        tokens.push({ type: 'text', value: line.slice(start, pos) });
-        continue;
-      }
-      
-      // Comments
-      if (line.slice(pos, pos + 2) === '//') {
-        tokens.push({ type: 'comment', value: line.slice(pos) });
-        break;
-      }
-      
-      if (line.slice(pos, pos + 2) === '/*') {
-        const start = pos;
-        pos += 2;
-        while (pos < line.length - 1 && line.slice(pos, pos + 2) !== '*/') pos++;
-        if (pos < line.length - 1) pos += 2;
-        tokens.push({ type: 'comment', value: line.slice(start, pos) });
-        continue;
-      }
-      
-      // Strings
-      if (line[pos] === '"' || line[pos] === "'") {
-        const quote = line[pos];
-        const start = pos;
-        pos++;
-        while (pos < line.length && line[pos] !== quote) {
-          if (line[pos] === '\\') pos++; // Skip escaped characters
-          pos++;
-        }
-        if (pos < line.length) pos++; // Include closing quote
-        tokens.push({ type: 'string', value: line.slice(start, pos) });
-        continue;
-      }
-      
-      // Numbers
-      if (/\d/.test(line[pos])) {
-        const start = pos;
-        while (pos < line.length && /[\d.xabcdefABCDEF]/.test(line[pos])) pos++;
-        tokens.push({ type: 'number', value: line.slice(start, pos) });
-        continue;
-      }
-      
-      // Operators
-      if (/[+\-*/%=<>!&|^~(){}[\];,.]/.test(line[pos])) {
-        tokens.push({ type: 'operator', value: line[pos] });
-        pos++;
-        continue;
-      }
-      
-      // Identifiers and keywords
-      if (/[a-zA-Z_]/.test(line[pos])) {
-        const start = pos;
-        while (pos < line.length && /[a-zA-Z0-9_]/.test(line[pos])) pos++;
-        const word = line.slice(start, pos);
-        
-        if (keywords.includes(word)) {
-          tokens.push({ type: 'keyword', value: word });
-        } else if (/^[A-Z_][A-Z0-9_]*$/.test(word)) {
-          tokens.push({ type: 'type', value: word }); // Constants/macros
-        } else {
-          tokens.push({ type: 'text', value: word });
-        }
-        continue;
-      }
-      
-      // Default: single character
-      tokens.push({ type: 'text', value: line[pos] });
+    // Comments
+    if (code.slice(pos, pos + 2) === '//') {
+      const start = pos;
+      while (pos < code.length && code[pos] !== '\n') pos++;
+      tokens.push({ type: 'comment', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    if (code.slice(pos, pos + 2) === '/*') {
+      const start = pos;
+      pos += 2;
+      while (pos < code.length - 1 && code.slice(pos, pos + 2) !== '*/') pos++;
+      if (pos < code.length - 1) pos += 2;
+      tokens.push({ type: 'comment', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Strings
+    if (code[pos] === '"' || code[pos] === "'") {
+      const quote = code[pos];
+      const start = pos;
       pos++;
+      while (pos < code.length && code[pos] !== quote) {
+        if (code[pos] === '\\') pos++; // Skip escaped characters
+        pos++;
+      }
+      if (pos < code.length) pos++; // Include closing quote
+      tokens.push({ type: 'string', value: code.slice(start, pos) });
+      continue;
     }
     
-    if (i < lines.length - 1) {
-      tokens.push({ type: 'text', value: '\n' });
+    // Numbers
+    if (/\d/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[\d.xabcdefABCDEF]/.test(code[pos])) pos++;
+      tokens.push({ type: 'number', value: code.slice(start, pos) });
+      continue;
     }
+    
+    // Operators
+    if (/[+\-*/%=<>!&|^~(){}[\];,.]/.test(code[pos])) {
+      tokens.push({ type: 'operator', value: code[pos] });
+      pos++;
+      continue;
+    }
+    
+    // Identifiers and keywords
+    if (/[a-zA-Z_]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[a-zA-Z0-9_]/.test(code[pos])) pos++;
+      const word = code.slice(start, pos);
+      
+      if (keywords.includes(word)) {
+        tokens.push({ type: 'keyword', value: word });
+      } else if (/^[A-Z_][A-Z0-9_]*$/.test(word)) {
+        tokens.push({ type: 'type', value: word }); // Constants/macros
+      } else {
+        tokens.push({ type: 'text', value: word });
+      }
+      continue;
+    }
+    
+    // Default: single character
+    tokens.push({ type: 'text', value: code[pos] });
+    pos++;
   }
   
   return tokens;
@@ -201,88 +201,84 @@ function highlightCLike(code: string, keywords: string[]): HighlightedToken[] {
 
 function highlightPython(code: string): HighlightedToken[] {
   const tokens: HighlightedToken[] = [];
-  const lines = code.split('\n');
+  let pos = 0;
   
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    let pos = 0;
+  while (pos < code.length) {
+    // Skip whitespace but preserve it
+    if (/\s/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /\s/.test(code[pos])) pos++;
+      const whitespace = code.slice(start, pos);
+      if (whitespace.length > 0) {
+        tokens.push({ type: 'text', value: whitespace });
+      }
+      continue;
+    }
     
-    while (pos < line.length) {
-      // Skip whitespace
-      if (/\s/.test(line[pos])) {
-        const start = pos;
-        while (pos < line.length && /\s/.test(line[pos])) pos++;
-        tokens.push({ type: 'text', value: line.slice(start, pos) });
-        continue;
-      }
-      
-      // Comments
-      if (line[pos] === '#') {
-        tokens.push({ type: 'comment', value: line.slice(pos) });
-        break;
-      }
-      
-      // Strings
-      if (line[pos] === '"' || line[pos] === "'") {
-        const quote = line[pos];
-        const start = pos;
-        pos++;
-        
-        // Handle triple quotes
-        if (pos < line.length - 1 && line.slice(pos, pos + 2) === quote + quote) {
-          pos += 2;
-          while (pos < line.length - 2 && line.slice(pos, pos + 3) !== quote + quote + quote) pos++;
-          if (pos < line.length - 2) pos += 3;
-        } else {
-          while (pos < line.length && line[pos] !== quote) {
-            if (line[pos] === '\\') pos++; // Skip escaped characters
-            pos++;
-          }
-          if (pos < line.length) pos++; // Include closing quote
-        }
-        tokens.push({ type: 'string', value: line.slice(start, pos) });
-        continue;
-      }
-      
-      // Numbers
-      if (/\d/.test(line[pos])) {
-        const start = pos;
-        while (pos < line.length && /[\d.eE+\-]/.test(line[pos])) pos++;
-        tokens.push({ type: 'number', value: line.slice(start, pos) });
-        continue;
-      }
-      
-      // Operators
-      if (/[+\-*/%=<>!&|^~(){}[\];,.:@]/.test(line[pos])) {
-        tokens.push({ type: 'operator', value: line[pos] });
-        pos++;
-        continue;
-      }
-      
-      // Identifiers and keywords
-      if (/[a-zA-Z_]/.test(line[pos])) {
-        const start = pos;
-        while (pos < line.length && /[a-zA-Z0-9_]/.test(line[pos])) pos++;
-        const word = line.slice(start, pos);
-        
-        if (PYTHON_KEYWORDS.includes(word)) {
-          tokens.push({ type: 'keyword', value: word });
-        } else if (word.endsWith('()') || /^[a-z_][a-z0-9_]*$/.test(word)) {
-          tokens.push({ type: 'function', value: word });
-        } else {
-          tokens.push({ type: 'text', value: word });
-        }
-        continue;
-      }
-      
-      // Default: single character
-      tokens.push({ type: 'text', value: line[pos] });
+    // Comments
+    if (code[pos] === '#') {
+      const start = pos;
+      while (pos < code.length && code[pos] !== '\n') pos++;
+      tokens.push({ type: 'comment', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Strings
+    if (code[pos] === '"' || code[pos] === "'") {
+      const quote = code[pos];
+      const start = pos;
       pos++;
+      
+      // Handle triple quotes
+      if (pos < code.length - 1 && code.slice(pos, pos + 2) === quote + quote) {
+        pos += 2;
+        while (pos < code.length - 2 && code.slice(pos, pos + 3) !== quote + quote + quote) pos++;
+        if (pos < code.length - 2) pos += 3;
+      } else {
+        while (pos < code.length && code[pos] !== quote) {
+          if (code[pos] === '\\') pos++; // Skip escaped characters
+          pos++;
+        }
+        if (pos < code.length) pos++; // Include closing quote
+      }
+      tokens.push({ type: 'string', value: code.slice(start, pos) });
+      continue;
     }
     
-    if (i < lines.length - 1) {
-      tokens.push({ type: 'text', value: '\n' });
+    // Numbers
+    if (/\d/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[\d.eE+\-]/.test(code[pos])) pos++;
+      tokens.push({ type: 'number', value: code.slice(start, pos) });
+      continue;
     }
+    
+    // Operators
+    if (/[+\-*/%=<>!&|^~(){}[\];,.:@]/.test(code[pos])) {
+      tokens.push({ type: 'operator', value: code[pos] });
+      pos++;
+      continue;
+    }
+    
+    // Identifiers and keywords
+    if (/[a-zA-Z_]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[a-zA-Z0-9_]/.test(code[pos])) pos++;
+      const word = code.slice(start, pos);
+      
+      if (PYTHON_KEYWORDS.includes(word)) {
+        tokens.push({ type: 'keyword', value: word });
+      } else if (word.endsWith('()') || /^[a-z_][a-z0-9_]*$/.test(word)) {
+        tokens.push({ type: 'function', value: word });
+      } else {
+        tokens.push({ type: 'text', value: word });
+      }
+      continue;
+    }
+    
+    // Default: single character
+    tokens.push({ type: 'text', value: code[pos] });
+    pos++;
   }
   
   return tokens;
@@ -290,90 +286,86 @@ function highlightPython(code: string): HighlightedToken[] {
 
 function highlightAssembly(code: string): HighlightedToken[] {
   const tokens: HighlightedToken[] = [];
-  const lines = code.split('\n');
+  let pos = 0;
   
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    let pos = 0;
+  while (pos < code.length) {
+    // Skip whitespace but preserve it
+    if (/\s/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /\s/.test(code[pos])) pos++;
+      const whitespace = code.slice(start, pos);
+      if (whitespace.length > 0) {
+        tokens.push({ type: 'text', value: whitespace });
+      }
+      continue;
+    }
     
-    while (pos < line.length) {
-      // Skip whitespace
-      if (/\s/.test(line[pos])) {
-        const start = pos;
-        while (pos < line.length && /\s/.test(line[pos])) pos++;
-        tokens.push({ type: 'text', value: line.slice(start, pos) });
-        continue;
+    // Comments (@ or ; or //)
+    if (code[pos] === '@' || code[pos] === ';' || code.slice(pos, pos + 2) === '//') {
+      const start = pos;
+      while (pos < code.length && code[pos] !== '\n') pos++;
+      tokens.push({ type: 'comment', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Directives
+    if (code[pos] === '.') {
+      const start = pos;
+      while (pos < code.length && /[a-zA-Z0-9_.]/.test(code[pos])) pos++;
+      const directive = code.slice(start, pos);
+      if (ARM_DIRECTIVES.includes(directive)) {
+        tokens.push({ type: 'directive', value: directive });
+      } else {
+        tokens.push({ type: 'text', value: directive });
       }
+      continue;
+    }
+    
+    // Labels (word followed by colon)
+    if (/[a-zA-Z_]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[a-zA-Z0-9_]/.test(code[pos])) pos++;
+      const word = code.slice(start, pos);
       
-      // Comments (@ or ; or //)
-      if (line[pos] === '@' || line[pos] === ';' || line.slice(pos, pos + 2) === '//') {
-        tokens.push({ type: 'comment', value: line.slice(pos) });
-        break;
-      }
-      
-      // Directives
-      if (line[pos] === '.') {
-        const start = pos;
-        while (pos < line.length && /[a-zA-Z0-9_.]/.test(line[pos])) pos++;
-        const directive = line.slice(start, pos);
-        if (ARM_DIRECTIVES.includes(directive)) {
-          tokens.push({ type: 'directive', value: directive });
-        } else {
-          tokens.push({ type: 'text', value: directive });
-        }
-        continue;
-      }
-      
-      // Labels (word followed by colon)
-      if (/[a-zA-Z_]/.test(line[pos])) {
-        const start = pos;
-        while (pos < line.length && /[a-zA-Z0-9_]/.test(line[pos])) pos++;
-        const word = line.slice(start, pos);
-        
-        // Check if it's followed by a colon (label)
-        if (pos < line.length && line[pos] === ':') {
-          tokens.push({ type: 'function', value: word });
-          tokens.push({ type: 'operator', value: ':' });
-          pos++;
-          continue;
-        }
-        
-        // Check for registers
-        if (ARM_REGISTERS.includes(word.toLowerCase())) {
-          tokens.push({ type: 'register', value: word });
-        } else if (ARM_INSTRUCTIONS.includes(word.toLowerCase())) {
-          tokens.push({ type: 'keyword', value: word });
-        } else {
-          tokens.push({ type: 'text', value: word });
-        }
-        continue;
-      }
-      
-      // Numbers and hex values
-      if (/\d/.test(line[pos]) || (line[pos] === '#' && pos + 1 < line.length && /[0-9x]/.test(line[pos + 1]))) {
-        const start = pos;
-        if (line[pos] === '#') pos++; // Skip immediate prefix
-        if (line.slice(pos, pos + 2) === '0x') pos += 2; // Skip hex prefix
-        while (pos < line.length && /[0-9a-fA-F]/.test(line[pos])) pos++;
-        tokens.push({ type: 'number', value: line.slice(start, pos) });
-        continue;
-      }
-      
-      // Operators and punctuation
-      if (/[+\-*/%=<>!&|^~(){}[\];,.]/.test(line[pos])) {
-        tokens.push({ type: 'operator', value: line[pos] });
+      // Check if it's followed by a colon (label)
+      if (pos < code.length && code[pos] === ':') {
+        tokens.push({ type: 'function', value: word });
+        tokens.push({ type: 'operator', value: ':' });
         pos++;
         continue;
       }
       
-      // Default: single character
-      tokens.push({ type: 'text', value: line[pos] });
-      pos++;
+      // Check for registers
+      if (ARM_REGISTERS.includes(word.toLowerCase())) {
+        tokens.push({ type: 'register', value: word });
+      } else if (ARM_INSTRUCTIONS.includes(word.toLowerCase())) {
+        tokens.push({ type: 'keyword', value: word });
+      } else {
+        tokens.push({ type: 'text', value: word });
+      }
+      continue;
     }
     
-    if (i < lines.length - 1) {
-      tokens.push({ type: 'text', value: '\n' });
+    // Numbers and hex values
+    if (/\d/.test(code[pos]) || (code[pos] === '#' && pos + 1 < code.length && /[0-9x]/.test(code[pos + 1]))) {
+      const start = pos;
+      if (code[pos] === '#') pos++; // Skip immediate prefix
+      if (code.slice(pos, pos + 2) === '0x') pos += 2; // Skip hex prefix
+      while (pos < code.length && /[0-9a-fA-F]/.test(code[pos])) pos++;
+      tokens.push({ type: 'number', value: code.slice(start, pos) });
+      continue;
     }
+    
+    // Operators and punctuation
+    if (/[+\-*/%=<>!&|^~(){}[\];,.]/.test(code[pos])) {
+      tokens.push({ type: 'operator', value: code[pos] });
+      pos++;
+      continue;
+    }
+    
+    // Default: single character
+    tokens.push({ type: 'text', value: code[pos] });
+    pos++;
   }
   
   return tokens;
