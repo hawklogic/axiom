@@ -1,0 +1,22 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Copyright 2024 HawkLogic Systems -->
+<!-- Axiom Splash Screen -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <!-- Background -->
+  <rect width="800" height="600" fill="#1a1a1a"/>
+  
+  <!-- Center logo - Geometric 'A' -->
+  <g transform="translate(350, 200)">
+    <path d="M50 0 L100 150 M50 0 L0 150" stroke="#ffffff" stroke-width="6" stroke-linecap="square" fill="none"/>
+    <path d="M15 110 L85 110" stroke="#ffffff" stroke-width="6" stroke-linecap="square" fill="none"/>
+  </g>
+  
+  <!-- AXIOM text -->
+  <text x="400" y="400" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="48" font-weight="300" letter-spacing="12" fill="#ffffff">AXIOM</text>
+  
+  <!-- Tagline -->
+  <text x="400" y="450" text-anchor="middle" font-family="Inter, -apple-system, sans-serif" font-size="14" letter-spacing="2" fill="#888888">Deterministic. Inspectable. Offline.</text>
+  
+  <!-- Accent line -->
+  <line x1="300" y1="420" x2="500" y2="420" stroke="#00d4ff" stroke-width="1"/>
+</svg>

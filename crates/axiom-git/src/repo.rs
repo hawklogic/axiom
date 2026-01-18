@@ -3,7 +3,7 @@
 
 //! Git repository operations.
 
-use git2::{Repository as Git2Repo, Signature};
+use git2::Repository as Git2Repo;
 use std::path::{Path, PathBuf};
 
 /// Git error type.

@@ -8,49 +8,42 @@
 
 ## Current State
 - **Branch**: dev
-- **Active Workstream**: WS0 (Bootstrap)
-- **Build Status**: Not yet buildable
+- **Active Workstream**: WS10 (Branding)
+- **Build Status**: Code complete, blocked by system LLVM issue
 
-## Philosophy (Immutable)
-Axiom is an instrument panel for systems engineers. It reveals ground truth:
-- Compiler output (not suggestions)
-- AST structure (not guesses)
-- ABI rules (not heuristics)
-- ISA semantics (not approximations)
-- Debugger state (not simulations)
-
-**Axiom is NOT:**
-- A productivity accelerator
-- An AI assistant
-- A cloud-connected service
-- A telemetry collector
+## Philosophy Hash
+`0f5e7107568bdd6d6e34f11756ed19263ee0d0c11fabec35bfbdc92294ecd343`
 
 ## Architecture
-- Backend: Rust crates (axiom-core, axiom-settings, axiom-toolchain, axiom-parser, axiom-symbols, axiom-git, axiom-terminal)
+- Backend: 7 Rust crates completed
+  - axiom-core: Types, errors
+  - axiom-settings: TOML schema, migrations
+  - axiom-toolchain: Detection, invocation
+  - axiom-parser: tree-sitter C/C++
+  - axiom-symbols: Symbol index, autocomplete
+  - axiom-git: libgit2 operations
+  - axiom-terminal: PTY sessions
 - Frontend: Svelte + TypeScript via Tauri 2.x
-- Editor: CodeMirror 6
-- Parsing: tree-sitter (C/C++)
-- Git: libgit2 via git2-rs
-- Terminal: portable-pty
+- Editor: CodeMirror 6 (integration ready)
+- All Tauri command handlers implemented
+- All Svelte stores implemented
 
 ## Workstream Status
 | WS | Name | Status |
 |----|------|--------|
-| 0 | Bootstrap | IN PROGRESS |
-| 1 | Settings | Pending |
-| 2 | Toolchain | Pending |
-| 3 | Compiler | Pending |
-| 4 | Parser | Pending |
-| 5 | Symbols | Pending |
-| 6 | Git | Pending |
-| 7 | Terminal | Pending |
-| 8 | UI Scaffold | Pending |
-| 9 | Wiring | Pending |
-| 10 | Branding | Pending |
-| 11 | Final Build | Pending |
+| 0-9 | Bootstrap through Wiring | COMPLETE |
+| 10 | Branding | IN PROGRESS (SVGs pending) |
+| 11 | Final Build | PENDING |
 
 ## Next Step
-Complete WS0: Create all context files, docs, scripts, and initial structure.
+1. Create SVG brand assets (logo, icon, splash)
+2. Resolve system LLVM issue
+3. Run npm install && cargo build
+4. Final verification
+
+## Known Issues
+- System has LLVM library conflict (homebrew rust vs llvm)
+- Fix: brew uninstall llvm or use rustup-installed rust
 
 ## Resume Protocol
 1. Read this file

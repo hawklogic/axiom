@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2024 HawkLogic Systems
+
+[package]
+name = "axiom-terminal"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Axiom integrated terminal via PTY"
+
+[dependencies]
+axiom-core = { path = "../axiom-core" }
+portable-pty = { workspace = true }
+vte = { workspace = true }
+thiserror = { workspace = true }
