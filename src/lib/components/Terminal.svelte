@@ -4,12 +4,29 @@
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { terminalStore } from '$lib/stores/terminal';
+  import { workspace } from '$lib/stores/workspace';
 
   let terminalContainer: HTMLDivElement;
   let terminal: any = null;
   let fitAddon: any = null;
   let sessionId: number | null = null;
   let resizeObserver: ResizeObserver | null = null;
+  
+  // Watch for workspace changes and update terminal directory
+  $: if ($workspace.path && sessionId !== null && terminal) {
+    changeDirectory($workspace.path);
+  }
+  
+  async function changeDirectory(path: string) {
+    if (sessionId === null || !terminal) return;
+    try {
+      // Send cd command to terminal
+      await terminalStore.write(sessionId, `cd "${path}"\n`);
+      console.log('[Terminal] Changed directory to:', path);
+    } catch (err) {
+      console.error('[Terminal] Failed to change directory:', err);
+    }
+  }
 
   onMount(async () => {
     if (!browser) return;
