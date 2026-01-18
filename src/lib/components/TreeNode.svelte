@@ -95,19 +95,23 @@
 <style>
   .tree-node {
     /* padding is set via inline style */
+    min-width: 0;
+    overflow: visible;
   }
 
   .node-row {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 4px;
+    padding: 2px 20px 2px 2px;
     border-radius: 4px;
     width: 100%;
     text-align: left;
     font-size: 13px;
     color: var(--color-text-secondary);
     transition: background 0.1s;
+    min-width: 0;
+    position: relative;
   }
 
   .node-row:hover {
@@ -122,9 +126,11 @@
   .node-icon {
     font-size: 10px;
     width: 14px;
+    min-width: 14px;
     text-align: center;
     color: var(--color-text-muted);
     font-family: var(--font-mono);
+    flex-shrink: 0;
   }
 
   .node-row.directory .node-icon {
@@ -136,6 +142,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     flex: 1;
+    min-width: 0;
   }
   
   .node-row.open {
@@ -147,17 +154,23 @@
   }
   
   .open-indicator {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
     font-size: 8px;
     color: var(--color-accent);
-    margin-left: auto;
     opacity: 0.6;
     line-height: 1;
   }
   
   .modified-indicator {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
     font-size: 8px;
     color: #f0ad4e;
-    margin-left: auto;
     opacity: 0.9;
     line-height: 1;
   }

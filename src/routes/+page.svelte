@@ -19,6 +19,7 @@
 
   let ready = false;
   let activePanel = 'files';
+  let leftPanelVisible = true;
   
   // Resizable panel state
   let leftPanelWidth = 250;
@@ -220,39 +221,41 @@
     <div class="main-content" bind:this={mainContentEl}>
       <Sidebar bind:activePanel />
       
-      <div class="left-panel" style="width: {leftPanelWidth}px;">
-        {#if activePanel === 'files'}
-          <Panel title={PANELS.fileExplorer}>
-            <FileExplorer on:file-select={handleFileSelect} />
-          </Panel>
-        {:else if activePanel === 'git'}
-          <Panel title={PANELS.sourceControl}>
-            <div class="panel-placeholder">Source Control</div>
-          </Panel>
-        {:else if activePanel === 'ast'}
-          <Panel title={PANELS.astViewer}>
-            <div class="panel-placeholder">AST Viewer</div>
-          </Panel>
-        {:else if activePanel === 'debug'}
-          <Panel title={PANELS.debugPanel}>
-            <div class="panel-placeholder">Debug Panel</div>
-          </Panel>
-        {:else if activePanel === 'settings'}
-          <Panel title={PANELS.settings}>
-            <div class="panel-placeholder">Settings</div>
-          </Panel>
-        {:else if activePanel === 'about'}
-          <Panel title="About Axiom">
-            <AboutPanel />
-          </Panel>
-        {/if}
-      </div>
-      
-      <!-- Left panel resize handle -->
-      <div class="resize-handle-left" use:leftPanelResizer></div>
+      {#if leftPanelVisible}
+        <div class="left-panel" style="width: {leftPanelWidth}px;">
+          {#if activePanel === 'files'}
+            <Panel title={PANELS.fileExplorer}>
+              <FileExplorer on:file-select={handleFileSelect} />
+            </Panel>
+          {:else if activePanel === 'git'}
+            <Panel title={PANELS.sourceControl}>
+              <div class="panel-placeholder">Source Control</div>
+            </Panel>
+          {:else if activePanel === 'ast'}
+            <Panel title={PANELS.astViewer}>
+              <div class="panel-placeholder">AST Viewer</div>
+            </Panel>
+          {:else if activePanel === 'debug'}
+            <Panel title={PANELS.debugPanel}>
+              <div class="panel-placeholder">Debug Panel</div>
+            </Panel>
+          {:else if activePanel === 'settings'}
+            <Panel title={PANELS.settings}>
+              <div class="panel-placeholder">Settings</div>
+            </Panel>
+          {:else if activePanel === 'about'}
+            <Panel title="About Axiom">
+              <AboutPanel />
+            </Panel>
+          {/if}
+        </div>
+        
+        <!-- Left panel resize handle -->
+        <div class="resize-handle-left" use:leftPanelResizer></div>
+      {/if}
       
       <div class="editor-area">
-        <EditorSplitView />
+        <EditorSplitView bind:leftPanelVisible />
       </div>
     </div>
     
@@ -303,6 +306,7 @@
     flex-direction: column;
     flex: 1;
     overflow: hidden;
+    position: relative;
   }
 
   .left-panel {

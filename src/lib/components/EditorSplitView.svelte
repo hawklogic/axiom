@@ -6,6 +6,8 @@
   import EditorPane from './EditorPane.svelte';
   import { onMount, onDestroy } from 'svelte';
   
+  export let leftPanelVisible: boolean;
+  
   let draggedFile: { paneId: string; filePath: string } | null = null;
   let dragOverPaneId: string | null = null;
   
@@ -153,6 +155,15 @@
 
 <div class="editor-split-view">
   <div class="split-controls">
+    <button 
+      class="toggle-panel-btn" 
+      on:click={() => leftPanelVisible = !leftPanelVisible}
+      title={leftPanelVisible ? 'Hide sidebar panel' : 'Show sidebar panel'}
+    >
+      <span class="toggle-icon">{leftPanelVisible ? '◀' : '▶'}</span>
+      <span class="toggle-label">{leftPanelVisible ? 'Hide Panel' : 'Show Panel'}</span>
+    </button>
+    
     <div class="split-buttons">
       <button class="split-btn" on:click={handleSplitHorizontal} title="Split Editor Side by Side" disabled={$editorPanes.panes.length >= 4}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -235,9 +246,38 @@
     border-bottom: 1px solid var(--color-border);
   }
   
+  .toggle-panel-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.15s;
+    border: 1px solid var(--color-border);
+    margin-right: auto;
+  }
+  
+  .toggle-panel-btn:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+    border-color: var(--color-accent);
+  }
+  
+  .toggle-icon {
+    font-size: 10px;
+  }
+  
+  .toggle-label {
+    white-space: nowrap;
+  }
+  
   .split-buttons {
     display: flex;
     gap: 6px;
+    margin-left: auto;
   }
   
   .split-btn {

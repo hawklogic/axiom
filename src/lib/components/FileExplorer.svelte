@@ -167,6 +167,8 @@
   .tree {
     flex: 1;
     overflow-y: auto;
+    overflow-x: visible;
     padding: 4px;
+    min-width: 0;
   }
 </style>

@@ -15,7 +15,9 @@
 
 <aside class="sidebar no-select">
   <div class="logo-section">
-    <img src="/assets/axiom-icon.svg" alt="Axiom" class="logo-icon" />
+    <a href="https://hawklogicsystems.com/" target="_blank" rel="noopener noreferrer" class="logo-link" title="HawkLogic Systems">
+      <img src="/assets/axiom-icon.svg" alt="Axiom" class="logo-icon" />
+    </a>
   </div>
   
   <nav class="nav">
@@ -49,17 +51,30 @@
     border-bottom: 1px solid var(--color-border);
   }
   
+  .logo-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    border-radius: 4px;
+    padding: 2px;
+    transition: background 0.2s ease;
+  }
+  
+  .logo-link:hover {
+    background: rgba(0, 212, 255, 0.05);
+  }
+  
   .logo-icon {
     width: 36px;
     height: 36px;
-    transition: all 0.2s ease;
-    cursor: default;
-    filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.3));
+    transition: filter 0.3s ease;
+    cursor: pointer;
+    filter: drop-shadow(0 0 2px rgba(0, 212, 255, 0.2));
   }
   
-  .logo-icon:hover {
-    transform: scale(1.05);
-    filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.5));
+  .logo-link:hover .logo-icon {
+    filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.6));
   }
 
   .nav {
