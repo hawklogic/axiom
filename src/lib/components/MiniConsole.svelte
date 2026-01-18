@@ -3,11 +3,39 @@
 <script lang="ts">
   import { onMount, afterUpdate } from 'svelte';
   import { consoleStore, type LogLevel } from '$lib/stores/console';
+  import { derived, writable } from 'svelte/store';
 
   let consoleContainer: HTMLDivElement;
   let autoScroll = true;
+  let searchText = '';
+  let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  const debouncedSearch = writable('');
 
   const { filteredEntries, filter } = consoleStore;
+  
+  // Combined filter: level filter + text search
+  const displayedEntries = derived(
+    [filteredEntries, debouncedSearch],
+    ([$entries, $search]) => {
+      if (!$search) return $entries;
+      const lowerSearch = $search.toLowerCase();
+      return $entries.filter(e => 
+        e.message.toLowerCase().includes(lowerSearch) ||
+        e.source.toLowerCase().includes(lowerSearch)
+      );
+    }
+  );
+
+  function handleSearchInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    searchText = target.value;
+    
+    // Debounce search for efficiency
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      debouncedSearch.set(searchText);
+    }, 150);
+  }
 
   onMount(() => {
     consoleStore.init();
@@ -56,6 +84,13 @@
 
 <div class="mini-console">
   <div class="console-toolbar">
+    <input 
+      type="text"
+      class="search-input"
+      placeholder="Search..."
+      value={searchText}
+      on:input={handleSearchInput}
+    />
     <select 
       class="filter-select" 
       value={$filter} 
@@ -81,14 +116,15 @@
     bind:this={consoleContainer}
     on:scroll={handleScroll}
   >
-    {#each $filteredEntries as entry (entry.timestamp + entry.message)}
+    {#each $displayedEntries as entry (entry.timestamp + entry.message)}
       <div class="log-entry {getLevelClass(entry.level)}" title="{entry.source}: {entry.message}">
+        <span class="log-time">{formatTime(entry.timestamp)}</span>
         <span class="log-level">[{entry.level.charAt(0).toUpperCase()}]</span>
         <span class="log-message">{entry.message}</span>
       </div>
     {/each}
-    {#if $filteredEntries.length === 0}
-      <div class="empty-state">No log entries</div>
+    {#if $displayedEntries.length === 0}
+      <div class="empty-state">No matching entries</div>
     {/if}
   </div>
 </div>
@@ -106,12 +142,32 @@
   .console-toolbar {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     padding: 2px 4px;
     gap: 4px;
     background: var(--color-bg-secondary);
     border-bottom: 1px solid var(--color-border);
     user-select: none;
+  }
+
+  .search-input {
+    flex: 1;
+    min-width: 60px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 6px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    border-radius: 2px;
+    color: var(--color-text-primary);
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  .search-input::placeholder {
+    color: var(--color-text-muted);
   }
 
   .filter-select {
@@ -168,6 +224,12 @@
 
   .log-entry:hover {
     background: var(--color-bg-hover);
+  }
+
+  .log-time {
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+    margin-right: 4px;
   }
 
   .log-level {

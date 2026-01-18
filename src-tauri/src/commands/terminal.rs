@@ -55,13 +55,8 @@ pub fn terminal_create(state: State<AppState>, app: AppHandle) -> Result<Session
         let reader_fd = session.pty.get_fd();
         let app_handle = app.clone();
         
-        println!("[TERMINAL] Starting reader thread for session {}, fd={:?}", id, reader_fd);
-        logging::info("terminal", &format!("Starting reader thread for session {}, fd={:?}", id, reader_fd));
-        
         std::thread::spawn(move || {
             let mut buf = vec![0u8; 4096];
-            println!("[TERMINAL] Reader thread running for session {}, fd={:?}", id, reader_fd);
-            logging::info("terminal", &format!("Reader thread started for session {}, fd={:?}", id, reader_fd));
             
             loop {
                 // Check if we should stop
@@ -81,19 +76,10 @@ pub fn terminal_create(state: State<AppState>, app: AppHandle) -> Result<Session
                     // Wait up to 100ms for data (allows checking running flag periodically)
                     let result = unsafe { libc::poll(&mut pollfd, 1, 100) };
                     
-                    if result < 0 {
-                        // Error
-                        logging::warn("terminal", &format!("poll() error on session {}", id));
+                    if result <= 0 {
+                        // Timeout or error - just continue
                         continue;
                     }
-                    
-                    if result == 0 {
-                        // Timeout - this is normal, just continue to check running flag
-                        continue;
-                    }
-                    
-                    println!("[TERMINAL] poll() returned {} revents={}", result, pollfd.revents);
-                    logging::debug("terminal", &format!("poll() returned {} revents={}", result, pollfd.revents));
                     
                     if (pollfd.revents & (libc::POLLHUP | libc::POLLERR)) != 0 {
                         // PTY closed
@@ -107,8 +93,6 @@ pub fn terminal_create(state: State<AppState>, app: AppHandle) -> Result<Session
                     }
                 } else {
                     // No fd available - can't poll, just try reading with small sleep
-                    println!("[TERMINAL] WARNING: No fd available for polling!");
-                    logging::warn("terminal", "No fd available for polling, falling back to sleep");
                     std::thread::sleep(std::time::Duration::from_millis(50));
                 }
                 
@@ -122,25 +106,18 @@ pub fn terminal_create(state: State<AppState>, app: AppHandle) -> Result<Session
                     Ok(0) => {
                         // EOF - PTY closed
                         drop(reader_guard);
-                        logging::debug("terminal", &format!("EOF on session {}", id));
                         break;
                     }
                     Ok(n) => {
                         drop(reader_guard);
-                        println!("[TERMINAL] Read {} bytes from session {}", n, id);
-                        logging::debug("terminal", &format!("Read {} bytes from session {}", n, id));
                         let data = buf[..n].to_vec();
-                        if let Err(e) = app_handle.emit("terminal-output", TerminalOutput { id, data }) {
-                            println!("[TERMINAL] Failed to emit: {}", e);
-                            logging::error("terminal", &format!("Failed to emit terminal-output: {}", e));
-                        }
+                        let _ = app_handle.emit("terminal-output", TerminalOutput { id, data });
                     }
                     Err(e) => {
                         drop(reader_guard);
                         if e.kind() == std::io::ErrorKind::Interrupted {
                             continue;
                         }
-                        logging::debug("terminal", &format!("Read error on session {}: {}", id, e));
                         break;
                     }
                 }
@@ -150,7 +127,6 @@ pub fn terminal_create(state: State<AppState>, app: AppHandle) -> Result<Session
             if let Ok(mut readers) = get_readers().lock() {
                 readers.remove(&id);
             }
-            logging::debug("terminal", &format!("Reader thread stopped for session {}", id));
         });
     }
     
@@ -160,19 +136,9 @@ pub fn terminal_create(state: State<AppState>, app: AppHandle) -> Result<Session
 /// Write to a terminal session.
 #[tauri::command]
 pub fn terminal_write(state: State<AppState>, id: SessionId, data: String) -> Result<usize, String> {
-    logging::debug("terminal", &format!("Writing {} bytes to session {}", data.len(), id));
-    let manager = state.terminal_manager.lock().map_err(|e| {
-        logging::error("terminal", &format!("Failed to lock manager for write: {}", e));
-        e.to_string()
-    })?;
-    let session = manager.get(id).ok_or_else(|| {
-        logging::warn("terminal", &format!("Session {} not found for write", id));
-        "Session not found".to_string()
-    })?;
-    session.write(data.as_bytes()).map_err(|e| {
-        logging::error("terminal", &format!("Write error on session {}: {}", id, e));
-        e.to_string()
-    })
+    let manager = state.terminal_manager.lock().map_err(|e| e.to_string())?;
+    let session = manager.get(id).ok_or("Session not found")?;
+    session.write(data.as_bytes()).map_err(|e| e.to_string())
 }
 
 /// Read from a terminal session (deprecated - use terminal-output events instead).
@@ -202,8 +168,6 @@ pub fn terminal_resize(
 /// Close a terminal session.
 #[tauri::command]
 pub fn terminal_close(state: State<AppState>, id: SessionId) -> Result<(), String> {
-    logging::info("terminal", &format!("Closing PTY session {}", id));
-    
     // Stop the reader thread
     if let Ok(mut readers) = get_readers().lock() {
         if let Some(running) = readers.remove(&id) {
@@ -213,6 +177,5 @@ pub fn terminal_close(state: State<AppState>, id: SessionId) -> Result<(), Strin
     
     let mut manager = state.terminal_manager.lock().map_err(|e| e.to_string())?;
     manager.remove(id);
-    logging::debug("terminal", &format!("PTY session {} closed", id));
     Ok(())
 }

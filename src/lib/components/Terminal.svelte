@@ -22,35 +22,43 @@
     await import('@xterm/xterm/css/xterm.css');
     console.log('[Terminal] xterm.js imported');
 
-    // Initialize xterm.js
+    // Initialize xterm.js with full color support
     terminal = new Terminal({
       fontFamily: '"JetBrains Mono", "SF Mono", Monaco, Menlo, monospace',
       fontSize: 13,
       lineHeight: 1.2,
       cursorBlink: true,
       cursorStyle: 'block',
+      allowTransparency: true,
+      scrollback: 10000,
       theme: {
-        background: '#1a1a1a',
-        foreground: '#e0e0e0',
-        cursor: '#00d4ff',
-        cursorAccent: '#1a1a1a',
-        selectionBackground: 'rgba(0, 212, 255, 0.3)',
-        black: '#1a1a1a',
-        red: '#ff5f56',
-        green: '#27c93f',
-        yellow: '#f5a623',
-        blue: '#00d4ff',
-        magenta: '#bd93f9',
-        cyan: '#00d4ff',
-        white: '#e0e0e0',
-        brightBlack: '#4a4a4a',
-        brightRed: '#ff6e67',
-        brightGreen: '#5af78e',
-        brightYellow: '#f5d76e',
-        brightBlue: '#00e5ff',
-        brightMagenta: '#ff92df',
-        brightCyan: '#00e5ff',
-        brightWhite: '#ffffff',
+        // Background and foreground
+        background: '#0d1117',
+        foreground: '#c9d1d9',
+        cursor: '#58a6ff',
+        cursorAccent: '#0d1117',
+        selectionBackground: 'rgba(56, 139, 253, 0.4)',
+        selectionForeground: '#ffffff',
+        
+        // Standard colors (0-7)
+        black: '#484f58',
+        red: '#ff7b72',
+        green: '#3fb950',
+        yellow: '#d29922',
+        blue: '#58a6ff',
+        magenta: '#bc8cff',
+        cyan: '#39c5cf',
+        white: '#b1bac4',
+        
+        // Bright colors (8-15)
+        brightBlack: '#6e7681',
+        brightRed: '#ffa198',
+        brightGreen: '#56d364',
+        brightYellow: '#e3b341',
+        brightBlue: '#79c0ff',
+        brightMagenta: '#d2a8ff',
+        brightCyan: '#56d4dd',
+        brightWhite: '#f0f6fc',
       },
     });
 
@@ -171,7 +179,7 @@
   .terminal-wrapper {
     width: 100%;
     height: 100%;
-    background: #1a1a1a;
+    background: #0d1117;
     padding: 4px;
     box-sizing: border-box;
   }
@@ -181,10 +189,28 @@
   }
 
   .terminal-wrapper :global(.xterm-viewport) {
-    background: #1a1a1a !important;
+    background: #0d1117 !important;
   }
 
   .terminal-wrapper :global(.xterm-screen) {
     height: 100%;
+  }
+
+  /* Better scrollbar styling */
+  .terminal-wrapper :global(.xterm-viewport::-webkit-scrollbar) {
+    width: 8px;
+  }
+
+  .terminal-wrapper :global(.xterm-viewport::-webkit-scrollbar-track) {
+    background: #0d1117;
+  }
+
+  .terminal-wrapper :global(.xterm-viewport::-webkit-scrollbar-thumb) {
+    background: #30363d;
+    border-radius: 4px;
+  }
+
+  .terminal-wrapper :global(.xterm-viewport::-webkit-scrollbar-thumb:hover) {
+    background: #484f58;
   }
 </style>

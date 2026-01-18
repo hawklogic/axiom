@@ -84,7 +84,32 @@ impl Pty {
     /// Spawn a shell in the PTY.
     pub fn spawn_shell(&self) -> Result<(), TerminalError> {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
-        let cmd = CommandBuilder::new(shell);
+        let mut cmd = CommandBuilder::new(&shell);
+        
+        // Set environment for color support
+        cmd.env("TERM", "xterm-256color");
+        cmd.env("COLORTERM", "truecolor");
+        cmd.env("CLICOLOR", "1");
+        cmd.env("CLICOLOR_FORCE", "1");
+        
+        // For zsh: enable colors
+        if shell.contains("zsh") {
+            cmd.env("FORCE_COLOR", "1");
+        }
+        
+        // Preserve important env vars
+        if let Ok(home) = std::env::var("HOME") {
+            cmd.env("HOME", home);
+        }
+        if let Ok(user) = std::env::var("USER") {
+            cmd.env("USER", user);
+        }
+        if let Ok(path) = std::env::var("PATH") {
+            cmd.env("PATH", path);
+        }
+        if let Ok(lang) = std::env::var("LANG") {
+            cmd.env("LANG", lang);
+        }
 
         self.pair
             .slave
