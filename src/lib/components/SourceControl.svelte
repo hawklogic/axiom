@@ -21,6 +21,51 @@
     return {};
   }
 
+  // Combine file statuses to show both staged and unstaged changes
+  interface CombinedFileStatus {
+    path: string;
+    stagedStatus?: StatusEntry['status'];
+    unstagedStatus?: StatusEntry['status'];
+  }
+
+  $: combinedFiles = (() => {
+    if (!status) return { staged: [], unstaged: [] };
+
+    const fileMap = new Map<string, CombinedFileStatus>();
+
+    // Process staged files
+    status.staged.forEach(file => {
+      const existing = fileMap.get(file.path) || { path: file.path };
+      existing.stagedStatus = file.status;
+      fileMap.set(file.path, existing);
+    });
+
+    // Process unstaged files (modified, untracked, deleted)
+    [...status.modified, ...status.untracked, ...status.deleted].forEach(file => {
+      const existing = fileMap.get(file.path) || { path: file.path };
+      existing.unstagedStatus = file.status;
+      fileMap.set(file.path, existing);
+    });
+
+    // Separate into staged-only and unstaged lists
+    const staged: CombinedFileStatus[] = [];
+    const unstaged: CombinedFileStatus[] = [];
+
+    fileMap.forEach(file => {
+      if (file.stagedStatus && file.unstagedStatus) {
+        // File has both staged and unstaged changes - show in both sections
+        staged.push({ path: file.path, stagedStatus: file.stagedStatus });
+        unstaged.push({ path: file.path, unstagedStatus: file.unstagedStatus });
+      } else if (file.stagedStatus) {
+        staged.push(file);
+      } else if (file.unstagedStatus) {
+        unstaged.push(file);
+      }
+    });
+
+    return { staged, unstaged };
+  })();
+
   onMount(() => {
     // Initial refresh
     if (workspacePath) {
@@ -59,6 +104,17 @@
     }
   }
 
+  async function handleStagePath(path: string) {
+    if (!workspacePath) return;
+    try {
+      consoleStore.log('info', 'git', `Staging ${path}...`);
+      await gitStore.stage(workspacePath, path);
+      consoleStore.log('info', 'git', `Staged ${path}`);
+    } catch (err) {
+      consoleStore.log('error', 'git', `Failed to stage ${path}: ${err}`);
+    }
+  }
+
   async function handleUnstage(file: StatusEntry) {
     if (!workspacePath) return;
     try {
@@ -67,6 +123,17 @@
       consoleStore.log('info', 'git', `Unstaged ${file.path}`);
     } catch (err) {
       consoleStore.log('error', 'git', `Failed to unstage ${file.path}: ${err}`);
+    }
+  }
+
+  async function handleUnstagePath(path: string) {
+    if (!workspacePath) return;
+    try {
+      consoleStore.log('info', 'git', `Unstaging ${path}...`);
+      await gitStore.unstage(workspacePath, path);
+      consoleStore.log('info', 'git', `Unstaged ${path}`);
+    } catch (err) {
+      consoleStore.log('error', 'git', `Failed to unstage ${path}: ${err}`);
     }
   }
 
@@ -136,6 +203,18 @@
       default: return '#abb2bf';
     }
   }
+
+  function getStatusLabel(status: string): string {
+    switch (status) {
+      case 'Modified': return 'Modified';
+      case 'Staged': return 'Added';
+      case 'Untracked': return 'Untracked';
+      case 'Deleted': return 'Deleted';
+      case 'Renamed': return 'Renamed';
+      case 'Conflicted': return 'Conflicted';
+      default: return 'Unknown';
+    }
+  }
 </script>
 
 <div class="source-control">
@@ -166,25 +245,30 @@
 
     <div class="changes-container">
       <!-- Staged Changes -->
-      {#if status.staged.length > 0}
+      {#if combinedFiles.staged.length > 0}
         <div class="section">
           <div class="section-header">
-            <span class="section-title">Staged Changes ({status.staged.length})</span>
+            <span class="section-title">Staged Changes ({combinedFiles.staged.length})</span>
             <button class="text-button" on:click={handleUnstageAll}>Unstage All</button>
           </div>
           <div class="file-list">
-            {#each status.staged as file}
+            {#each combinedFiles.staged as file}
               <div 
                 class="file-item" 
                 role="button" 
                 tabindex="0"
-                on:click={() => handleUnstage(file)}
-                on:keydown={(e) => e.key === 'Enter' && handleUnstage(file)}
+                on:click={() => handleUnstagePath(file.path)}
+                on:keydown={(e) => e.key === 'Enter' && handleUnstagePath(file.path)}
               >
-                <span class="status-badge" style="color: {getStatusColor(file.status)}">
-                  {getStatusIcon(file.status)}
+                <span class="status-badge staged" style="color: {getStatusColor(file.stagedStatus || 'Staged')}">
+                  {getStatusIcon(file.stagedStatus || 'Staged')}
                 </span>
                 <span class="file-path">{file.path}</span>
+                {#if file.unstagedStatus}
+                  <span class="status-indicator unstaged" title="Also has unstaged changes">
+                    {getStatusIcon(file.unstagedStatus)}
+                  </span>
+                {/if}
                 <button class="action-button" title="Unstage">−</button>
               </div>
             {/each}
@@ -193,27 +277,32 @@
       {/if}
 
       <!-- Changes (Unstaged) -->
-      {#if status.modified.length > 0 || status.untracked.length > 0 || status.deleted.length > 0}
+      {#if combinedFiles.unstaged.length > 0}
         <div class="section">
           <div class="section-header">
             <span class="section-title">
-              Changes ({status.modified.length + status.untracked.length + status.deleted.length})
+              Changes ({combinedFiles.unstaged.length})
             </span>
             <button class="text-button" on:click={handleStageAll}>Stage All</button>
           </div>
           <div class="file-list">
-            {#each [...status.modified, ...status.untracked, ...status.deleted] as file}
+            {#each combinedFiles.unstaged as file}
               <div 
                 class="file-item" 
                 role="button" 
                 tabindex="0"
-                on:click={() => handleStage(file)}
-                on:keydown={(e) => e.key === 'Enter' && handleStage(file)}
+                on:click={() => handleStagePath(file.path)}
+                on:keydown={(e) => e.key === 'Enter' && handleStagePath(file.path)}
               >
-                <span class="status-badge" style="color: {getStatusColor(file.status)}">
-                  {getStatusIcon(file.status)}
+                <span class="status-badge unstaged" style="color: {getStatusColor(file.unstagedStatus || 'Modified')}">
+                  {getStatusIcon(file.unstagedStatus || 'Modified')}
                 </span>
                 <span class="file-path">{file.path}</span>
+                {#if file.stagedStatus}
+                  <span class="status-indicator staged" title="Also has staged changes">
+                    ✓
+                  </span>
+                {/if}
                 <button class="action-button" title="Stage">+</button>
               </div>
             {/each}
@@ -241,7 +330,7 @@
       {/if}
 
       <!-- No Changes -->
-      {#if status.staged.length === 0 && status.modified.length === 0 && status.untracked.length === 0 && status.deleted.length === 0 && status.conflicted.length === 0}
+      {#if combinedFiles.staged.length === 0 && combinedFiles.unstaged.length === 0 && status.conflicted.length === 0}
         <div class="empty-state">
           <p>No changes</p>
           <p class="hint">Working tree clean</p>
@@ -405,6 +494,35 @@
     width: 16px;
     text-align: center;
     flex-shrink: 0;
+  }
+
+  .status-badge.staged {
+    opacity: 1;
+  }
+
+  .status-badge.unstaged {
+    opacity: 0.9;
+  }
+
+  .status-indicator {
+    font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 4px;
+    border-radius: 3px;
+    margin-left: auto;
+    margin-right: 4px;
+    flex-shrink: 0;
+  }
+
+  .status-indicator.staged {
+    background: rgba(115, 201, 145, 0.2);
+    color: #73c991;
+  }
+
+  .status-indicator.unstaged {
+    background: rgba(226, 192, 141, 0.2);
+    color: #e2c08d;
   }
 
   .file-path {
