@@ -2,6 +2,7 @@
 <!-- Copyright 2024 HawkLogic Systems -->
 <script lang="ts">
   import { editorPanes } from '$lib/stores/editorPanes';
+  import { consoleStore } from '$lib/stores/console';
   import EditorPane from './EditorPane.svelte';
   import { onMount } from 'svelte';
   
@@ -9,22 +10,41 @@
   
   onMount(() => {
     console.log('[EditorSplitView] Mounted, panes:', $editorPanes.panes.length);
+    consoleStore.log('info', 'editor', `Split view mounted with ${$editorPanes.panes.length} pane(s)`);
   });
   
-  $: console.log('[EditorSplitView] Panes updated:', $editorPanes.panes.length, 'split:', $editorPanes.splitDirection);
+  $: {
+    console.log('[EditorSplitView] Panes updated:', $editorPanes.panes.length, 'split:', $editorPanes.splitDirection);
+    if ($editorPanes.panes.length > 1) {
+      consoleStore.log('info', 'editor', `Panes: ${$editorPanes.panes.length}, Split: ${$editorPanes.splitDirection}`);
+    }
+  }
   
   function handleDragStart(paneId: string, filePath: string) {
     console.log('[EditorSplitView] handleDragStart called:', paneId, filePath);
+    consoleStore.log('info', 'editor', `Drag started: ${filePath.split('/').pop()} from ${paneId}`);
     draggedFile = { paneId, filePath };
+  }
+  
+  function handleDragEnd() {
+    console.log('[EditorSplitView] handleDragEnd called, clearing draggedFile');
+    consoleStore.log('info', 'editor', 'Drag ended');
+    draggedFile = null;
   }
   
   function handleDrop(targetPaneId: string) {
     console.log('[EditorSplitView] handleDrop called:', targetPaneId, 'draggedFile:', draggedFile);
-    if (!draggedFile) return;
+    if (!draggedFile) {
+      consoleStore.log('warn', 'editor', 'Drop called but no file being dragged');
+      return;
+    }
     
     if (draggedFile.paneId !== targetPaneId) {
       console.log('[EditorSplitView] Moving file from', draggedFile.paneId, 'to', targetPaneId);
+      consoleStore.log('info', 'editor', `Moving ${draggedFile.filePath.split('/').pop()} to ${targetPaneId}`);
       editorPanes.moveFile(draggedFile.paneId, targetPaneId, draggedFile.filePath);
+    } else {
+      consoleStore.log('info', 'editor', 'Dropped on same pane, no action');
     }
     
     draggedFile = null;
@@ -32,11 +52,13 @@
   
   function handleSplitHorizontal() {
     console.log('[EditorSplitView] Split horizontal clicked');
+    consoleStore.log('info', 'editor', 'Split horizontal');
     editorPanes.splitPane('horizontal');
   }
   
   function handleSplitVertical() {
     console.log('[EditorSplitView] Split vertical clicked');
+    consoleStore.log('info', 'editor', 'Split vertical');
     editorPanes.splitPane('vertical');
   }
   
@@ -69,6 +91,7 @@
         <EditorPane 
           {pane}
           onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
           onDrop={handleDrop}
         />
       </div>

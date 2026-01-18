@@ -8,6 +8,7 @@
   
   export let pane: EditorPane;
   export let onDragStart: (paneId: string, filePath: string) => void;
+  export let onDragEnd: () => void;
   export let onDrop: (paneId: string) => void;
   
   let editorElement: HTMLTextAreaElement;
@@ -226,7 +227,7 @@
   
   function handleTabDragEnd(e: DragEvent) {
     console.log('[DragDrop] Drag ended');
-    isDragOver = false;
+    onDragEnd();
   }
   
   function handleDragOver(e: DragEvent) {
