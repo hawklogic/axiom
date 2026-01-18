@@ -11,9 +11,11 @@
   let fitAddon: any = null;
   let sessionId: number | null = null;
   let resizeObserver: ResizeObserver | null = null;
+  let lastWorkspacePath: string | null = null;
   
-  // Watch for workspace changes and update terminal directory
-  $: if ($workspace.path && sessionId !== null && terminal) {
+  // Watch for workspace changes and update terminal directory only when workspace path changes
+  $: if ($workspace.path && $workspace.path !== lastWorkspacePath && sessionId !== null && terminal) {
+    lastWorkspacePath = $workspace.path;
     changeDirectory($workspace.path);
   }
   
