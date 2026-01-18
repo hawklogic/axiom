@@ -92,6 +92,9 @@ export function detectLanguage(filename: string): string {
       return 'linker';
     case 'mk':
       return 'makefile';
+    case 'md':
+    case 'markdown':
+      return 'markdown';
     default:
       return 'text';
   }
@@ -115,6 +118,8 @@ export function highlightCode(code: string, language: string): HighlightedToken[
       return highlightMakefile(code);
     case 'linker':
       return highlightLinker(code);
+    case 'markdown':
+      return highlightMarkdown(code);
     default:
       return [{ type: 'text', value: code }];
   }
@@ -651,6 +656,117 @@ function highlightLinker(code: string): HighlightedToken[] {
     // Default
     tokens.push({ type: 'text', value: code[pos] });
     pos++;
+  }
+  
+  return tokens;
+}
+
+function highlightMarkdown(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  const lines = code.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let pos = 0;
+    
+    // Headers (# ## ###)
+    if (line.trimStart().startsWith('#')) {
+      const leadingSpace = line.match(/^\s*/)?.[0] || '';
+      if (leadingSpace) {
+        tokens.push({ type: 'text', value: leadingSpace });
+        pos += leadingSpace.length;
+      }
+      
+      const headerMatch = line.slice(pos).match(/^(#{1,6})\s+(.*)$/);
+      if (headerMatch) {
+        tokens.push({ type: 'keyword', value: headerMatch[1] + ' ' });
+        tokens.push({ type: 'function', value: headerMatch[2] });
+        if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+        continue;
+      }
+    }
+    
+    // Code blocks (```)
+    if (line.trimStart().startsWith('```')) {
+      tokens.push({ type: 'directive', value: line });
+      if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+      continue;
+    }
+    
+    // Lists (- * +)
+    const listMatch = line.match(/^(\s*)([-*+])\s+(.*)$/);
+    if (listMatch) {
+      tokens.push({ type: 'text', value: listMatch[1] });
+      tokens.push({ type: 'operator', value: listMatch[2] + ' ' });
+      tokens.push({ type: 'text', value: listMatch[3] });
+      if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+      continue;
+    }
+    
+    // Numbered lists (1. 2. etc)
+    const numberedListMatch = line.match(/^(\s*)(\d+\.)\s+(.*)$/);
+    if (numberedListMatch) {
+      tokens.push({ type: 'text', value: numberedListMatch[1] });
+      tokens.push({ type: 'number', value: numberedListMatch[2] + ' ' });
+      tokens.push({ type: 'text', value: numberedListMatch[3] });
+      if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+      continue;
+    }
+    
+    // Process inline markdown
+    while (pos < line.length) {
+      // Bold (**text**)
+      if (line.slice(pos, pos + 2) === '**') {
+        const endPos = line.indexOf('**', pos + 2);
+        if (endPos !== -1) {
+          tokens.push({ type: 'keyword', value: line.slice(pos, endPos + 2) });
+          pos = endPos + 2;
+          continue;
+        }
+      }
+      
+      // Italic (*text* or _text_)
+      if (line[pos] === '*' || line[pos] === '_') {
+        const char = line[pos];
+        const endPos = line.indexOf(char, pos + 1);
+        if (endPos !== -1 && endPos !== pos + 1) {
+          tokens.push({ type: 'type', value: line.slice(pos, endPos + 1) });
+          pos = endPos + 1;
+          continue;
+        }
+      }
+      
+      // Inline code (`code`)
+      if (line[pos] === '`') {
+        const endPos = line.indexOf('`', pos + 1);
+        if (endPos !== -1) {
+          tokens.push({ type: 'string', value: line.slice(pos, endPos + 1) });
+          pos = endPos + 1;
+          continue;
+        }
+      }
+      
+      // Links [text](url)
+      if (line[pos] === '[') {
+        const closeBracket = line.indexOf(']', pos + 1);
+        if (closeBracket !== -1 && line[closeBracket + 1] === '(') {
+          const closeParen = line.indexOf(')', closeBracket + 2);
+          if (closeParen !== -1) {
+            tokens.push({ type: 'function', value: line.slice(pos, closeParen + 1) });
+            pos = closeParen + 1;
+            continue;
+          }
+        }
+      }
+      
+      // Default
+      tokens.push({ type: 'text', value: line[pos] });
+      pos++;
+    }
+    
+    if (i < lines.length - 1) {
+      tokens.push({ type: 'text', value: '\n' });
+    }
   }
   
   return tokens;

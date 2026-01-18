@@ -10,11 +10,10 @@
   export let pane: EditorPane;
   export let onDragStart: (paneId: string, filePath: string) => void;
   export let onDragEnd: () => void;
-  export let onDrop: (paneId: string) => void;
+  export let onDrop: (targetPaneId: string) => void;
   
   let editorElement: HTMLTextAreaElement;
   let highlightElement: HTMLElement;
-  let isDragOver = false;
   
   onMount(() => {
     console.log('[EditorPane] Mounted, pane:', pane.id, 'files:', pane.files.length);
@@ -218,51 +217,110 @@
     editorPanes.closeFile(pane.id, path);
   }
   
+  function handleTabMouseDown(e: MouseEvent, filePath: string) {
+    if (e.button !== 0) return; // Only left click
+    
+    e.preventDefault(); // Prevent text selection immediately
+    
+    console.log('[MOUSE] Tab mousedown:', filePath);
+    consoleStore.log('info', 'editor', `Mouse down on ${filePath.split('/').pop()}`);
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let isDragging = false;
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault(); // Always prevent default during any mouse move
+      
+      const dx = Math.abs(e.clientX - startX);
+      const dy = Math.abs(e.clientY - startY);
+      
+      if (!isDragging && (dx > 5 || dy > 5)) {
+        isDragging = true;
+        console.log('[MOUSE] Started dragging');
+        consoleStore.log('info', 'editor', `Dragging ${filePath.split('/').pop()}`);
+        onDragStart(pane.id, filePath);
+        document.body.style.userSelect = 'none';
+        document.body.style.webkitUserSelect = 'none';
+        document.body.style.cursor = 'grabbing';
+      }
+      
+      if (isDragging) {
+        // Find which pane we're over
+        const elements = document.elementsFromPoint(e.clientX, e.clientY);
+        const paneWrapper = elements.find(el => el.classList.contains('pane-wrapper'));
+        if (paneWrapper) {
+          const targetPaneId = paneWrapper.getAttribute('data-pane-id');
+          if (targetPaneId) {
+            console.log('[MOUSE] Over pane:', targetPaneId);
+          }
+        }
+      }
+    };
+    
+    const handleMouseUp = (e: MouseEvent) => {
+      console.log('[MOUSE] Mouse up, isDragging:', isDragging);
+      
+      if (isDragging) {
+        e.preventDefault();
+        // Find which pane we dropped on
+        const elements = document.elementsFromPoint(e.clientX, e.clientY);
+        const paneWrapper = elements.find(el => el.classList.contains('pane-wrapper'));
+        if (paneWrapper) {
+          const targetPaneId = paneWrapper.getAttribute('data-pane-id');
+          if (targetPaneId) {
+            console.log('[MOUSE] Dropped on pane:', targetPaneId);
+            consoleStore.log('info', 'editor', `Dropped on ${targetPaneId}`);
+            onDrop(targetPaneId);
+          }
+        }
+        
+        // Restore cursor and text selection
+        document.body.style.userSelect = '';
+        document.body.style.webkitUserSelect = '';
+        document.body.style.cursor = '';
+      }
+      
+      onDragEnd();
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }
+  
   function handleTabDragStart(e: DragEvent, filePath: string) {
     if (!e.dataTransfer) return;
+    
+    console.log('[TAB DRAG] Starting drag for:', filePath);
+    consoleStore.log('info', 'editor', `Tab drag start: ${filePath.split('/').pop()}`);
+    
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', filePath);
-    console.log('[DragDrop] Drag started:', filePath, 'from pane:', pane.id);
+    e.dataTransfer.setData('application/x-axiom-file', filePath);
+    
+    // Create a custom drag image to avoid the tab blocking drops
+    const dragImage = document.createElement('div');
+    dragImage.textContent = filePath.split('/').pop() || '';
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    dragImage.style.padding = '8px 12px';
+    dragImage.style.background = '#58a6ff';
+    dragImage.style.color = 'white';
+    dragImage.style.borderRadius = '4px';
+    dragImage.style.fontWeight = '600';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
+    
+    console.log('[TAB DRAG] Drag data set, calling onDragStart');
     onDragStart(pane.id, filePath);
   }
   
   function handleTabDragEnd(e: DragEvent) {
     console.log('[DragDrop] Drag ended');
     onDragEnd();
-  }
-  
-  function handleDragOver(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'move';
-    }
-    if (!isDragOver) {
-      console.log('[DragDrop] Drag over pane:', pane.id);
-      consoleStore.log('debug', 'editor', `Drag over ${pane.id}`);
-      isDragOver = true;
-    }
-  }
-  
-  function handleDragLeave(e: DragEvent) {
-    e.stopPropagation();
-    // Only set isDragOver to false if we're leaving the pane entirely
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    if (e.clientX < rect.left || e.clientX >= rect.right ||
-        e.clientY < rect.top || e.clientY >= rect.bottom) {
-      console.log('[DragDrop] Drag leave pane:', pane.id);
-      consoleStore.log('debug', 'editor', `Drag leave ${pane.id}`);
-      isDragOver = false;
-    }
-  }
-  
-  function handleDrop(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('[DragDrop] Drop on pane:', pane.id);
-    consoleStore.log('info', 'editor', `Drop on ${pane.id}`);
-    isDragOver = false;
-    onDrop(pane.id);
   }
   
   function getLanguageLabel(lang: string): string {
@@ -275,32 +333,23 @@
       case 'assembly': return 'ARM Assembly';
       case 'makefile': return 'Makefile';
       case 'linker': return 'Linker Script';
+      case 'markdown': return 'Markdown';
       default: return 'Text';
     }
   }
 </script>
 
 <div class="editor-pane" 
-     class:drag-over={isDragOver} 
-     on:dragover={handleDragOver} 
-     on:dragleave={handleDragLeave} 
-     on:drop={handleDrop}
      role="region"
      aria-label="Editor pane">
-  {#if isDragOver}
-    <div class="drop-indicator">
-      <div class="drop-message">Drop file here</div>
-    </div>
-  {/if}
   {#if pane.files.length > 0}
     <div class="editor-tabs">
       {#each pane.files as file, i (file.path)}
         <div 
           class="tab" 
           class:active={i === pane.activeIndex}
-          draggable="true"
-          on:dragstart={(e) => handleTabDragStart(e, file.path)}
-          on:dragend={handleTabDragEnd}
+          class:flashing={$editorPanes.flashingTab?.paneId === pane.id && $editorPanes.flashingTab?.filePath === file.path}
+          on:mousedown={(e) => handleTabMouseDown(e, file.path)}
           on:click={() => selectTab(i)}
           on:keydown={(e) => handleTabKeyDown(e, i)}
           title={file.path}
@@ -358,34 +407,6 @@
     position: relative;
   }
   
-  .editor-pane.drag-over {
-    outline: 2px solid var(--color-accent);
-    outline-offset: -2px;
-  }
-  
-  .drop-indicator {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(88, 166, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    pointer-events: none;
-  }
-  
-  .drop-message {
-    padding: 16px 32px;
-    background: var(--color-accent);
-    color: var(--color-bg-primary);
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 14px;
-  }
-
   .editor-tabs {
     display: flex;
     background: var(--color-bg-secondary);
@@ -411,10 +432,50 @@
     cursor: grab;
     white-space: nowrap;
     max-width: 160px;
+    user-select: none;
+    -webkit-user-select: none;
   }
   
   .tab:active {
     cursor: grabbing;
+  }
+  
+  .tab.flashing {
+    animation: flash-tab 0.6s ease-out;
+  }
+  
+  @keyframes flash-tab {
+    0% {
+      background: var(--color-accent);
+      transform: scale(1);
+    }
+    50% {
+      background: var(--color-accent);
+      transform: scale(1.05);
+    }
+    100% {
+      background: var(--color-bg-tertiary);
+      transform: scale(1);
+    }
+  }
+  
+  .tab.active.flashing {
+    animation: flash-tab-active 0.6s ease-out;
+  }
+  
+  @keyframes flash-tab-active {
+    0% {
+      background: var(--color-accent);
+      transform: scale(1);
+    }
+    50% {
+      background: var(--color-accent);
+      transform: scale(1.05);
+    }
+    100% {
+      background: var(--color-bg-primary);
+      transform: scale(1);
+    }
   }
 
   .tab:hover {

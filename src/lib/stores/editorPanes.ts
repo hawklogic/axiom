@@ -19,6 +19,7 @@ export interface EditorPane {
 export interface PaneLayout {
   panes: EditorPane[];
   splitDirection: SplitDirection;
+  flashingTab?: { paneId: string; filePath: string } | null;
 }
 
 function createEditorPanesStore() {
@@ -31,6 +32,7 @@ function createEditorPanesStore() {
       }
     ],
     splitDirection: null,
+    flashingTab: null,
   });
 
   return {
@@ -203,6 +205,24 @@ function createEditorPanesStore() {
 
         return { ...layout };
       });
+    },
+
+    /**
+     * Flash a tab to draw attention to it
+     */
+    flashTab(paneId: string, filePath: string) {
+      update(layout => {
+        layout.flashingTab = { paneId, filePath };
+        return { ...layout };
+      });
+      
+      // Clear flash after animation
+      setTimeout(() => {
+        update(layout => {
+          layout.flashingTab = null;
+          return { ...layout };
+        });
+      }, 600);
     },
 
     /**

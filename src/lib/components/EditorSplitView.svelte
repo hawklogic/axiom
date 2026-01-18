@@ -4,14 +4,94 @@
   import { editorPanes } from '$lib/stores/editorPanes';
   import { consoleStore } from '$lib/stores/console';
   import EditorPane from './EditorPane.svelte';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   
   let draggedFile: { paneId: string; filePath: string } | null = null;
+  let dragOverPaneId: string | null = null;
   
   onMount(() => {
     console.log('[EditorSplitView] Mounted, panes:', $editorPanes.panes.length);
     consoleStore.log('info', 'editor', `Split view mounted with ${$editorPanes.panes.length} pane(s)`);
   });
+  
+  onDestroy(() => {
+    // Cleanup if needed
+  });
+  
+  function setupDropHandlers(node: HTMLElement) {
+    const paneId = node.getAttribute('data-drop-target');
+    console.log('[SETUP] Setting up drop handlers for overlay, pane:', paneId);
+    consoleStore.log('info', 'editor', `Setup drop handlers for ${paneId}`);
+    
+    const handleDragEnter = (e: DragEvent) => {
+      console.log('[NATIVE DRAGENTER] Overlay');
+      consoleStore.log('info', 'editor', 'NATIVE DRAGENTER');
+      e.preventDefault();
+    };
+    
+    const handleDragOver = (e: DragEvent) => {
+      console.log('[NATIVE DRAGOVER] Overlay');
+      consoleStore.log('info', 'editor', 'NATIVE DRAGOVER');
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'move';
+      }
+    };
+    
+    const handleDropEvent = (e: DragEvent) => {
+      console.log('[NATIVE DROP] Overlay, pane:', paneId);
+      consoleStore.log('info', 'editor', `NATIVE DROP on ${paneId}`);
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (paneId && draggedFile) {
+        console.log('[NATIVE DROP] Calling handleDrop with:', paneId);
+        handleDrop(paneId);
+      }
+    };
+    
+    node.addEventListener('dragenter', handleDragEnter);
+    node.addEventListener('dragover', handleDragOver);
+    node.addEventListener('drop', handleDropEvent);
+    
+    console.log('[SETUP] Listeners attached to overlay');
+    
+    return {
+      destroy() {
+        node.removeEventListener('dragenter', handleDragEnter);
+        node.removeEventListener('dragover', handleDragOver);
+        node.removeEventListener('drop', handleDropEvent);
+      }
+    };
+  }
+  
+  function handleGlobalDragOver(e: DragEvent) {
+    console.log('[DRAGOVER] Event on overlay');
+    consoleStore.log('info', 'editor', 'DRAGOVER on overlay');
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+  }
+  
+  function handleGlobalDrop(e: DragEvent) {
+    console.log('[DROP] Event on overlay, draggedFile:', draggedFile);
+    consoleStore.log('info', 'editor', 'DROP on overlay!');
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const target = e.target as HTMLElement;
+    const paneWrapper = target.closest('.pane-wrapper');
+    if (paneWrapper) {
+      const paneId = paneWrapper.getAttribute('data-pane-id');
+      if (paneId && draggedFile) {
+        console.log('[DROP] Moving to pane:', paneId);
+        consoleStore.log('info', 'editor', `Moving to ${paneId}`);
+        handleDrop(paneId);
+      }
+    }
+  }
   
   $: {
     console.log('[EditorSplitView] Panes updated:', $editorPanes.panes.length, 'split:', $editorPanes.splitDirection);
@@ -24,12 +104,15 @@
     console.log('[EditorSplitView] handleDragStart called:', paneId, filePath);
     consoleStore.log('info', 'editor', `Drag started: ${filePath.split('/').pop()} from ${paneId}`);
     draggedFile = { paneId, filePath };
+    console.log('[EditorSplitView] draggedFile set to:', draggedFile);
+    consoleStore.log('info', 'editor', `Overlay should appear on other panes`);
   }
   
   function handleDragEnd() {
     console.log('[EditorSplitView] handleDragEnd called, clearing draggedFile');
     consoleStore.log('info', 'editor', 'Drag ended');
     draggedFile = null;
+    dragOverPaneId = null;
   }
   
   function handleDrop(targetPaneId: string) {
@@ -48,6 +131,7 @@
     }
     
     draggedFile = null;
+    dragOverPaneId = null;
   }
   
   function handleSplitHorizontal() {
@@ -69,14 +153,32 @@
 
 <div class="editor-split-view">
   <div class="split-controls">
-    <button class="split-btn" on:click={handleSplitHorizontal} title="Split Horizontally" disabled={$editorPanes.panes.length >= 4}>
-      ⬌ ({$editorPanes.panes.length})
-    </button>
-    <button class="split-btn" on:click={handleSplitVertical} title="Split Vertically" disabled={$editorPanes.panes.length >= 4}>
-      ⬍ ({$editorPanes.panes.length})
-    </button>
+    <div class="split-buttons">
+      <button class="split-btn" on:click={handleSplitHorizontal} title="Split Editor Side by Side" disabled={$editorPanes.panes.length >= 4}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="2" width="6" height="12" stroke="currentColor" stroke-width="1.5" fill="none"/>
+          <rect x="9" y="2" width="6" height="12" stroke="currentColor" stroke-width="1.5" fill="none"/>
+        </svg>
+        <span class="btn-label">Split Right</span>
+      </button>
+      <button class="split-btn" on:click={handleSplitVertical} title="Split Editor Top and Bottom" disabled={$editorPanes.panes.length >= 4}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="1" width="12" height="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+          <rect x="2" y="9" width="12" height="6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+        </svg>
+        <span class="btn-label">Split Down</span>
+      </button>
+    </div>
+    {#if $editorPanes.panes.length > 1}
+      <span class="pane-count">{$editorPanes.panes.length} panes</span>
+    {/if}
     {#if draggedFile}
-      <span class="drag-status">Dragging: {draggedFile.filePath.split('/').pop()}</span>
+      <span class="drag-status">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+          <circle cx="6" cy="6" r="5"/>
+        </svg>
+        Dragging: {draggedFile.filePath.split('/').pop()}
+      </span>
     {/if}
   </div>
   
@@ -84,18 +186,22 @@
     {#each $editorPanes.panes as pane (pane.id)}
       <div 
         class="pane-wrapper"
+        data-pane-id={pane.id}
+        role="region"
+        aria-label="Editor pane drop zone"
         class:drag-over={draggedFile && draggedFile.paneId !== pane.id}
-        on:dragover={(e) => {
-          e.preventDefault();
-          if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-          consoleStore.log('debug', 'editor', `Drag over ${pane.id}`);
-        }}
-        on:drop={(e) => {
-          e.preventDefault();
-          consoleStore.log('info', 'editor', `Drop on ${pane.id}`);
-          handleDrop(pane.id);
-        }}
       >
+        {#if draggedFile && draggedFile.paneId !== pane.id}
+          <div 
+            class="drop-overlay"
+            data-drop-target={pane.id}
+            role="region"
+            aria-label="Drop zone"
+            use:setupDropHandlers
+          >
+            <div class="drop-message">Drop file here</div>
+          </div>
+        {/if}
         {#if $editorPanes.panes.length > 1}
           <button class="close-pane-btn" on:click={() => handleClosePane(pane.id)} title="Close Pane">
             ×
@@ -122,42 +228,81 @@
   
   .split-controls {
     display: flex;
-    gap: 4px;
-    padding: 4px;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
     background: var(--color-bg-secondary);
     border-bottom: 1px solid var(--color-border);
   }
   
+  .split-buttons {
+    display: flex;
+    gap: 6px;
+  }
+  
   .split-btn {
-    width: 28px;
-    height: 28px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
+    padding: 5px 10px;
     border-radius: 4px;
     color: var(--color-text-muted);
-    font-size: 16px;
-    transition: background 0.1s;
+    font-size: 12px;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  
+  .split-btn svg {
+    flex-shrink: 0;
+  }
+  
+  .btn-label {
+    font-weight: 500;
+    white-space: nowrap;
   }
   
   .split-btn:hover:not(:disabled) {
     background: var(--color-bg-hover);
     color: var(--color-text-primary);
+    border-color: var(--color-border);
   }
   
   .split-btn:disabled {
-    opacity: 0.3;
+    opacity: 0.4;
     cursor: not-allowed;
   }
   
+  .pane-count {
+    padding: 4px 10px;
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-muted);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--color-border);
+  }
+  
   .drag-status {
-    margin-left: 12px;
-    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    padding: 5px 10px;
     background: var(--color-accent);
     color: var(--color-bg-primary);
     border-radius: 4px;
     font-size: 11px;
     font-weight: 600;
+  }
+  
+  .drag-status svg {
+    flex-shrink: 0;
+    animation: pulse 1s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
   
   .panes-container {
@@ -184,7 +329,54 @@
     transition: outline 0.2s;
   }
   
-  .pane-wrapper.drag-over {
+  .drop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    background: rgba(88, 166, 255, 0.08);
+    border: 2px solid var(--color-accent);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all !important;
+    cursor: copy;
+    transition: background 0.2s ease;
+  }
+  
+  .drop-overlay:hover {
+    background: rgba(88, 166, 255, 0.12);
+  }
+  
+  @keyframes pulse-border {
+    0%, 100% { 
+      background: rgba(88, 166, 255, 0.15);
+      outline-offset: -8px;
+    }
+    50% { 
+      background: rgba(88, 166, 255, 0.25);
+      outline-offset: -6px;
+    }
+  }
+  
+  .drop-message {
+    padding: 12px 24px;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 13px;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    opacity: 0.95;
+  }
+  
+  .pane-wrapper.drag-over::before {
+    pointer-events: auto;
     outline: 3px solid var(--color-accent);
     outline-offset: -3px;
     background: rgba(88, 166, 255, 0.05);

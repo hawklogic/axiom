@@ -117,6 +117,19 @@
     const { path, name } = event.detail;
     console.log('[Editor] File selected:', path, name);
     
+    // Check if file is already open in any pane
+    for (const pane of $editorPanes.panes) {
+      const fileIndex = pane.files.findIndex(f => f.path === path);
+      if (fileIndex >= 0) {
+        console.log('[Editor] File already open in', pane.id, 'at index', fileIndex);
+        // Switch to that file
+        editorPanes.setActiveFile(pane.id, fileIndex);
+        // Flash the tab
+        editorPanes.flashTab(pane.id, path);
+        return;
+      }
+    }
+    
     if (!isTauri()) {
       console.warn('[Editor] File reading requires Tauri runtime');
       return;

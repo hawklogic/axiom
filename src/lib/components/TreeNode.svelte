@@ -7,6 +7,7 @@
   export let node: TreeNode;
   export let depth: number = 0;
   export let openFilePaths: Set<string> = new Set();
+  export let modifiedFilePaths: Set<string> = new Set();
 
   const dispatch = createEventDispatcher<{
     'toggle': { path: string };
@@ -14,6 +15,7 @@
   }>();
   
   $: isOpen = !node.is_dir && openFilePaths.has(node.path);
+  $: isModified = !node.is_dir && modifiedFilePaths.has(node.path);
   function handleClick() {
     if (node.is_dir) {
       dispatch('toggle', { path: node.path });
@@ -64,12 +66,15 @@
     class="node-row" 
     class:directory={node.is_dir}
     class:open={isOpen}
+    class:modified={isModified}
     on:click={handleClick}
   >
     <span class="node-icon">{getFileIcon(node)}</span>
     <span class="node-name">{node.name}</span>
-    {#if isOpen}
-      <span class="open-indicator" title="File is open">●</span>
+    {#if isModified}
+      <span class="modified-indicator" title="Unsaved changes">●</span>
+    {:else if isOpen}
+      <span class="open-indicator" title="File is open">○</span>
     {/if}
   </button>
 </div>
@@ -80,6 +85,7 @@
       node={child} 
       depth={depth + 1}
       {openFilePaths}
+      {modifiedFilePaths}
       on:toggle={forwardToggle}
       on:select={forwardSelect}
     />
@@ -136,11 +142,23 @@
     color: var(--color-text-primary);
   }
   
+  .node-row.modified {
+    color: var(--color-text-primary);
+  }
+  
   .open-indicator {
-    font-size: 6px;
+    font-size: 8px;
     color: var(--color-accent);
     margin-left: auto;
-    opacity: 0.8;
+    opacity: 0.6;
+    line-height: 1;
+  }
+  
+  .modified-indicator {
+    font-size: 8px;
+    color: #f0ad4e;
+    margin-left: auto;
+    opacity: 0.9;
     line-height: 1;
   }
 </style>
