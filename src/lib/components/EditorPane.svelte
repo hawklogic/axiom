@@ -199,6 +199,13 @@
     editorPanes.setActiveFile(pane.id, index);
   }
   
+  function handleTabKeyDown(e: KeyboardEvent, index: number) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      selectTab(index);
+    }
+  }
+  
   function closeTab(e: MouseEvent, path: string) {
     e.stopPropagation();
     editorPanes.closeFile(pane.id, path);
@@ -285,6 +292,7 @@
           on:dragstart={(e) => handleTabDragStart(e, file.path)}
           on:dragend={handleTabDragEnd}
           on:click={() => selectTab(i)}
+          on:keydown={(e) => handleTabKeyDown(e, i)}
           title={file.path}
           role="button"
           tabindex="0"
