@@ -3,8 +3,11 @@
 <script lang="ts">
   import { EMPTY } from '$lib/strings';
   import { editorStore } from '$lib/stores/editor';
+  import { highlightCode, detectLanguage, type HighlightedToken } from '$lib/utils/syntax';
   
   const { files, activeIndex, activeFile } = editorStore;
+  
+  $: highlightedContent = $activeFile ? highlightCode($activeFile.content, $activeFile.language) : [];
   
   function selectTab(index: number) {
     activeIndex.set(index);
@@ -21,6 +24,8 @@
       case 'cpp': return 'C++';
       case 'h': return 'C Header';
       case 'hpp': return 'C++ Header';
+      case 'python': return 'Python';
+      case 'assembly': return 'ARM Assembly';
       default: return 'Text';
     }
   }
@@ -52,7 +57,13 @@
           <span class="file-path">{$activeFile.path}</span>
           <span class="file-lang">{getLanguageLabel($activeFile.language)}</span>
         </div>
-        <pre class="code-view"><code>{$activeFile.content}</code></pre>
+        <pre class="code-view">
+          <code>
+            {#each highlightedContent as token}
+              <span class="token-{token.type}">{token.value}</span>
+            {/each}
+          </code>
+        </pre>
       {/if}
     </div>
   {:else}
@@ -221,5 +232,52 @@
 
   .code-view::-webkit-scrollbar-thumb:hover {
     background: var(--color-border-focus);
+  }
+
+  /* Syntax highlighting */
+  .token-keyword {
+    color: #569cd6; /* Blue for keywords */
+    font-weight: 500;
+  }
+
+  .token-string {
+    color: #ce9178; /* Orange for strings */
+  }
+
+  .token-comment {
+    color: #6a9955; /* Green for comments */
+    font-style: italic;
+  }
+
+  .token-number {
+    color: #b5cea8; /* Light green for numbers */
+  }
+
+  .token-operator {
+    color: #d4d4d4; /* Light gray for operators */
+  }
+
+  .token-register {
+    color: #4fc1ff; /* Light blue for ARM registers */
+    font-weight: 500;
+  }
+
+  .token-directive {
+    color: #c586c0; /* Purple for assembly directives */
+    font-weight: 500;
+  }
+
+  .token-function {
+    color: #dcdcaa; /* Yellow for functions and labels */
+    font-weight: 500;
+  }
+
+  .token-type {
+    color: #4ec9b0; /* Teal for types and constants */
+    font-weight: 500;
+  }
+
+  .token-text {
+    color: var(--color-text-primary);
   }
 </style>

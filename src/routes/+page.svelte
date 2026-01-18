@@ -13,6 +13,7 @@
   import MiniConsole from '$lib/components/MiniConsole.svelte';
   import { APP, PANELS } from '$lib/strings';
   import { editorStore } from '$lib/stores';
+  import { detectLanguage } from '$lib/utils/syntax';
 
   let ready = false;
   let activePanel = 'files';
@@ -112,20 +113,6 @@
     }
   });
 
-  function getLanguage(name: string): 'c' | 'cpp' | 'h' | 'hpp' | 'unknown' {
-    const ext = name.split('.').pop()?.toLowerCase() || '';
-    switch (ext) {
-      case 'c': return 'c';
-      case 'cpp':
-      case 'cc':
-      case 'cxx': return 'cpp';
-      case 'h': return 'h';
-      case 'hpp':
-      case 'hxx': return 'hpp';
-      default: return 'unknown';
-    }
-  }
-
   async function handleFileSelect(event: CustomEvent<{ path: string; name: string }>) {
     const { path, name } = event.detail;
     console.log('[Editor] File selected:', path, name);
@@ -144,7 +131,7 @@
         path,
         name,
         content,
-        language: getLanguage(name),
+        language: detectLanguage(name),
         modified: false,
         cursor: { line: 1, column: 1 },
       });
