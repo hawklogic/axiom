@@ -118,6 +118,7 @@ export const DIALOGS = {
 export const TOOLTIPS = {
   newFile: 'New file',
   openFile: 'Open file',
+  openFolder: 'Open folder',
   saveFile: 'Save file',
   closeFile: 'Close file',
   splitHorizontal: 'Split horizontal',

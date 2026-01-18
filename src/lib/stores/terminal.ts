@@ -5,7 +5,7 @@
  * Terminal store - manages terminal sessions.
  */
 
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 
 export interface TerminalSession {
@@ -21,7 +21,7 @@ function createTerminalStore() {
     sessions,
     activeId,
 
-    async create() {
+    async create(): Promise<number> {
       try {
         const id = await invoke<number>('terminal_create');
         sessions.update(s => [...s, { id, title: `Terminal ${id}` }]);
@@ -33,18 +33,27 @@ function createTerminalStore() {
       }
     },
 
-    async write(id: number, data: string) {
+    async write(id: number, data: string): Promise<void> {
       await invoke('terminal_write', { id, data });
     },
 
-    async resize(id: number, rows: number, cols: number) {
+    async read(id: number): Promise<Uint8Array> {
+      const bytes = await invoke<number[]>('terminal_read', { id });
+      return new Uint8Array(bytes);
+    },
+
+    async resize(id: number, rows: number, cols: number): Promise<void> {
       await invoke('terminal_resize', { id, rows, cols });
     },
 
-    async close(id: number) {
+    async close(id: number): Promise<void> {
       await invoke('terminal_close', { id });
       sessions.update(s => s.filter(x => x.id !== id));
       activeId.update(current => current === id ? null : current);
+    },
+
+    getActive(): number | null {
+      return get(activeId);
     },
   };
 }
