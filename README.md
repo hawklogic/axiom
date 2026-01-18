@@ -9,6 +9,7 @@
 ---
 
 
+
 > Your compiler doesn't guess. Your debugger doesn't speculate. Why should your IDE?
 
 ---
@@ -20,7 +21,6 @@ Modern IDEs have become slot machines. Type a few characters, watch the AI spin 
 Embedded systems engineers deserve better. When you're writing firmware that controls brakes, pacemakers, or flight surfaces, "probably correct" isn't good enough.
 
 ## The Instrument
-
 **Axiom** is not a productivity tool. It's an instrument panel.
 
 Like the gauges in a cockpit, Axiom displays *what is* — not what might be, could be, or statistically tends to be. Every reading comes from your code, your compiler, your hardware.
