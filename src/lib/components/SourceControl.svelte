@@ -15,6 +15,12 @@
   $: ({ status, branch, loading } = $gitStore);
   $: workspacePath = $workspace.path;
 
+  // Focus action for textarea
+  function focusOnMount(node: HTMLTextAreaElement) {
+    node.focus();
+    return {};
+  }
+
   onMount(() => {
     // Initial refresh
     if (workspacePath) {
@@ -250,12 +256,18 @@
           <textarea
             class="commit-input"
             bind:value={commitMessage}
-            placeholder="Commit message..."
+            placeholder="Commit message (Ctrl+Enter to commit)..."
             rows="3"
+            use:focusOnMount
+            on:keydown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && commitMessage.trim()) {
+                handleCommit();
+              }
+            }}
           />
           <div class="commit-actions">
             <button class="commit-button" on:click={handleCommit} disabled={!commitMessage.trim()}>
-              Commit
+              Commit ({status.staged.length})
             </button>
             <button class="cancel-button" on:click={() => { showCommitInput = false; commitMessage = ''; }}>
               Cancel
@@ -263,6 +275,9 @@
           </div>
         {:else}
           <button class="show-commit-button" on:click={() => showCommitInput = true}>
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 8h12M8 2v12"/>
+            </svg>
             Commit {status.staged.length} {status.staged.length === 1 ? 'file' : 'files'}
           </button>
         {/if}
@@ -434,11 +449,18 @@
     border-radius: var(--radius-sm);
     resize: vertical;
     min-height: 60px;
+    line-height: 1.4;
+  }
+
+  .commit-input::placeholder {
+    color: var(--color-text-muted);
+    opacity: 0.6;
   }
 
   .commit-input:focus {
     outline: none;
     border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
   }
 
   .commit-actions {
@@ -489,6 +511,15 @@
     color: var(--color-bg-primary);
     border-radius: var(--radius-sm);
     transition: opacity 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+  }
+
+  .show-commit-button svg {
+    width: 14px;
+    height: 14px;
   }
 
   .show-commit-button:hover {
