@@ -3,4 +3,4 @@
 
 // Disable SSR for Tauri app - Tauri APIs require window/document
 export const ssr = false;
-export const prerender = true;
+export const prerender = false;

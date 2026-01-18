@@ -10,8 +10,19 @@
     'file-select': { path: string; name: string };
   }>();
 
+  let buttonMessage = '';
+
   async function handleOpenFolder() {
-    await workspace.openFolder();
+    if (!workspace.isTauriAvailable()) {
+      buttonMessage = 'Requires native app (npm run tauri dev)';
+      setTimeout(() => buttonMessage = '', 3000);
+      return;
+    }
+    const success = await workspace.openFolder();
+    if (!success) {
+      buttonMessage = 'No folder selected';
+      setTimeout(() => buttonMessage = '', 2000);
+    }
   }
 
   async function handleToggle(event: CustomEvent<{ path: string }>) {
@@ -30,7 +41,11 @@
       <button class="open-folder-btn" on:click={handleOpenFolder}>
         {BUTTONS.open} Folder
       </button>
-      <p class="hint">Or drag a folder here</p>
+      {#if buttonMessage}
+        <p class="button-message">{buttonMessage}</p>
+      {:else}
+        <p class="hint">Or drag a folder here</p>
+      {/if}
     </div>
   {:else}
     <div class="workspace-header">
@@ -82,17 +97,27 @@
     color: var(--color-bg-primary);
     border-radius: 6px;
     font-weight: 500;
-    transition: background 0.15s;
+    transition: background 0.15s, transform 0.1s;
   }
 
   .open-folder-btn:hover {
     background: var(--color-accent-hover);
   }
 
+  .open-folder-btn:active {
+    background: var(--color-accent-active);
+    transform: scale(0.98);
+  }
+
   .hint {
     color: var(--color-text-muted);
     font-size: 11px;
     opacity: 0.7;
+  }
+
+  .button-message {
+    color: var(--color-warning);
+    font-size: 11px;
   }
 
   .workspace-header {

@@ -19,6 +19,8 @@
   --color-border-focus: #505050;
   
   --color-accent: #00d4ff; /* Signal Cyan */
+  --color-accent-hover: #00b8e6; /* Signal Cyan - darker */
+  --color-accent-active: #009dcc; /* Signal Cyan - darkest */
   --color-warning: #f5a623; /* Instrument Amber */
   --color-error: #ff4444; /* Error Red */
   --color-success: #00ff88; /* Terminal Green */
@@ -64,6 +66,8 @@
   --color-border-focus: #a0a0a0;
   
   --color-accent: #0099cc;
+  --color-accent-hover: #007da8;
+  --color-accent-active: #006690;
 }
 
 /* Reset */

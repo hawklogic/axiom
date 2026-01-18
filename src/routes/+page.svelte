@@ -25,9 +25,16 @@
   }
 
   onMount(async () => {
-    // Simulate backend initialization
-    await new Promise(resolve => setTimeout(resolve, 500));
-    ready = true;
+    console.log('[Axiom] onMount started');
+    try {
+      // Brief delay for visual feedback
+      await new Promise(resolve => setTimeout(resolve, 300));
+      console.log('[Axiom] Setting ready = true');
+      ready = true;
+    } catch (err) {
+      console.error('[Axiom] onMount error:', err);
+      ready = true; // Still show UI even on error
+    }
   });
 
   function getLanguage(name: string): 'c' | 'cpp' | 'h' | 'hpp' | 'unknown' {

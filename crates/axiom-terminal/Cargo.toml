@@ -12,5 +12,6 @@ description = "Axiom integrated terminal via PTY"
 [dependencies]
 axiom-core = { path = "../axiom-core" }
 portable-pty = { workspace = true }
+libc = "0.2"
 vte = { workspace = true }
 thiserror = { workspace = true }

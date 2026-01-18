@@ -49,15 +49,23 @@ function createConsoleStore() {
      * Initialize the console store and start listening for backend events.
      */
     async init() {
-      if (!browser) return;
+      console.log('[Console] init() called');
+      if (!browser) {
+        console.log('[Console] Not in browser, skipping');
+        return;
+      }
 
       // Check if already initialized
       let isInit = false;
       initialized.subscribe(v => isInit = v)();
-      if (isInit) return;
+      if (isInit) {
+        console.log('[Console] Already initialized, skipping');
+        return;
+      }
 
       // Check if running in Tauri
       if (!isTauri()) {
+        console.log('[Console] Not in Tauri, showing warning');
         // Not in Tauri, just show a message
         entries.update(e => [...e, {
           level: 'warn',
@@ -69,9 +77,11 @@ function createConsoleStore() {
         return;
       }
 
+      console.log('[Console] Tauri detected, setting up event listener...');
       try {
         // Dynamically import Tauri event API
         const { listen } = await import('@tauri-apps/api/event');
+        console.log('[Console] Tauri event API imported');
         
         // Listen for backend log events
         await listen<LogEntry>('backend-log', (event) => {
@@ -85,6 +95,7 @@ function createConsoleStore() {
           });
         });
 
+        console.log('[Console] Event listener registered');
         initialized.set(true);
 
         // Add initial entry
@@ -95,7 +106,7 @@ function createConsoleStore() {
           timestamp: Date.now(),
         }]);
       } catch (err) {
-        console.error('Failed to initialize console store:', err);
+        console.error('[Console] Failed to initialize:', err);
       }
     },
 

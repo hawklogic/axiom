@@ -12,16 +12,19 @@ pub mod logging;
 mod state;
 
 use state::AppState;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
+use tauri::menu::{AboutMetadataBuilder, MenuBuilder, SubmenuBuilder};
 
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .manage(AppState::new())  // Register state BEFORE setup
         .setup(|app| {
             // Initialize logging with app handle for event emission
             logging::init(app.handle().clone());
             logging::info("core", "Axiom IDE starting...");
+            println!("[Axiom] Setup hook started");
             
             // Log initial state
             let state = app.state::<AppState>();
@@ -32,10 +35,99 @@ fn main() {
             }
             drop(toolchains);
             
+            // Build the application menu
+            let about_metadata = AboutMetadataBuilder::new()
+                .name(Some("Axiom"))
+                .version(Some("0.1.0"))
+                .copyright(Some("Copyright © 2024 HawkLogic Systems"))
+                .comments(Some("Avionics-grade IDE for embedded systems.\nDeterministic. Inspectable. Offline."))
+                .website(Some("https://github.com/hawklogic/axiom"))
+                .build();
+            
+            let app_menu = SubmenuBuilder::new(app, "Axiom")
+                .about(Some(about_metadata))
+                .separator()
+                .services()
+                .separator()
+                .hide()
+                .hide_others()
+                .show_all()
+                .separator()
+                .quit()
+                .build()?;
+            
+            let file_menu = SubmenuBuilder::new(app, "File")
+                .text("open-folder", "Open Folder...")
+                .separator()
+                .close_window()
+                .build()?;
+            
+            let edit_menu = SubmenuBuilder::new(app, "Edit")
+                .undo()
+                .redo()
+                .separator()
+                .cut()
+                .copy()
+                .paste()
+                .select_all()
+                .build()?;
+            
+            let view_menu = SubmenuBuilder::new(app, "View")
+                .text("toggle-terminal", "Toggle Terminal")
+                .text("toggle-sidebar", "Toggle Sidebar")
+                .separator()
+                .fullscreen()
+                .build()?;
+            
+            let window_menu = SubmenuBuilder::new(app, "Window")
+                .minimize()
+                .separator()
+                .close_window()
+                .build()?;
+            
+            let help_menu = SubmenuBuilder::new(app, "Help")
+                .text("documentation", "Documentation")
+                .text("report-issue", "Report Issue")
+                .separator()
+                .text("about-axiom", "About Axiom")
+                .build()?;
+            
+            let menu = MenuBuilder::new(app)
+                .item(&app_menu)
+                .item(&file_menu)
+                .item(&edit_menu)
+                .item(&view_menu)
+                .item(&window_menu)
+                .item(&help_menu)
+                .build()?;
+            
+            app.set_menu(menu)?;
+            
+            // Handle menu events
+            app.on_menu_event(|app, event| {
+                match event.id().as_ref() {
+                    "about-axiom" => {
+                        // Emit event to frontend to show about dialog
+                        let _ = app.emit("show-about", ());
+                    }
+                    "documentation" => {
+                        let _ = tauri::async_runtime::spawn(async {
+                            let _ = open::that("https://github.com/hawklogic/axiom");
+                        });
+                    }
+                    "report-issue" => {
+                        let _ = tauri::async_runtime::spawn(async {
+                            let _ = open::that("https://github.com/hawklogic/axiom/issues");
+                        });
+                    }
+                    _ => {}
+                }
+            });
+            
             logging::info("core", "Backend ready");
+            println!("[Axiom] Setup hook completed, backend ready");
             Ok(())
         })
-        .manage(AppState::new())
         .invoke_handler(tauri::generate_handler![
             // Settings commands
             commands::settings::get_settings,

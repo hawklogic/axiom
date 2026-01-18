@@ -6,6 +6,7 @@
 use portable_pty::{native_pty_system, CommandBuilder, PtySize, PtyPair};
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
+use std::os::unix::io::RawFd;
 
 /// Terminal error type.
 #[derive(Debug, thiserror::Error)]
@@ -49,6 +50,7 @@ pub struct Pty {
     pair: PtyPair,
     reader: Arc<Mutex<Box<dyn Read + Send>>>,
     writer: Arc<Mutex<Box<dyn Write + Send>>>,
+    reader_fd: Option<RawFd>,
 }
 
 impl Pty {
@@ -68,10 +70,14 @@ impl Pty {
             .take_writer()
             .map_err(|e| TerminalError::Pty(e.to_string()))?;
 
+        // Get fd from master BEFORE any operations that might invalidate it
+        let reader_fd = pair.master.as_raw_fd();
+
         Ok(Self {
             pair,
             reader: Arc::new(Mutex::new(reader)),
             writer: Arc::new(Mutex::new(writer)),
+            reader_fd,
         })
     }
 
@@ -111,10 +117,28 @@ impl Pty {
         Ok(n)
     }
 
-    /// Read from the PTY (non-blocking attempt).
+    /// Read from the PTY (blocking - waits for data).
+    /// This is efficient because the OS handles waiting, no CPU cycles wasted.
     pub fn read(&self, buf: &mut [u8]) -> Result<usize, TerminalError> {
         let mut reader = self.reader.lock().map_err(|_| TerminalError::Lock)?;
         Ok(reader.read(buf)?)
+    }
+    
+    /// Check if data is available without blocking.
+    pub fn has_data(&self) -> bool {
+        if let Some(fd) = self.reader_fd {
+            let mut pollfd = libc::pollfd {
+                fd,
+                events: libc::POLLIN,
+                revents: 0,
+            };
+            unsafe {
+                let result = libc::poll(&mut pollfd, 1, 0);
+                result > 0 && (pollfd.revents & libc::POLLIN) != 0
+            }
+        } else {
+            false
+        }
     }
 
     /// Resize the PTY.
@@ -134,6 +158,11 @@ impl Pty {
     /// Get a clone of the writer for async writing.
     pub fn writer(&self) -> Arc<Mutex<Box<dyn Write + Send>>> {
         self.writer.clone()
+    }
+    
+    /// Get the file descriptor for polling.
+    pub fn get_fd(&self) -> Option<RawFd> {
+        self.reader_fd
     }
 }
 
