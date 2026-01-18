@@ -603,8 +603,9 @@
   .commit-message {
     color: var(--color-text-primary);
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-wrap: break-word;
+    white-space: normal;
+    line-height: 1.4;
   }
 
   .icon-button {
