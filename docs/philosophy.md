@@ -65,4 +65,4 @@ When you use Axiom, you can trust that:
 
 ---
 
-*Axiom is a HawkLogic Systems project, licensed under Apache-2.0.*
+*Axiom by HawkLogic Systems, licensed under Apache-2.0.*

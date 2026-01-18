@@ -82,4 +82,4 @@
 
 ---
 
-*Axiom is a HawkLogic Systems project.*
+*Axiom by HawkLogic Systems.*

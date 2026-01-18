@@ -18,7 +18,7 @@
 export const APP = {
   name: 'Axiom',
   tagline: 'Deterministic. Inspectable. Offline.',
-  steward: 'A HawkLogic Systems project',
+  steward: 'by HawkLogic Systems',
   copyright: 'Copyright 2024 HawkLogic Systems',
   license: 'Apache-2.0',
 } as const;

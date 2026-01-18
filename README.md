@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <em>A HawkLogic Systems project.</em>
+  <em>by HawkLogic Systems</em>
 </p>
 
 ---
@@ -200,5 +200,5 @@ Apache-2.0
 </p>
 
 <p align="center">
-  <sub>A HawkLogic Systems project.</sub>
+  <sub>by HawkLogic Systems</sub>
 </p>

@@ -195,4 +195,4 @@ Axiom development follows a sequential workstream model. Each workstream must co
 
 ---
 
-*Axiom is a HawkLogic Systems project.*
+*Axiom by HawkLogic Systems.*
