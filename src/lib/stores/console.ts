@@ -19,9 +19,11 @@ export interface LogEntry {
 
 const MAX_ENTRIES = 500;
 
-/** Check if running inside Tauri */
+/** Check if running inside Tauri (works with Tauri 2.x) */
 function isTauri(): boolean {
-  return browser && typeof window !== 'undefined' && '__TAURI__' in window;
+  if (!browser || typeof window === 'undefined') return false;
+  // Tauri 2.x uses __TAURI_INTERNALS__, Tauri 1.x uses __TAURI__
+  return '__TAURI__' in window || '__TAURI_INTERNALS__' in window;
 }
 
 function createConsoleStore() {

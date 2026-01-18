@@ -22,9 +22,11 @@ export interface TreeNode extends DirEntry {
   loading?: boolean;
 }
 
-/** Check if running inside Tauri */
+/** Check if running inside Tauri (works with Tauri 2.x) */
 function isTauri(): boolean {
-  return browser && typeof window !== 'undefined' && '__TAURI__' in window;
+  if (!browser || typeof window === 'undefined') return false;
+  // Tauri 2.x uses __TAURI_INTERNALS__, Tauri 1.x uses __TAURI__
+  return '__TAURI__' in window || '__TAURI_INTERNALS__' in window;
 }
 
 /** Lazy import invoke to avoid errors in browser */
