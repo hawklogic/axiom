@@ -12,6 +12,7 @@
   import Terminal from '$lib/components/Terminal.svelte';
   import MiniConsole from '$lib/components/MiniConsole.svelte';
   import AboutPanel from '$lib/components/AboutPanel.svelte';
+  import SourceControl from '$lib/components/SourceControl.svelte';
   import { APP, PANELS } from '$lib/strings';
   import { editorPanes } from '$lib/stores/editorPanes';
   import { ideStatus } from '$lib/stores/status';
@@ -229,7 +230,7 @@
             </Panel>
           {:else if activePanel === 'git'}
             <Panel title={PANELS.sourceControl}>
-              <div class="panel-placeholder">Source Control</div>
+              <SourceControl />
             </Panel>
           {:else if activePanel === 'ast'}
             <Panel title={PANELS.astViewer}>

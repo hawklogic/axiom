@@ -5,7 +5,7 @@
  * Git store - manages git state.
  */
 
-import { writable } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 
 export interface StatusEntry {
@@ -26,10 +26,14 @@ function createGitStore() {
   const branch = writable<string | null>(null);
   const loading = writable(false);
 
-  return {
-    status,
-    branch,
-    loading,
+  const store = {
+    subscribe(run: (value: { status: RepoStatus | null; branch: string | null; loading: boolean }) => void) {
+      return derived([status, branch, loading], ([$status, $branch, $loading]) => ({
+        status: $status,
+        branch: $branch,
+        loading: $loading,
+      })).subscribe(run);
+    },
 
     async refresh(path: string) {
       loading.set(true);
@@ -51,20 +55,22 @@ function createGitStore() {
 
     async stage(repoPath: string, filePath: string) {
       await invoke('git_stage', { repoPath, filePath });
-      await this.refresh(repoPath);
+      await store.refresh(repoPath);
     },
 
     async unstage(repoPath: string, filePath: string) {
       await invoke('git_unstage', { repoPath, filePath });
-      await this.refresh(repoPath);
+      await store.refresh(repoPath);
     },
 
     async commit(path: string, message: string) {
       const commitId = await invoke<string>('git_commit', { path, message });
-      await this.refresh(path);
+      await store.refresh(path);
       return commitId;
     },
   };
+
+  return store;
 }
 
 export const gitStore = createGitStore();

@@ -62,7 +62,9 @@ const ARM_INSTRUCTIONS = [
   'bhi', 'bls', 'bge', 'blt', 'bgt', 'ble', 'bal', 'nop'
 ];
 
-export function detectLanguage(filename: string): string {
+export type Language = 'c' | 'cpp' | 'python' | 'assembly' | 'makefile' | 'linker' | 'markdown' | 'text';
+
+export function detectLanguage(filename: string): Language {
   const ext = filename.split('.').pop()?.toLowerCase();
   const basename = filename.split('/').pop()?.toLowerCase() || '';
   
