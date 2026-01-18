@@ -1,24 +1,18 @@
 <p align="center">
-  <img src="assets/brand/axiom-logo.svg" alt="Axiom Logo" width="280">
-</p>
-
-<h1 align="center">Axiom</h1>
-
-<p align="center">
-  <strong>Deterministic. Inspectable. Offline.</strong>
+  <img src="assets/brand/axiom-logo.svg" alt="Axiom" width="320">
 </p>
 
 <p align="center">
-  Avionics-grade IDE for embedded systems engineers.<br>
-  Built for those who work close to the metal.
+  <strong>Deterministic. Inspectable. Offline.</strong><br>
+  Avionics-grade IDE for embedded systems engineers.
+</p>
+
+<p align="center">
+  <img src="assets/brand/splash.svg" alt="Splash" width="560">
 </p>
 
 <p align="center">
   <em>A HawkLogic Systems project.</em>
-</p>
-
-<p align="center">
-  <img src="assets/brand/splash.svg" alt="Axiom Splash" width="600">
 </p>
 
 > **Status**: Work in progress — Backend crates scaffolded, UI forthcoming.
