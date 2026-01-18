@@ -37,6 +37,15 @@
   }
   
   function handleKeyDown(e: KeyboardEvent) {
+    // Handle Ctrl+S / Cmd+S to save
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      if ($activeFile) {
+        saveFile($activeFile.path, $activeFile.content);
+      }
+      return;
+    }
+    
     // Handle Tab key
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -51,6 +60,17 @@
       
       // Trigger input event to update content
       target.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+  
+  async function saveFile(path: string, content: string) {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke('write_file', { path, contents: content });
+      editorStore.markSaved(path);
+      console.log('[Editor] File saved:', path);
+    } catch (err) {
+      console.error('[Editor] Failed to save file:', err);
     }
   }
   
