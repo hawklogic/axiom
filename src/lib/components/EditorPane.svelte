@@ -48,20 +48,6 @@
   onMount(() => {
     console.log('[EditorPane] Mounted, pane:', pane.id, 'files:', pane.files.length);
     
-    // Initialize autocomplete controller
-    if (editorElement) {
-      autocompleteController = new AutocompleteController(editorElement);
-      console.log('[EditorPane] Autocomplete controller initialized');
-      
-      // Set language if we have an active file
-      if (activeFile) {
-        const lang = activeFile.language as Language;
-        autocompleteController.setLanguage(lang).catch(err => {
-          console.error('[EditorPane] Failed to set autocomplete language:', err);
-        });
-      }
-    }
-    
     // Measure actual line height from rendered line numbers
     const lineNumbers = document.querySelector('.line-numbers');
     if (lineNumbers) {
@@ -99,6 +85,22 @@
       }
     };
   });
+  
+  // Initialize autocomplete controller when editor element is available
+  $: if (editorElement && !autocompleteController) {
+    console.log('[EditorPane] Editor element available, initializing autocomplete...');
+    autocompleteController = new AutocompleteController(editorElement);
+    console.log('[EditorPane] Autocomplete controller initialized:', autocompleteController);
+    
+    // Set language if we have an active file
+    if (activeFile) {
+      const lang = activeFile.language as Language;
+      console.log('[EditorPane] Setting autocomplete language:', lang);
+      autocompleteController.setLanguage(lang).catch(err => {
+        console.error('[EditorPane] Failed to set autocomplete language:', err);
+      });
+    }
+  }
   
   $: activeFile = pane.activeIndex >= 0 ? pane.files[pane.activeIndex] : null;
   $: highlightedContent = activeFile ? highlightCode(activeFile.content, activeFile.language) : [];
@@ -342,7 +344,10 @@
   function handleKeyDown(e: KeyboardEvent) {
     // Let autocomplete handle its keys first if it's visible
     if (autocompleteController) {
+      console.log('[EditorPane] Key pressed:', e.key, 'Controller exists:', !!autocompleteController);
       const state = autocompleteController.getState();
+      console.log('[EditorPane] Autocomplete state:', state);
+      
       if (state.visible) {
         // Autocomplete handles: ArrowUp, ArrowDown, Tab, Escape, Enter
         if (['ArrowUp', 'ArrowDown', 'Tab', 'Escape'].includes(e.key)) {
