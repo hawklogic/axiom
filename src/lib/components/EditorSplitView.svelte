@@ -284,8 +284,17 @@
           </div>
         {/if}
         {#if $editorPanes.panes.length > 1}
-          <button class="close-pane-btn" on:click={() => handleClosePane(pane.id)} title="Close Pane">
-            ×
+          <button 
+            class="close-pane-btn" 
+            class:empty-pane={pane.files.length === 0}
+            on:click={() => handleClosePane(pane.id)} 
+            title="Close Pane"
+          >
+            {#if pane.files.length === 0}
+              <span class="close-pane-text">Close Empty Pane</span>
+            {:else}
+              ×
+            {/if}
           </button>
         {/if}
         <EditorPane 
@@ -550,7 +559,6 @@
     position: absolute;
     top: 4px;
     right: 4px;
-    width: 20px;
     height: 20px;
     display: flex;
     align-items: center;
@@ -562,6 +570,19 @@
     z-index: 10;
     opacity: 0;
     transition: opacity 0.2s, background 0.15s;
+    padding: 0;
+    width: 20px;
+  }
+  
+  .close-pane-btn.empty-pane {
+    width: auto;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+  
+  .close-pane-text {
+    white-space: nowrap;
+    font-weight: 500;
   }
   
   .pane-wrapper:hover .close-pane-btn {
