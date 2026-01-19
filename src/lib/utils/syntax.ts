@@ -144,7 +144,7 @@ export type Language =
   | 'c' | 'cpp' | 'python' | 'assembly' | 'makefile' | 'linker' | 'markdown'
   | 'javascript' | 'typescript' | 'html' | 'css' | 'xml' | 'json' | 'yaml'
   | 'svelte' | 'astro' | 'dockerfile' | 'gitignore' | 'bash' | 'rust'
-  | 'go' | 'java' | 'sql' | 'text';
+  | 'go' | 'java' | 'sql' | 'toml' | 'lock' | 'log' | 'cursorrules' | 'text';
 
 export function detectLanguage(filename: string): Language {
   const ext = filename.split('.').pop()?.toLowerCase();
@@ -159,6 +159,9 @@ export function detectLanguage(filename: string): Language {
   }
   if (basename === '.gitignore' || basename === '.dockerignore' || basename === '.npmignore') {
     return 'gitignore';
+  }
+  if (basename === '.cursorrules') {
+    return 'cursorrules';
   }
   
   switch (ext) {
@@ -239,6 +242,12 @@ export function detectLanguage(filename: string): Language {
     case 'md':
     case 'markdown':
       return 'markdown';
+    case 'toml':
+      return 'toml';
+    case 'lock':
+      return 'lock';
+    case 'log':
+      return 'log';
     
     default:
       return 'text';
@@ -297,6 +306,14 @@ export function highlightCode(code: string, language: string): HighlightedToken[
       return highlightJava(code);
     case 'sql':
       return highlightSQL(code);
+    case 'toml':
+      return highlightTOML(code);
+    case 'lock':
+      return highlightLock(code);
+    case 'log':
+      return highlightLog(code);
+    case 'cursorrules':
+      return highlightCursorRules(code);
     default:
       return [{ type: 'text', value: code }];
   }
@@ -1577,6 +1594,336 @@ function highlightSQL(code: string): HighlightedToken[] {
     
     tokens.push({ type: 'text', value: code[pos] });
     pos++;
+  }
+  
+  return tokens;
+}
+
+
+function highlightTOML(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  let pos = 0;
+  
+  while (pos < code.length) {
+    // Newlines
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    // Whitespace
+    if (/[ \t\r]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[ \t\r]/.test(code[pos])) pos++;
+      tokens.push({ type: 'text', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Comments
+    if (code[pos] === '#') {
+      const start = pos;
+      while (pos < code.length && code[pos] !== '\n') pos++;
+      tokens.push({ type: 'comment', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Section headers [section]
+    if (code[pos] === '[') {
+      const start = pos;
+      while (pos < code.length && code[pos] !== ']') pos++;
+      if (pos < code.length) pos++;
+      tokens.push({ type: 'keyword', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Strings
+    if (code[pos] === '"' || code[pos] === "'") {
+      const quote = code[pos];
+      const start = pos;
+      pos++;
+      
+      // Triple quotes
+      if (pos < code.length - 1 && code.slice(pos, pos + 2) === quote + quote) {
+        pos += 2;
+        while (pos < code.length - 2 && code.slice(pos, pos + 3) !== quote + quote + quote) pos++;
+        if (pos < code.length - 2) pos += 3;
+      } else {
+        while (pos < code.length && code[pos] !== quote) {
+          if (code[pos] === '\\') pos++;
+          pos++;
+        }
+        if (pos < code.length) pos++;
+      }
+      tokens.push({ type: 'string', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Booleans and keywords
+    if (/[a-zA-Z_]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[a-zA-Z0-9_-]/.test(code[pos])) pos++;
+      const word = code.slice(start, pos);
+      
+      if (['true', 'false'].includes(word)) {
+        tokens.push({ type: 'keyword', value: word });
+      } else {
+        // Check if it's a key (followed by =)
+        let checkPos = pos;
+        while (checkPos < code.length && /[ \t]/.test(code[checkPos])) checkPos++;
+        if (checkPos < code.length && code[checkPos] === '=') {
+          tokens.push({ type: 'type', value: word });
+        } else {
+          tokens.push({ type: 'text', value: word });
+        }
+      }
+      continue;
+    }
+    
+    // Numbers
+    if (/[\d+-]/.test(code[pos])) {
+      const start = pos;
+      if (code[pos] === '+' || code[pos] === '-') pos++;
+      while (pos < code.length && /[\d._eE+-]/.test(code[pos])) pos++;
+      tokens.push({ type: 'number', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Operators
+    if (/[=,.]/.test(code[pos])) {
+      tokens.push({ type: 'operator', value: code[pos] });
+      pos++;
+      continue;
+    }
+    
+    tokens.push({ type: 'text', value: code[pos] });
+    pos++;
+  }
+  
+  return tokens;
+}
+
+function highlightLock(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  let pos = 0;
+  
+  while (pos < code.length) {
+    // Newlines
+    if (code[pos] === '\n') {
+      tokens.push({ type: 'text', value: '\n' });
+      pos++;
+      continue;
+    }
+    
+    // Whitespace
+    if (/[ \t\r]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[ \t\r]/.test(code[pos])) pos++;
+      tokens.push({ type: 'text', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Comments
+    if (code[pos] === '#') {
+      const start = pos;
+      while (pos < code.length && code[pos] !== '\n') pos++;
+      tokens.push({ type: 'comment', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Section headers [[package]]
+    if (code.slice(pos, pos + 2) === '[[') {
+      const start = pos;
+      while (pos < code.length && code.slice(pos, pos + 2) !== ']]') pos++;
+      if (pos < code.length - 1) pos += 2;
+      tokens.push({ type: 'keyword', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Strings
+    if (code[pos] === '"') {
+      const start = pos;
+      pos++;
+      while (pos < code.length && code[pos] !== '"') {
+        if (code[pos] === '\\') pos++;
+        pos++;
+      }
+      if (pos < code.length) pos++;
+      tokens.push({ type: 'string', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Keys (name =)
+    if (/[a-zA-Z_]/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[a-zA-Z0-9_-]/.test(code[pos])) pos++;
+      const word = code.slice(start, pos);
+      
+      // Check if followed by =
+      let checkPos = pos;
+      while (checkPos < code.length && /[ \t]/.test(code[checkPos])) checkPos++;
+      if (checkPos < code.length && code[checkPos] === '=') {
+        tokens.push({ type: 'type', value: word });
+      } else {
+        tokens.push({ type: 'text', value: word });
+      }
+      continue;
+    }
+    
+    // Version numbers
+    if (/\d/.test(code[pos])) {
+      const start = pos;
+      while (pos < code.length && /[\d.]/.test(code[pos])) pos++;
+      tokens.push({ type: 'number', value: code.slice(start, pos) });
+      continue;
+    }
+    
+    // Operators
+    if (/[=,]/.test(code[pos])) {
+      tokens.push({ type: 'operator', value: code[pos] });
+      pos++;
+      continue;
+    }
+    
+    tokens.push({ type: 'text', value: code[pos] });
+    pos++;
+  }
+  
+  return tokens;
+}
+
+function highlightLog(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  const lines = code.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Error lines
+    if (/error|fail|fatal|exception|panic/i.test(line)) {
+      tokens.push({ type: 'keyword', value: line });
+    }
+    // Warning lines
+    else if (/warn|warning|caution/i.test(line)) {
+      tokens.push({ type: 'type', value: line });
+    }
+    // Info/debug lines
+    else if (/info|debug|trace/i.test(line)) {
+      tokens.push({ type: 'comment', value: line });
+    }
+    // Timestamps
+    else if (/^\d{4}-\d{2}-\d{2}|\d{2}:\d{2}:\d{2}/.test(line)) {
+      const timestampMatch = line.match(/^(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}[^\s]*)/);
+      if (timestampMatch) {
+        tokens.push({ type: 'number', value: timestampMatch[1] });
+        tokens.push({ type: 'text', value: line.slice(timestampMatch[1].length) });
+      } else {
+        tokens.push({ type: 'text', value: line });
+      }
+    }
+    // Default
+    else {
+      tokens.push({ type: 'text', value: line });
+    }
+    
+    if (i < lines.length - 1) {
+      tokens.push({ type: 'text', value: '\n' });
+    }
+  }
+  
+  return tokens;
+}
+
+
+function highlightCursorRules(code: string): HighlightedToken[] {
+  const tokens: HighlightedToken[] = [];
+  const lines = code.split('\n');
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let pos = 0;
+    
+    // Headers (lines starting with #)
+    if (line.trimStart().startsWith('#')) {
+      const leadingSpace = line.match(/^\s*/)?.[0] || '';
+      if (leadingSpace) {
+        tokens.push({ type: 'text', value: leadingSpace });
+        pos += leadingSpace.length;
+      }
+      
+      const headerMatch = line.slice(pos).match(/^(#{1,6})\s+(.*)$/);
+      if (headerMatch) {
+        tokens.push({ type: 'keyword', value: headerMatch[1] + ' ' });
+        tokens.push({ type: 'function', value: headerMatch[2] });
+        if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+        continue;
+      }
+    }
+    
+    // Lists (- or *)
+    const listMatch = line.match(/^(\s*)([-*])\s+(.*)$/);
+    if (listMatch) {
+      tokens.push({ type: 'text', value: listMatch[1] });
+      tokens.push({ type: 'operator', value: listMatch[2] + ' ' });
+      tokens.push({ type: 'text', value: listMatch[3] });
+      if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+      continue;
+    }
+    
+    // Key-value pairs (key: value)
+    const kvMatch = line.match(/^(\s*)([a-zA-Z_][a-zA-Z0-9_-]*)\s*:\s*(.*)$/);
+    if (kvMatch) {
+      tokens.push({ type: 'text', value: kvMatch[1] });
+      tokens.push({ type: 'type', value: kvMatch[2] });
+      tokens.push({ type: 'operator', value: ': ' });
+      tokens.push({ type: 'text', value: kvMatch[3] });
+      if (i < lines.length - 1) tokens.push({ type: 'text', value: '\n' });
+      continue;
+    }
+    
+    // Process inline markdown-style formatting
+    while (pos < line.length) {
+      // Bold (**text**)
+      if (line.slice(pos, pos + 2) === '**') {
+        const endPos = line.indexOf('**', pos + 2);
+        if (endPos !== -1) {
+          tokens.push({ type: 'keyword', value: line.slice(pos, endPos + 2) });
+          pos = endPos + 2;
+          continue;
+        }
+      }
+      
+      // Code blocks (`code`)
+      if (line[pos] === '`') {
+        const endPos = line.indexOf('`', pos + 1);
+        if (endPos !== -1) {
+          tokens.push({ type: 'string', value: line.slice(pos, endPos + 1) });
+          pos = endPos + 1;
+          continue;
+        }
+      }
+      
+      // URLs (http:// or https://)
+      if (line.slice(pos, pos + 7) === 'http://' || line.slice(pos, pos + 8) === 'https://') {
+        const start = pos;
+        while (pos < line.length && !/\s/.test(line[pos])) pos++;
+        tokens.push({ type: 'directive', value: line.slice(start, pos) });
+        continue;
+      }
+      
+      pos++;
+    }
+    
+    // If we didn't match any special patterns, add the whole line
+    if (tokens.length === 0 || tokens[tokens.length - 1].value !== line) {
+      if (pos === 0) {
+        tokens.push({ type: 'text', value: line });
+      }
+    }
+    
+    if (i < lines.length - 1) {
+      tokens.push({ type: 'text', value: '\n' });
+    }
   }
   
   return tokens;

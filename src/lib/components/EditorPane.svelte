@@ -19,6 +19,9 @@
   let highlightElement: HTMLElement;
   let lineNumbersElement: HTMLElement;
   let showLineNumbers = true; // Default to true
+  let currentLine = 1; // Track current cursor line
+  let measuredLineHeight = 19.5; // Will measure from actual DOM
+  let scrollTop = 0; // Track scroll position for line highlight
   
   // Load line numbers preference from settings
   $: if ($settingsStore) {
@@ -35,10 +38,57 @@
   
   onMount(() => {
     console.log('[EditorPane] Mounted, pane:', pane.id, 'files:', pane.files.length);
+    
+    // Measure actual line height from rendered line numbers
+    const lineNumbers = document.querySelector('.line-numbers');
+    if (lineNumbers) {
+      const firstLine = lineNumbers.querySelector('.line-number');
+      if (firstLine) {
+        measuredLineHeight = firstLine.getBoundingClientRect().height;
+        console.log('[EditorPane] Measured line height:', measuredLineHeight);
+      }
+    }
+    
+    // Watch for resize events to remeasure line height
+    const resizeObserver = new ResizeObserver(() => {
+      const lineNumbers = document.querySelector('.line-numbers');
+      if (lineNumbers) {
+        const firstLine = lineNumbers.querySelector('.line-number');
+        if (firstLine) {
+          const newHeight = firstLine.getBoundingClientRect().height;
+          if (newHeight > 0 && newHeight !== measuredLineHeight) {
+            measuredLineHeight = newHeight;
+            console.log('[EditorPane] Remeasured line height after resize:', measuredLineHeight);
+          }
+        }
+      }
+    });
+    
+    const editorPane = document.querySelector('.editor-pane');
+    if (editorPane) {
+      resizeObserver.observe(editorPane);
+    }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
   });
   
   $: activeFile = pane.activeIndex >= 0 ? pane.files[pane.activeIndex] : null;
   $: highlightedContent = activeFile ? highlightCode(activeFile.content, activeFile.language) : [];
+  
+  // Remeasure line height when active file changes
+  $: if (activeFile && lineNumbersElement) {
+    setTimeout(() => {
+      const firstLine = lineNumbersElement.querySelector('.line-number');
+      if (firstLine) {
+        const newHeight = firstLine.getBoundingClientRect().height;
+        if (newHeight > 0) {
+          measuredLineHeight = newHeight;
+        }
+      }
+    }, 0);
+  }
   
   // Undo/Redo state
   interface HistoryState {
@@ -134,10 +184,56 @@
     const line = lines.length;
     const column = lines[lines.length - 1].length + 1;
     
+    currentLine = line;
     editorPanes.updateCursor(activeFile.path, line, column);
   }
   
   function handleClick(e: MouseEvent) {
+    const target = e.target as HTMLTextAreaElement;
+    if (activeFile) {
+      updateCursorPosition(target);
+    }
+  }
+  
+  function handleLineNumberClick(lineNumber: number) {
+    if (!activeFile || !editorElement) return;
+    
+    const lines = activeFile.content.split('\n');
+    const targetLine = lines[lineNumber - 1];
+    
+    // Calculate position to place cursor
+    let cursorPosition = 0;
+    for (let i = 0; i < lineNumber - 1; i++) {
+      cursorPosition += lines[i].length + 1; // +1 for newline
+    }
+    
+    if (targetLine && targetLine.trim().length > 0) {
+      // Line has content - place cursor at end of line
+      cursorPosition += targetLine.length;
+    } else {
+      // Empty line - find indentation from closest line above with content
+      let indentColumn = 0;
+      for (let i = lineNumber - 2; i >= 0; i--) {
+        const line = lines[i];
+        if (line.trim().length > 0) {
+          // Found a line with content - match its indentation
+          const match = line.match(/^(\s*)/);
+          if (match) {
+            indentColumn = match[1].length;
+          }
+          break;
+        }
+      }
+      cursorPosition += indentColumn;
+    }
+    
+    // Set cursor position
+    editorElement.focus();
+    editorElement.selectionStart = editorElement.selectionEnd = cursorPosition;
+    updateCursorPosition(editorElement);
+  }
+  
+  function handleMouseUp(e: MouseEvent) {
     const target = e.target as HTMLTextAreaElement;
     if (activeFile) {
       updateCursorPosition(target);
@@ -153,12 +249,20 @@
   
   function handleScroll(e: Event) {
     const target = e.target as HTMLTextAreaElement;
+    scrollTop = target.scrollTop;
+    const scrollLeft = target.scrollLeft;
+    
+    // Sync code highlight using transform on the code element
     if (highlightElement) {
-      highlightElement.scrollTop = target.scrollTop;
-      highlightElement.scrollLeft = target.scrollLeft;
+      const code = highlightElement.querySelector('code') as HTMLElement;
+      if (code) {
+        code.style.transform = `translate(${-scrollLeft}px, ${-scrollTop}px)`;
+      }
     }
+    
+    // Sync line numbers using transform
     if (lineNumbersElement) {
-      lineNumbersElement.scrollTop = target.scrollTop;
+      lineNumbersElement.style.transform = `translateY(${-scrollTop}px)`;
     }
   }
   
@@ -404,6 +508,10 @@
       case 'go': return 'Go';
       case 'java': return 'Java';
       case 'sql': return 'SQL';
+      case 'toml': return 'TOML';
+      case 'lock': return 'Lock File';
+      case 'log': return 'Log File';
+      case 'cursorrules': return 'Cursor Rules';
       case 'text': return 'Text';
       default: return 'Text';
     }
@@ -470,19 +578,32 @@
             <DiffViewer 
               filePath={activeFile.diffContext.filePath}
               repoPath={activeFile.diffContext.repoPath}
+              commitId={activeFile.diffContext.commitId}
             />
           {/key}
         {:else}
           <div class="editor-container" class:show-line-numbers={showLineNumbers}>
             {#if showLineNumbers}
-              <div class="line-numbers" bind:this={lineNumbersElement} aria-hidden="true">
-                {#each activeFile.content.split('\n') as _, i}
-                  <div class="line-number">{i + 1}</div>
-                {/each}
+              <div class="line-numbers" aria-hidden="true">
+                <div class="line-numbers-inner" bind:this={lineNumbersElement}>
+                  {#each activeFile.content.split('\n') as _, i}
+                    <div 
+                      class="line-number" 
+                      class:current-line={i + 1 === currentLine}
+                      on:click={() => handleLineNumberClick(i + 1)}
+                      on:keydown={(e) => e.key === 'Enter' && handleLineNumberClick(i + 1)}
+                      role="button"
+                      tabindex="-1"
+                    >{i + 1}</div>
+                  {/each}
+                </div>
               </div>
             {/if}
             <div class="editor-wrapper">
               <pre class="code-highlight" bind:this={highlightElement} aria-hidden="true"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
+              <div class="line-highlight-container">
+                <div class="line-highlight" style="top: {12 + (currentLine - 1) * measuredLineHeight - scrollTop}px; height: {measuredLineHeight}px" aria-hidden="true"></div>
+              </div>
               <textarea
                 bind:this={editorElement}
                 class="code-editor"
@@ -492,6 +613,7 @@
                 on:keydown={handleKeyDown}
                 on:keyup={handleKeyUp}
                 on:click={handleClick}
+                on:mouseup={handleMouseUp}
                 spellcheck="false"
                 autocomplete="off"
                 autocorrect="off"
@@ -675,31 +797,97 @@
     position: relative;
     flex: 1;
     overflow: hidden;
+    display: flex;
+  }
+
+  .line-numbers {
+    flex-shrink: 0;
+    width: 50px;
+    background: var(--color-bg-secondary);
+    border-right: 1px solid var(--color-border);
+    overflow: hidden;
+    user-select: none;
+    padding: 12px 0;
+    position: relative;
+  }
+
+  .line-numbers::-webkit-scrollbar {
+    display: none;
+  }
+
+  .line-numbers {
+    scrollbar-width: none;
+  }
+
+  .editor-wrapper {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: var(--color-bg-primary);
+  }
+
+  .line-highlight-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .line-highlight-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .line-highlight-container {
+    scrollbar-width: none;
+  }
+
+  .line-highlight {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.04);
+    pointer-events: none;
   }
 
   .code-highlight,
   .code-editor {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
     margin: 0;
     padding: 12px;
-    overflow: auto;
     font-family: var(--font-mono);
     font-size: 13px;
     line-height: 1.5;
     white-space: pre;
     tab-size: 4;
     word-wrap: normal;
+    border: none;
+    outline: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
   }
 
   .code-highlight {
-    background: var(--color-bg-primary);
+    background: transparent;
     color: var(--color-text-primary);
     pointer-events: none;
-    z-index: 1;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .code-highlight::-webkit-scrollbar {
+    display: none;
+  }
+
+  .code-highlight {
+    scrollbar-width: none;
   }
 
   .code-highlight code {
@@ -710,10 +898,9 @@
     background: transparent;
     color: transparent;
     caret-color: var(--color-text-primary);
-    border: none;
-    outline: none;
     resize: none;
     z-index: 2;
+    overflow: auto;
   }
 
   .code-editor::selection {
@@ -874,11 +1061,24 @@
     color: var(--color-text-muted);
     opacity: 0.6;
     white-space: pre; /* Match editor whitespace handling */
+    cursor: pointer;
+  }
+
+  .line-number:hover {
+    opacity: 0.8;
+  }
+
+  .line-number.current-line {
+    opacity: 1;
+    color: var(--color-text-primary);
   }
 
   .editor-wrapper {
     position: relative;
     flex: 1;
     overflow: hidden;
+    background: var(--color-bg-primary);
   }
+
+
 </style>

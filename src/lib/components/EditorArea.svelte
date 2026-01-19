@@ -251,6 +251,10 @@
       case 'assembly': return 'ARM Assembly';
       case 'makefile': return 'Makefile';
       case 'linker': return 'Linker Script';
+      case 'toml': return 'TOML';
+      case 'lock': return 'Lock File';
+      case 'log': return 'Log File';
+      case 'cursorrules': return 'Cursor Rules';
       default: return 'Text';
     }
   }

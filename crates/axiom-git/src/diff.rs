@@ -66,11 +66,47 @@ pub fn get_staged_diff(repo: &Repository) -> Result<Vec<FileDiff>, GitError> {
 
 /// Get diff for a specific file.
 pub fn get_file_diff(repo: &Repository, path: &std::path::Path) -> Result<Option<FileDiff>, GitError> {
-    let diffs = get_working_diff(repo)?;
-    Ok(diffs.into_iter().find(|d| {
-        d.new_path.as_ref().map(|p| p == path).unwrap_or(false)
-            || d.old_path.as_ref().map(|p| p == path).unwrap_or(false)
-    }))
+    // Use pathspec to filter diff to only the requested file - much faster
+    let head = repo.inner().head()?.peel_to_tree()?;
+    
+    let mut opts = git2::DiffOptions::new();
+    opts.pathspec(path);
+    opts.include_untracked(false);
+    opts.context_lines(3); // Standard git context
+    
+    let diff = repo.inner().diff_tree_to_workdir_with_index(Some(&head), Some(&mut opts))?;
+    
+    let mut diffs = parse_diff(&diff)?;
+    
+    // Should only have 0 or 1 results due to pathspec filter
+    Ok(diffs.pop())
+}
+
+/// Get diff for a specific file in a commit (vs its parent).
+pub fn get_commit_file_diff(repo: &Repository, commit_id: &str, path: &std::path::Path) -> Result<Option<FileDiff>, GitError> {
+    let commit = repo.inner().find_commit(git2::Oid::from_str(commit_id)?)?;
+    let commit_tree = commit.tree()?;
+    
+    // Get parent tree (or empty tree if no parent)
+    let parent_tree = if commit.parent_count() > 0 {
+        Some(commit.parent(0)?.tree()?)
+    } else {
+        None
+    };
+    
+    let mut opts = git2::DiffOptions::new();
+    opts.pathspec(path);
+    opts.context_lines(3);
+    
+    let diff = repo.inner().diff_tree_to_tree(
+        parent_tree.as_ref(),
+        Some(&commit_tree),
+        Some(&mut opts)
+    )?;
+    
+    let mut diffs = parse_diff(&diff)?;
+    
+    Ok(diffs.pop())
 }
 
 /// Parse a git2 diff into our types.

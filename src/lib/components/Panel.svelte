@@ -15,7 +15,7 @@
 <div class="panel" class:collapsed>
   <header class="panel-header no-select" on:click={toggle} role="button" tabindex="0" on:keypress={toggle}>
     <span class="panel-title">{title}</span>
-    <div class="panel-header-actions" on:click={(e) => e.stopPropagation()}>
+    <div class="panel-header-actions" on:click={(e) => e.stopPropagation()} on:keypress={(e) => e.stopPropagation()} role="toolbar" tabindex="0">
       <slot name="header-actions" />
       {#if collapsible}
         <span class="collapse-icon">{collapsed ? '▶' : '▼'}</span>

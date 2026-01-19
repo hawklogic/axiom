@@ -19,6 +19,7 @@ export interface OpenFile {
   diffContext?: {
     repoPath: string;
     filePath: string;
+    commitId?: string; // If set, show diff for this commit vs its parent
   };
 }
 

@@ -5,6 +5,7 @@
 
   export let filePath: string;
   export let repoPath: string;
+  export let commitId: string | undefined = undefined;
 
   interface DiffLine {
     origin: string;
@@ -33,6 +34,7 @@
   let error: string | null = null;
 
   onMount(async () => {
+    const startTime = performance.now();
     try {
       const { invoke } = await import('@tauri-apps/api/core');
       
@@ -46,14 +48,16 @@
         }
       }
       
-      console.log('[DiffViewer] Loading diff for:', relativePath, 'in repo:', repoPath);
+      console.log('[DiffViewer] Loading diff for:', relativePath, 'in repo:', repoPath, 'commit:', commitId || 'working directory');
       
       const result = await invoke<FileDiff | null>('git_file_diff', {
         repoPath,
         filePath: relativePath,
+        commitId: commitId || null,
       });
       
-      console.log('[DiffViewer] Diff result:', result);
+      const loadTime = performance.now() - startTime;
+      console.log('[DiffViewer] Diff loaded in', loadTime.toFixed(2), 'ms');
       
       // If no diff found, it might be an untracked file - show the whole file as added
       if (!result) {
@@ -90,6 +94,8 @@
       }
       
       loading = false;
+      const totalTime = performance.now() - startTime;
+      console.log('[DiffViewer] Total render time:', totalTime.toFixed(2), 'ms');
     } catch (err) {
       console.error('[DiffViewer] Error loading diff:', err);
       error = String(err);
@@ -151,13 +157,13 @@
     </div>
 
     <div class="diff-content">
-      {#each diff.hunks as hunk}
+      {#each diff.hunks as hunk, hunkIdx (hunkIdx)}
         <div class="hunk">
           <div class="hunk-header">
             @@ -{hunk.old_start},{hunk.old_lines} +{hunk.new_start},{hunk.new_lines} @@
           </div>
           <div class="hunk-lines">
-            {#each hunk.lines as line}
+            {#each hunk.lines as line, lineIdx (`${hunkIdx}-${lineIdx}`)}
               <div class="diff-line {getLineClass(line.origin)}">
                 <span class="line-number old">{line.old_lineno || ''}</span>
                 <span class="line-number new">{line.new_lineno || ''}</span>
