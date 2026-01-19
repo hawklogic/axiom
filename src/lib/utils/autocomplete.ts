@@ -700,8 +700,11 @@ export class AutocompleteController {
     const cursorPosition = this.editorElement.selectionStart;
     const text = this.editorElement.value;
     
+    // Re-extract the current prefix to ensure accuracy
+    const actualPrefix = extractPrefix(text, cursorPosition);
+    
     // Find the start of the prefix
-    const prefixStart = cursorPosition - this.state.prefix.length;
+    const prefixStart = cursorPosition - actualPrefix.length;
     
     // Replace the prefix with the suggestion
     const newText = 

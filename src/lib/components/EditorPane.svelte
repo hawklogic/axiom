@@ -342,17 +342,20 @@
   function handleKeyDown(e: KeyboardEvent) {
     // Let autocomplete handle its keys first if it's visible
     if (autocompleteController) {
+      // Get fresh state to avoid stale data
       const state = autocompleteController.getState();
       
       if (state.visible) {
         // Autocomplete handles: ArrowUp, ArrowDown, Tab, Escape, Enter
         if (['ArrowUp', 'ArrowDown', 'Tab', 'Escape'].includes(e.key)) {
+          e.preventDefault(); // Prevent default FIRST
           autocompleteController.handleKeyDown(e);
           // Force update of reactive state
           const newState = autocompleteController.getState();
           autocompleteVisible = newState.visible;
           autocompleteSuggestions = newState.suggestions;
           autocompleteActiveIndex = newState.activeIndex;
+          autocompletePosition = newState.position;
           return;
         }
         // Enter hides autocomplete but doesn't prevent default
