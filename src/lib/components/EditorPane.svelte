@@ -88,16 +88,14 @@
   
   // Initialize autocomplete controller when editor element is available
   $: if (editorElement && !autocompleteController) {
-    console.log('[EditorPane] Editor element available, initializing autocomplete...');
     autocompleteController = new AutocompleteController(editorElement);
-    console.log('[EditorPane] Autocomplete controller initialized:', autocompleteController);
+    consoleStore.log('info', 'autocomplete', 'Autocomplete controller initialized');
     
     // Set language if we have an active file
     if (activeFile) {
       const lang = activeFile.language as Language;
-      console.log('[EditorPane] Setting autocomplete language:', lang);
       autocompleteController.setLanguage(lang).catch(err => {
-        console.error('[EditorPane] Failed to set autocomplete language:', err);
+        consoleStore.log('error', 'autocomplete', `Failed to set language: ${err}`);
       });
     }
   }
@@ -344,9 +342,7 @@
   function handleKeyDown(e: KeyboardEvent) {
     // Let autocomplete handle its keys first if it's visible
     if (autocompleteController) {
-      console.log('[EditorPane] Key pressed:', e.key, 'Controller exists:', !!autocompleteController);
       const state = autocompleteController.getState();
-      console.log('[EditorPane] Autocomplete state:', state);
       
       if (state.visible) {
         // Autocomplete handles: ArrowUp, ArrowDown, Tab, Escape, Enter
@@ -393,11 +389,12 @@
     // Trigger autocomplete for typing
     if (autocompleteController) {
       autocompleteController.handleKeyDown(e);
-      // Force update of reactive state
+      // Force update of reactive state including position
       const newState = autocompleteController.getState();
       autocompleteVisible = newState.visible;
       autocompleteSuggestions = newState.suggestions;
       autocompleteActiveIndex = newState.activeIndex;
+      autocompletePosition = newState.position;
     }
     
     if (e.key === 'Enter') {

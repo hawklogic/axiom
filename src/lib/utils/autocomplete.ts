@@ -807,6 +807,11 @@ export class AutocompleteController {
     
     // Update position
     this.updatePosition();
+    
+    // Log to console for debugging
+    if (this.state.visible && this.state.suggestions.length > 0) {
+      console.log('[Autocomplete] Showing', this.state.suggestions.length, 'suggestions for prefix:', prefix, 'at position:', this.state.position);
+    }
   }
   
   /**
@@ -815,33 +820,27 @@ export class AutocompleteController {
   private updatePosition(): void {
     if (!this.editorElement) return;
     
-    // Get cursor position in the textarea
-    const cursorPosition = this.editorElement.selectionStart;
-    const text = this.editorElement.value.substring(0, cursorPosition);
-    
-    // Count lines and column position
-    const lines = text.split('\n');
-    const lineNumber = lines.length - 1;
-    const columnNumber = lines[lines.length - 1].length;
-    
-    // Get textarea bounding rect and computed style
     const rect = this.editorElement.getBoundingClientRect();
     const style = window.getComputedStyle(this.editorElement);
     
-    // Parse padding
-    const paddingLeft = parseFloat(style.paddingLeft) || 0;
-    const paddingTop = parseFloat(style.paddingTop) || 0;
+    const cursorPos = this.editorElement.selectionStart;
+    const textBeforeCursor = this.editorElement.value.substring(0, cursorPos);
+    const lines = textBeforeCursor.split('\n');
+    const lineNumber = lines.length - 1;
+    const columnNumber = lines[lines.length - 1].length;
     
-    // Get font metrics
     const fontSize = parseFloat(style.fontSize) || 13;
     const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.5;
-    
-    // Estimate character width for monospace font
+    const paddingLeft = parseFloat(style.paddingLeft) || 12;
+    const paddingTop = parseFloat(style.paddingTop) || 12;
     const charWidth = fontSize * 0.6;
     
-    // Calculate position relative to viewport
-    const x = rect.left + paddingLeft + (columnNumber * charWidth);
-    const y = rect.top + paddingTop + ((lineNumber + 1) * lineHeight);
+    // Account for scroll position
+    const scrollTop = this.editorElement.scrollTop;
+    const scrollLeft = this.editorElement.scrollLeft;
+    
+    const x = rect.left + paddingLeft + (columnNumber * charWidth) - scrollLeft;
+    const y = rect.top + paddingTop + ((lineNumber + 1) * lineHeight) - scrollTop;
     
     this.state.position = { x, y };
   }
