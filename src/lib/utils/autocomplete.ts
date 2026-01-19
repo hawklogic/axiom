@@ -491,3 +491,60 @@ export function extractPrefix(text: string, cursorPosition: number): string {
   
   return text.substring(start + 1, cursorPosition);
 }
+
+/**
+ * Extracts cursor context from editor state
+ * 
+ * This function parses the editor state to extract relevant context information
+ * about the cursor position, including the current line, column, line text,
+ * prefix being typed, and surrounding characters.
+ * 
+ * @param text - The full text content of the editor
+ * @param cursorPosition - The absolute cursor position in the text
+ * @param language - The current language of the file
+ * @returns CursorContext object with extracted information
+ */
+export function extractCursorContext(
+  text: string,
+  cursorPosition: number,
+  language: Language
+): CursorContext {
+  // Find the current line number and column
+  let line = 0;
+  let column = 0;
+  let lineStart = 0;
+  
+  for (let i = 0; i < cursorPosition; i++) {
+    if (text[i] === '\n') {
+      line++;
+      lineStart = i + 1;
+      column = 0;
+    } else {
+      column++;
+    }
+  }
+  
+  // Extract the current line text
+  let lineEnd = lineStart;
+  while (lineEnd < text.length && text[lineEnd] !== '\n') {
+    lineEnd++;
+  }
+  const lineText = text.substring(lineStart, lineEnd);
+  
+  // Extract the prefix before the cursor
+  const prefix = extractPrefix(text, cursorPosition);
+  
+  // Get character before and after cursor
+  const charBefore = cursorPosition > 0 ? text[cursorPosition - 1] : '';
+  const charAfter = cursorPosition < text.length ? text[cursorPosition] : '';
+  
+  return {
+    line,
+    column,
+    lineText,
+    prefix,
+    language,
+    charBefore,
+    charAfter
+  };
+}

@@ -128,32 +128,32 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
     - For any corpus with up to 10,000 entries and any prefix, matching should complete within 16ms
     - Tag: `Feature: intelligent-autocomplete, Property 8: Matching performance`
 
-- [ ] 7. Implement trigger detection logic
-  - [~] 7.1 Create CursorContext interface and extraction function
+- [x] 7. Implement trigger detection logic
+  - [x] 7.1 Create CursorContext interface and extraction function
     - Define CursorContext with line, column, lineText, prefix, language, charBefore, charAfter
     - Implement extractCursorContext function to parse editor state
     - _Requirements: 4.1, 4.2_
   
-  - [~] 7.2 Implement shouldTrigger function
+  - [x] 7.2 Implement shouldTrigger function
     - Check for alphanumeric characters
     - Check for language-specific trigger characters (., ::, etc.)
     - Exclude modifier key combinations
     - Exclude navigation keys
     - _Requirements: 4.1, 4.2, 4.3_
   
-  - [~] 7.3 Write property test for trigger character activation
+  - [x] 7.3 Write property test for trigger character activation
     - **Property: Trigger Character Activation**
     - **Validates: Requirements 4.1, 4.2**
     - For any alphanumeric or language-specific trigger character, shouldTrigger should return true
     - Tag: `Feature: intelligent-autocomplete, Property 9: Trigger activation`
   
-  - [~] 7.4 Write property test for non-trigger dismissal
+  - [x] 7.4 Write property test for non-trigger dismissal
     - **Property: Non-Trigger Dismissal**
     - **Validates: Requirements 4.3**
     - For any whitespace or non-trigger punctuation, shouldTrigger should return false
     - Tag: `Feature: intelligent-autocomplete, Property 10: Non-trigger dismissal`
   
-  - [~] 7.5 Write unit tests for edge cases
+  - [x] 7.5 Write unit tests for edge cases
     - Test empty prefix (< 1 character) does not trigger
     - Test modifier key combinations do not trigger
     - _Requirements: 4.4_

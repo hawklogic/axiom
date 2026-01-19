@@ -17,6 +17,7 @@ import {
   MatchingEngine,
   shouldTrigger,
   extractPrefix,
+  extractCursorContext,
   getLanguageTriggers,
   type CorpusEntry,
   type Language
@@ -672,6 +673,61 @@ describe('Trigger Detection', () => {
     expect(getLanguageTriggers('cpp')).toContain(':');
     expect(getLanguageTriggers('cpp')).toContain('.');
   });
+
+  /**
+   * Test: Empty prefix (< 1 character) does not trigger
+   * **Validates: Requirements 4.4**
+   * 
+   * When the prefix is less than 1 character, autocomplete should not display suggestions.
+   * This test verifies that the trigger logic respects the minimum prefix length requirement.
+   * 
+   * Note: This is tested indirectly through the matching engine, which returns empty
+   * results for empty prefixes. The shouldTrigger function determines if a key should
+   * activate autocomplete, but the actual display logic checks prefix length.
+   */
+  it('should not display suggestions for empty prefix', () => {
+    const engine = new MatchingEngine();
+    const entries: CorpusEntry[] = [
+      { text: 'test', type: 'keyword' },
+      { text: 'function', type: 'keyword' }
+    ];
+    const corpus = {
+      language: 'javascript' as Language,
+      entries,
+      trie: buildTrie(entries)
+    };
+    
+    // Empty prefix should return no suggestions
+    const results = engine.match('', corpus);
+    expect(results.length).toBe(0);
+  });
+
+  /**
+   * Test: Modifier key combinations do not trigger
+   * **Validates: Requirements 4.4**
+   * 
+   * When a key is pressed with Ctrl, Meta (Cmd), or Alt modifiers, autocomplete
+   * should not trigger, as these are typically used for keyboard shortcuts.
+   */
+  it('should not trigger with Ctrl modifier', () => {
+    const event = createMockKeyboardEvent({ key: 'a', ctrlKey: true });
+    expect(shouldTrigger(event, 'javascript')).toBe(false);
+  });
+
+  it('should not trigger with Meta (Cmd) modifier', () => {
+    const event = createMockKeyboardEvent({ key: 'a', metaKey: true });
+    expect(shouldTrigger(event, 'javascript')).toBe(false);
+  });
+
+  it('should not trigger with Alt modifier', () => {
+    const event = createMockKeyboardEvent({ key: 'a', altKey: true });
+    expect(shouldTrigger(event, 'javascript')).toBe(false);
+  });
+
+  it('should not trigger with multiple modifiers', () => {
+    const event = createMockKeyboardEvent({ key: 'a', ctrlKey: true, altKey: true });
+    expect(shouldTrigger(event, 'javascript')).toBe(false);
+  });
 });
 
 // ============================================================================
@@ -707,6 +763,93 @@ describe('Prefix Extraction', () => {
     const text = 'const myVar';
     const prefix = extractPrefix(text, text.length);
     expect(prefix).toBe('myVar');
+  });
+});
+
+// ============================================================================
+// Cursor Context Extraction Tests
+// ============================================================================
+
+describe('Cursor Context Extraction', () => {
+  it('should extract cursor context from single line', () => {
+    const text = 'const myVar = func';
+    const context = extractCursorContext(text, text.length, 'javascript');
+    
+    expect(context.line).toBe(0);
+    expect(context.column).toBe(text.length);
+    expect(context.lineText).toBe(text);
+    expect(context.prefix).toBe('func');
+    expect(context.language).toBe('javascript');
+    expect(context.charBefore).toBe('c');
+    expect(context.charAfter).toBe('');
+  });
+
+  it('should extract cursor context from multi-line text', () => {
+    const text = 'line 1\nline 2\nline 3';
+    const cursorPos = 7 + 6; // After "line 2"
+    const context = extractCursorContext(text, cursorPos, 'python');
+    
+    expect(context.line).toBe(1);
+    expect(context.column).toBe(6);
+    expect(context.lineText).toBe('line 2');
+    expect(context.prefix).toBe('2');
+    expect(context.language).toBe('python');
+  });
+
+  it('should handle cursor at start of text', () => {
+    const text = 'test';
+    const context = extractCursorContext(text, 0, 'javascript');
+    
+    expect(context.line).toBe(0);
+    expect(context.column).toBe(0);
+    expect(context.prefix).toBe('');
+    expect(context.charBefore).toBe('');
+    expect(context.charAfter).toBe('t');
+  });
+
+  it('should handle cursor at end of text', () => {
+    const text = 'test';
+    const context = extractCursorContext(text, text.length, 'javascript');
+    
+    expect(context.line).toBe(0);
+    expect(context.column).toBe(4);
+    expect(context.prefix).toBe('test');
+    expect(context.charBefore).toBe('t');
+    expect(context.charAfter).toBe('');
+  });
+
+  it('should handle cursor in middle of line', () => {
+    const text = 'function test() {}';
+    const cursorPos = 8; // After "function"
+    const context = extractCursorContext(text, cursorPos, 'javascript');
+    
+    expect(context.line).toBe(0);
+    expect(context.column).toBe(8);
+    expect(context.lineText).toBe(text);
+    expect(context.prefix).toBe('function');
+    expect(context.charBefore).toBe('n');
+    expect(context.charAfter).toBe(' ');
+  });
+
+  it('should handle empty text', () => {
+    const text = '';
+    const context = extractCursorContext(text, 0, 'javascript');
+    
+    expect(context.line).toBe(0);
+    expect(context.column).toBe(0);
+    expect(context.lineText).toBe('');
+    expect(context.prefix).toBe('');
+    expect(context.charBefore).toBe('');
+    expect(context.charAfter).toBe('');
+  });
+
+  it('should correctly count lines with newlines', () => {
+    const text = 'line1\nline2\nline3\nline4';
+    const cursorPos = 6 + 6 + 6 + 3; // Middle of "line4"
+    const context = extractCursorContext(text, cursorPos, 'javascript');
+    
+    expect(context.line).toBe(3);
+    expect(context.lineText).toBe('line4');
   });
 });
 
@@ -1231,6 +1374,93 @@ describe('Property-Based Tests', () => {
           
           // Should complete within 16ms
           return elapsed <= 16;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * Property: Trigger Character Activation
+   * **Validates: Requirements 4.1, 4.2**
+   * 
+   * For any alphanumeric or language-specific trigger character, shouldTrigger should return true.
+   * This ensures that autocomplete activates for all valid trigger characters.
+   * 
+   * Tag: Feature: intelligent-autocomplete, Property 9: Trigger activation
+   */
+  it('Property: Trigger Character Activation - triggers on alphanumeric and language-specific chars', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(
+          'javascript', 'typescript', 'python', 'c', 'cpp', 
+          'rust', 'go', 'java', 'css'
+        ),
+        fc.oneof(
+          // Alphanumeric characters
+          fc.constantFrom(...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_'.split('')),
+          // Language-specific trigger characters
+          fc.constantFrom('.', ':', '>', '-')
+        ),
+        (language, char) => {
+          const event = createMockKeyboardEvent({ key: char });
+          const result = shouldTrigger(event, language as Language);
+          
+          // Alphanumeric characters should always trigger
+          if (/[a-zA-Z0-9_]/.test(char)) {
+            return result === true;
+          }
+          
+          // Language-specific triggers should trigger for their languages
+          const triggers = getLanguageTriggers(language as Language);
+          if (triggers.includes(char)) {
+            return result === true;
+          }
+          
+          // Other characters may or may not trigger depending on language
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * Property: Non-Trigger Dismissal
+   * **Validates: Requirements 4.3**
+   * 
+   * For any whitespace or non-trigger punctuation, shouldTrigger should return false.
+   * This ensures that autocomplete does not activate for characters that should dismiss it.
+   * 
+   * Tag: Feature: intelligent-autocomplete, Property 10: Non-trigger dismissal
+   */
+  it('Property: Non-Trigger Dismissal - does not trigger on whitespace and non-trigger punctuation', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(
+          'javascript', 'typescript', 'python', 'c', 'cpp', 
+          'rust', 'go', 'java', 'css'
+        ),
+        fc.oneof(
+          // Whitespace characters
+          fc.constantFrom(' ', '\t', '\n'),
+          // Non-trigger punctuation (excluding language-specific triggers)
+          fc.constantFrom(',', ';', '(', ')', '[', ']', '{', '}', '!', '@', '#', '$', '%', '^', '&', '*', '=', '+', '|', '\\', '/', '?', '<', '~', '`', '"', "'")
+        ),
+        (language, char) => {
+          const event = createMockKeyboardEvent({ key: char });
+          const result = shouldTrigger(event, language as Language);
+          
+          // Get language-specific triggers
+          const triggers = getLanguageTriggers(language as Language);
+          
+          // If this character is a language-specific trigger, it may trigger
+          if (triggers.includes(char)) {
+            return true; // This is expected behavior
+          }
+          
+          // Otherwise, whitespace and non-trigger punctuation should not trigger
+          return result === false;
         }
       ),
       { numRuns: 100 }
