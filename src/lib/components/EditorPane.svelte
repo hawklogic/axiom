@@ -9,6 +9,8 @@
   import { EMPTY } from '$lib/strings';
   import { onMount } from 'svelte';
   import DiffViewer from './DiffViewer.svelte';
+  import Autocomplete from './Autocomplete.svelte';
+  import { AutocompleteController, type Language } from '$lib/utils/autocomplete';
   
   export let pane: EditorPane;
   export let onDragStart: (paneId: string, filePath: string) => void;
@@ -22,6 +24,13 @@
   let currentLine = 1; // Track current cursor line
   let measuredLineHeight = 19.5; // Will measure from actual DOM
   let scrollTop = 0; // Track scroll position for line highlight
+  
+  // Autocomplete state
+  let autocompleteController: AutocompleteController | null = null;
+  let autocompleteVisible = false;
+  let autocompleteSuggestions: any[] = [];
+  let autocompleteActiveIndex = 0;
+  let autocompletePosition = { x: 0, y: 0 };
   
   // Load line numbers preference from settings
   $: if ($settingsStore) {
@@ -71,11 +80,45 @@
     
     return () => {
       resizeObserver.disconnect();
+      if (autocompleteController) {
+        autocompleteController.destroy();
+      }
     };
   });
   
+  // Initialize autocomplete controller when editor element is available
+  $: if (editorElement && !autocompleteController) {
+    autocompleteController = new AutocompleteController(editorElement);
+    consoleStore.log('info', 'autocomplete', 'Autocomplete controller initialized');
+    
+    // Set language if we have an active file
+    if (activeFile) {
+      const lang = activeFile.language as Language;
+      autocompleteController.setLanguage(lang).catch(err => {
+        consoleStore.log('error', 'autocomplete', `Failed to set language: ${err}`);
+      });
+    }
+  }
+  
   $: activeFile = pane.activeIndex >= 0 ? pane.files[pane.activeIndex] : null;
   $: highlightedContent = activeFile ? highlightCode(activeFile.content, activeFile.language) : [];
+  
+  // Update autocomplete language when active file changes
+  $: if (activeFile && autocompleteController) {
+    const lang = activeFile.language as Language;
+    autocompleteController.setLanguage(lang).catch(err => {
+      console.error('[EditorPane] Failed to set autocomplete language:', err);
+    });
+  }
+  
+  // Update autocomplete UI state reactively
+  $: if (autocompleteController) {
+    const state = autocompleteController.getState();
+    autocompleteVisible = state.visible;
+    autocompleteSuggestions = state.suggestions;
+    autocompleteActiveIndex = state.activeIndex;
+    autocompletePosition = state.position;
+  }
   
   // Remeasure line height when active file changes
   $: if (activeFile && lineNumbersElement) {
@@ -173,6 +216,22 @@
       pushHistory(target.value, target.selectionStart);
       editorPanes.updateContent(activeFile.path, target.value);
       updateCursorPosition(target);
+      
+      // Trigger autocomplete after text has been inserted
+      if (autocompleteController) {
+        // Use a microtask to ensure the cursor position is updated
+        Promise.resolve().then(() => {
+          if (autocompleteController) {
+            autocompleteController.handleInput();
+            // Force update of reactive state
+            const newState = autocompleteController.getState();
+            autocompleteVisible = newState.visible;
+            autocompleteSuggestions = newState.suggestions;
+            autocompleteActiveIndex = newState.activeIndex;
+            autocompletePosition = newState.position;
+          }
+        });
+      }
     }
   }
   
@@ -241,6 +300,12 @@
   }
   
   function handleKeyUp(e: KeyboardEvent) {
+    // NEVER process arrow keys - they should only navigate the dropdown
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+      return;
+    }
+    
     const target = e.target as HTMLTextAreaElement;
     if (activeFile) {
       updateCursorPosition(target);
@@ -264,9 +329,68 @@
     if (lineNumbersElement) {
       lineNumbersElement.style.transform = `translateY(${-scrollTop}px)`;
     }
+    
+    // Update autocomplete position on scroll
+    if (autocompleteController) {
+      autocompleteController.handleScroll();
+      const state = autocompleteController.getState();
+      autocompletePosition = state.position;
+    }
+  }
+  
+  function handleBlur() {
+    if (autocompleteController) {
+      autocompleteController.handleBlur();
+      const state = autocompleteController.getState();
+      autocompleteVisible = state.visible;
+    }
+  }
+  
+  function handleAutocompleteSelect(suggestion: any) {
+    if (autocompleteController) {
+      autocompleteController.insertSuggestion(suggestion);
+      const state = autocompleteController.getState();
+      autocompleteVisible = state.visible;
+    }
+  }
+  
+  function handleAutocompleteDismiss() {
+    if (autocompleteController) {
+      autocompleteController.hide();
+      autocompleteVisible = false;
+    }
   }
   
   function handleKeyDown(e: KeyboardEvent) {
+    // Let autocomplete handle its keys first if it's visible
+    if (autocompleteController) {
+      // Get fresh state to avoid stale data
+      const state = autocompleteController.getState();
+      
+      if (state.visible) {
+        // Autocomplete handles: ArrowUp, ArrowDown, Tab, Escape, Enter
+        if (['ArrowUp', 'ArrowDown', 'Tab', 'Escape'].includes(e.key)) {
+          e.preventDefault(); // Prevent default FIRST
+          autocompleteController.handleKeyDown(e);
+          // Force update of reactive state
+          const newState = autocompleteController.getState();
+          autocompleteVisible = newState.visible;
+          autocompleteSuggestions = newState.suggestions;
+          autocompleteActiveIndex = newState.activeIndex;
+          autocompletePosition = newState.position;
+          return;
+        }
+        // Enter hides autocomplete but doesn't prevent default
+        if (e.key === 'Enter') {
+          autocompleteController.handleKeyDown(e);
+          const newState = autocompleteController.getState();
+          autocompleteVisible = newState.visible;
+          // Continue with normal Enter handling below
+        }
+      }
+    }
+    
+    // Existing keyboard shortcuts
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
       undo();
@@ -327,16 +451,20 @@
       return;
     }
     
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const target = e.target as HTMLTextAreaElement;
-      const start = target.selectionStart;
-      const end = target.selectionEnd;
-      const value = target.value;
-      
-      target.value = value.substring(0, start) + '\t' + value.substring(end);
-      target.selectionStart = target.selectionEnd = start + 1;
-      target.dispatchEvent(new Event('input', { bubbles: true }));
+    // Only handle Tab if autocomplete is not visible
+    if (e.key === 'Tab' && autocompleteController) {
+      const state = autocompleteController.getState();
+      if (!state.visible) {
+        e.preventDefault();
+        const target = e.target as HTMLTextAreaElement;
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        const value = target.value;
+        
+        target.value = value.substring(0, start) + '\t' + value.substring(end);
+        target.selectionStart = target.selectionEnd = start + 1;
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     }
   }
   
@@ -614,11 +742,22 @@
                 on:keyup={handleKeyUp}
                 on:click={handleClick}
                 on:mouseup={handleMouseUp}
+                on:blur={handleBlur}
                 spellcheck="false"
                 autocomplete="off"
                 autocorrect="off"
                 autocapitalize="off"
               ></textarea>
+              
+              <!-- Autocomplete UI -->
+              <Autocomplete
+                visible={autocompleteVisible}
+                suggestions={autocompleteSuggestions}
+                activeIndex={autocompleteActiveIndex}
+                position={autocompletePosition}
+                onSelect={handleAutocompleteSelect}
+                onDismiss={handleAutocompleteDismiss}
+              />
             </div>
           </div>
         {/if}

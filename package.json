@@ -21,6 +21,8 @@
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "@tauri-apps/cli": "^2.0.0",
     "@types/node": "^20.0.0",
+    "fast-check": "^4.5.3",
+    "jsdom": "^27.4.0",
     "svelte": "^4.0.0",
     "svelte-check": "^3.0.0",
     "typescript": "^5.0.0",
