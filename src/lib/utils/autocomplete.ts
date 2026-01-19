@@ -548,3 +548,306 @@ export function extractCursorContext(
     charAfter
   };
 }
+
+// ============================================================================
+// Autocomplete Controller
+// ============================================================================
+
+/**
+ * Orchestrates autocomplete lifecycle, manages state, coordinates between editor and UI
+ */
+export class AutocompleteController {
+  private state: AutocompleteState;
+  private editorElement: HTMLTextAreaElement;
+  private corpusManager: CorpusManager;
+  private matchingEngine: MatchingEngine;
+  
+  /**
+   * Initialize with editor element reference
+   */
+  constructor(editorElement: HTMLTextAreaElement) {
+    this.editorElement = editorElement;
+    this.corpusManager = new CorpusManager();
+    this.matchingEngine = new MatchingEngine();
+    
+    this.state = {
+      visible: false,
+      suggestions: [],
+      activeIndex: 0,
+      prefix: '',
+      position: { x: 0, y: 0 },
+      language: null,
+      debounceTimer: null
+    };
+  }
+  
+  /**
+   * Gets the current autocomplete state
+   */
+  getState(): AutocompleteState {
+    return { ...this.state };
+  }
+  
+  /**
+   * Sets the current language for autocomplete
+   */
+  async setLanguage(language: Language | null): Promise<void> {
+    this.state.language = language;
+    
+    // Load corpus for the language if not already loaded
+    if (language && !this.corpusManager.isLoaded(language)) {
+      await this.corpusManager.loadCorpus(language);
+    }
+  }
+  
+  /**
+   * Shows the completion UI
+   */
+  show(): void {
+    this.state.visible = true;
+  }
+  
+  /**
+   * Hides the completion UI
+   */
+  hide(): void {
+    this.state.visible = false;
+    this.state.suggestions = [];
+    this.state.activeIndex = 0;
+    this.state.prefix = '';
+  }
+  
+  /**
+   * Updates suggestions based on current prefix
+   */
+  updateSuggestions(prefix: string): void {
+    this.state.prefix = prefix;
+    
+    // Don't show suggestions for empty or very short prefixes
+    if (!prefix || prefix.length < 1) {
+      this.hide();
+      return;
+    }
+    
+    // Get corpus for current language
+    if (!this.state.language) {
+      this.hide();
+      return;
+    }
+    
+    const corpus = this.corpusManager.getCorpus(this.state.language);
+    
+    // Match suggestions
+    const suggestions = this.matchingEngine.match(prefix, corpus, 10);
+    
+    // Update state
+    this.state.suggestions = suggestions;
+    this.state.activeIndex = 0;
+    
+    // Show or hide based on results
+    if (suggestions.length > 0) {
+      this.show();
+    } else {
+      this.hide();
+    }
+  }
+  
+  /**
+   * Gets current suggestions
+   */
+  getSuggestions(): Suggestion[] {
+    return [...this.state.suggestions];
+  }
+  
+  /**
+   * Selects the next suggestion (with wrap-around)
+   */
+  selectNext(): void {
+    if (this.state.suggestions.length === 0) {
+      return;
+    }
+    
+    this.state.activeIndex = (this.state.activeIndex + 1) % this.state.suggestions.length;
+  }
+  
+  /**
+   * Selects the previous suggestion (with wrap-around)
+   */
+  selectPrevious(): void {
+    if (this.state.suggestions.length === 0) {
+      return;
+    }
+    
+    this.state.activeIndex = 
+      (this.state.activeIndex - 1 + this.state.suggestions.length) % this.state.suggestions.length;
+  }
+  
+  /**
+   * Gets the currently active suggestion
+   */
+  getActiveSuggestion(): Suggestion | null {
+    if (this.state.suggestions.length === 0 || this.state.activeIndex < 0) {
+      return null;
+    }
+    
+    return this.state.suggestions[this.state.activeIndex];
+  }
+  
+  /**
+   * Inserts the selected suggestion into the editor
+   */
+  insertSuggestion(suggestion: Suggestion): void {
+    const cursorPosition = this.editorElement.selectionStart;
+    const text = this.editorElement.value;
+    
+    // Find the start of the prefix
+    const prefixStart = cursorPosition - this.state.prefix.length;
+    
+    // Replace the prefix with the suggestion
+    const newText = 
+      text.substring(0, prefixStart) + 
+      suggestion.text + 
+      text.substring(cursorPosition);
+    
+    // Update editor value
+    this.editorElement.value = newText;
+    
+    // Position cursor after inserted text
+    const newCursorPosition = prefixStart + suggestion.text.length;
+    this.editorElement.selectionStart = newCursorPosition;
+    this.editorElement.selectionEnd = newCursorPosition;
+    
+    // Trigger input event for undo/redo integration
+    const inputEvent = new Event('input', { bubbles: true });
+    this.editorElement.dispatchEvent(inputEvent);
+    
+    // Hide the UI
+    this.hide();
+  }
+  
+  /**
+   * Handles keyboard events from the editor
+   */
+  handleKeyDown(event: KeyboardEvent): void {
+    // If UI is visible, handle navigation and completion keys
+    if (this.state.visible) {
+      // Arrow Down - select next
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        this.selectNext();
+        return;
+      }
+      
+      // Arrow Up - select previous
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.selectPrevious();
+        return;
+      }
+      
+      // Tab - accept suggestion
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        const activeSuggestion = this.getActiveSuggestion();
+        if (activeSuggestion) {
+          this.insertSuggestion(activeSuggestion);
+        }
+        return;
+      }
+      
+      // Escape - hide UI
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.hide();
+        return;
+      }
+      
+      // Enter - hide UI without inserting
+      if (event.key === 'Enter') {
+        this.hide();
+        return;
+      }
+    }
+    
+    // Check if this key should trigger autocomplete
+    if (shouldTrigger(event, this.state.language)) {
+      // Debounce the update
+      this.debounceUpdate();
+    }
+  }
+  
+  /**
+   * Debounces suggestion updates to avoid excessive matching
+   */
+  private debounceUpdate(): void {
+    // Clear existing timer
+    if (this.state.debounceTimer !== null) {
+      clearTimeout(this.state.debounceTimer);
+    }
+    
+    // Set new timer
+    this.state.debounceTimer = window.setTimeout(() => {
+      this.performUpdate();
+      this.state.debounceTimer = null;
+    }, 50);
+  }
+  
+  /**
+   * Performs the actual suggestion update
+   */
+  private performUpdate(): void {
+    const cursorPosition = this.editorElement.selectionStart;
+    const text = this.editorElement.value;
+    
+    // Extract prefix at cursor
+    const prefix = extractPrefix(text, cursorPosition);
+    
+    // Update suggestions
+    this.updateSuggestions(prefix);
+    
+    // Update position
+    this.updatePosition();
+  }
+  
+  /**
+   * Updates the UI position based on cursor location
+   */
+  private updatePosition(): void {
+    // This is a simplified version - actual implementation would need
+    // to calculate the exact pixel position of the cursor
+    // For now, we'll set a placeholder position
+    this.state.position = { x: 0, y: 0 };
+  }
+  
+  /**
+   * Handles editor blur event
+   */
+  handleBlur(): void {
+    // Hide UI when editor loses focus
+    this.hide();
+  }
+  
+  /**
+   * Handles editor scroll event
+   */
+  handleScroll(): void {
+    // Reposition UI when editor scrolls
+    if (this.state.visible) {
+      this.updatePosition();
+    }
+  }
+  
+  /**
+   * Cleanup resources
+   */
+  destroy(): void {
+    // Clear any pending timers
+    if (this.state.debounceTimer !== null) {
+      clearTimeout(this.state.debounceTimer);
+      this.state.debounceTimer = null;
+    }
+    
+    // Hide UI
+    this.hide();
+  }
+}

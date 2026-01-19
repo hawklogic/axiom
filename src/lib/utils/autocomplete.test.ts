@@ -1467,3 +1467,464 @@ describe('Property-Based Tests', () => {
     );
   });
 });
+
+// ============================================================================
+// AutocompleteController Tests (Task 9.1)
+// ============================================================================
+
+import { AutocompleteController } from './autocomplete';
+
+describe('AutocompleteController', () => {
+  // Helper function to create a mock textarea element
+  function createMockTextarea(): HTMLTextAreaElement {
+    const textarea = document.createElement('textarea');
+    textarea.value = '';
+    textarea.selectionStart = 0;
+    textarea.selectionEnd = 0;
+    return textarea;
+  }
+
+  /**
+   * Test: Constructor initializes controller with editor element
+   * **Validates: Requirements 10.1**
+   */
+  it('should create controller with editor element reference', () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    expect(controller).toBeDefined();
+    expect(controller.getState()).toBeDefined();
+  });
+
+  /**
+   * Test: Initial state is correct
+   * **Validates: Requirements 10.1**
+   */
+  it('should initialize with correct default state', () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    const state = controller.getState();
+    
+    expect(state.visible).toBe(false);
+    expect(state.suggestions).toEqual([]);
+    expect(state.activeIndex).toBe(0);
+    expect(state.prefix).toBe('');
+    expect(state.position).toEqual({ x: 0, y: 0 });
+    expect(state.language).toBeNull();
+    expect(state.debounceTimer).toBeNull();
+  });
+
+  /**
+   * Test: setLanguage updates the language
+   * **Validates: Requirements 10.1**
+   */
+  it('should set language', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    const state = controller.getState();
+    
+    expect(state.language).toBe('javascript');
+  });
+
+  /**
+   * Test: show() makes UI visible
+   * **Validates: Requirements 10.1**
+   */
+  it('should show UI when show() is called', () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    controller.show();
+    const state = controller.getState();
+    
+    expect(state.visible).toBe(true);
+  });
+
+  /**
+   * Test: hide() makes UI invisible and clears state
+   * **Validates: Requirements 10.1**
+   */
+  it('should hide UI and clear state when hide() is called', () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    // Set up some state
+    controller.show();
+    controller.updateSuggestions('test');
+    
+    // Hide
+    controller.hide();
+    const state = controller.getState();
+    
+    expect(state.visible).toBe(false);
+    expect(state.suggestions).toEqual([]);
+    expect(state.activeIndex).toBe(0);
+    expect(state.prefix).toBe('');
+  });
+
+  /**
+   * Test: updateSuggestions with empty prefix hides UI
+   * **Validates: Requirements 4.4**
+   */
+  it('should hide UI when prefix is empty', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    controller.updateSuggestions('');
+    const state = controller.getState();
+    
+    expect(state.visible).toBe(false);
+  });
+
+  /**
+   * Test: updateSuggestions with no language hides UI
+   * **Validates: Requirements 1.3**
+   */
+  it('should hide UI when language is not set', () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    controller.updateSuggestions('test');
+    const state = controller.getState();
+    
+    expect(state.visible).toBe(false);
+  });
+
+  /**
+   * Test: getSuggestions returns current suggestions
+   * **Validates: Requirements 10.1**
+   */
+  it('should return current suggestions', () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    const suggestions = controller.getSuggestions();
+    
+    expect(Array.isArray(suggestions)).toBe(true);
+    expect(suggestions).toEqual([]);
+  });
+
+  /**
+   * Test: selectNext increments active index
+   * **Validates: Requirements 6.1**
+   */
+  it('should select next suggestion', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    // Manually set up some suggestions for testing by accessing internal state
+    await controller.setLanguage('javascript');
+    (controller as any).state.suggestions = [
+      { text: 'test1', type: 'keyword', score: 100 },
+      { text: 'test2', type: 'keyword', score: 90 },
+      { text: 'test3', type: 'keyword', score: 80 }
+    ];
+    (controller as any).state.visible = true;
+    (controller as any).state.activeIndex = 0;
+    
+    controller.selectNext();
+    const newState = controller.getState();
+    
+    expect(newState.activeIndex).toBe(1);
+  });
+
+  /**
+   * Test: selectNext wraps around at end
+   * **Validates: Requirements 6.3**
+   */
+  it('should wrap to first suggestion when at end', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    (controller as any).state.suggestions = [
+      { text: 'test1', type: 'keyword', score: 100 },
+      { text: 'test2', type: 'keyword', score: 90 }
+    ];
+    (controller as any).state.visible = true;
+    (controller as any).state.activeIndex = 1; // Last item
+    
+    controller.selectNext();
+    const newState = controller.getState();
+    
+    expect(newState.activeIndex).toBe(0); // Wrapped to first
+  });
+
+  /**
+   * Test: selectPrevious decrements active index
+   * **Validates: Requirements 6.2**
+   */
+  it('should select previous suggestion', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    (controller as any).state.suggestions = [
+      { text: 'test1', type: 'keyword', score: 100 },
+      { text: 'test2', type: 'keyword', score: 90 },
+      { text: 'test3', type: 'keyword', score: 80 }
+    ];
+    (controller as any).state.visible = true;
+    (controller as any).state.activeIndex = 1;
+    
+    controller.selectPrevious();
+    const newState = controller.getState();
+    
+    expect(newState.activeIndex).toBe(0);
+  });
+
+  /**
+   * Test: selectPrevious wraps around at start
+   * **Validates: Requirements 6.4**
+   */
+  it('should wrap to last suggestion when at start', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    (controller as any).state.suggestions = [
+      { text: 'test1', type: 'keyword', score: 100 },
+      { text: 'test2', type: 'keyword', score: 90 }
+    ];
+    (controller as any).state.visible = true;
+    (controller as any).state.activeIndex = 0; // First item
+    
+    controller.selectPrevious();
+    const newState = controller.getState();
+    
+    expect(newState.activeIndex).toBe(1); // Wrapped to last
+  });
+
+  /**
+   * Test: getActiveSuggestion returns current active suggestion
+   * **Validates: Requirements 10.1**
+   */
+  it('should return active suggestion', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    (controller as any).state.suggestions = [
+      { text: 'test1', type: 'keyword', score: 100 },
+      { text: 'test2', type: 'keyword', score: 90 }
+    ];
+    (controller as any).state.activeIndex = 1;
+    
+    const active = controller.getActiveSuggestion();
+    
+    expect(active).toBeDefined();
+    expect(active?.text).toBe('test2');
+  });
+
+  /**
+   * Test: getActiveSuggestion returns null when no suggestions
+   * **Validates: Requirements 10.1**
+   */
+  it('should return null when no suggestions', () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    const active = controller.getActiveSuggestion();
+    
+    expect(active).toBeNull();
+  });
+
+  /**
+   * Test: insertSuggestion replaces prefix with suggestion
+   * **Validates: Requirements 7.1, 7.2**
+   */
+  it('should insert suggestion and replace prefix', async () => {
+    const textarea = createMockTextarea();
+    textarea.value = 'const myVar = func';
+    textarea.selectionStart = textarea.value.length;
+    textarea.selectionEnd = textarea.value.length;
+    
+    const controller = new AutocompleteController(textarea);
+    await controller.setLanguage('javascript');
+    
+    (controller as any).state.prefix = 'func';
+    (controller as any).state.suggestions = [
+      { text: 'function', type: 'keyword', score: 100 }
+    ];
+    
+    controller.insertSuggestion((controller as any).state.suggestions[0]);
+    
+    expect(textarea.value).toBe('const myVar = function');
+  });
+
+  /**
+   * Test: insertSuggestion positions cursor after inserted text
+   * **Validates: Requirements 7.4**
+   */
+  it('should position cursor after inserted text', async () => {
+    const textarea = createMockTextarea();
+    textarea.value = 'func';
+    textarea.selectionStart = 4;
+    textarea.selectionEnd = 4;
+    
+    const controller = new AutocompleteController(textarea);
+    await controller.setLanguage('javascript');
+    
+    (controller as any).state.prefix = 'func';
+    (controller as any).state.suggestions = [
+      { text: 'function', type: 'keyword', score: 100 }
+    ];
+    
+    controller.insertSuggestion((controller as any).state.suggestions[0]);
+    
+    expect(textarea.selectionStart).toBe(8); // After "function"
+    expect(textarea.selectionEnd).toBe(8);
+  });
+
+  /**
+   * Test: insertSuggestion hides UI
+   * **Validates: Requirements 7.3**
+   */
+  it('should hide UI after inserting suggestion', async () => {
+    const textarea = createMockTextarea();
+    textarea.value = 'func';
+    textarea.selectionStart = 4;
+    textarea.selectionEnd = 4;
+    
+    const controller = new AutocompleteController(textarea);
+    await controller.setLanguage('javascript');
+    
+    (controller as any).state.prefix = 'func';
+    (controller as any).state.suggestions = [
+      { text: 'function', type: 'keyword', score: 100 }
+    ];
+    (controller as any).state.visible = true;
+    
+    controller.insertSuggestion((controller as any).state.suggestions[0]);
+    const newState = controller.getState();
+    
+    expect(newState.visible).toBe(false);
+  });
+
+  /**
+   * Test: handleKeyDown with ArrowDown selects next
+   * **Validates: Requirements 6.1**
+   */
+  it('should handle ArrowDown to select next', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    (controller as any).state.suggestions = [
+      { text: 'test1', type: 'keyword', score: 100 },
+      { text: 'test2', type: 'keyword', score: 90 }
+    ];
+    (controller as any).state.visible = true;
+    (controller as any).state.activeIndex = 0;
+    
+    const event = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+    controller.handleKeyDown(event);
+    const newState = controller.getState();
+    
+    expect(newState.activeIndex).toBe(1);
+  });
+
+  /**
+   * Test: handleKeyDown with ArrowUp selects previous
+   * **Validates: Requirements 6.2**
+   */
+  it('should handle ArrowUp to select previous', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    (controller as any).state.suggestions = [
+      { text: 'test1', type: 'keyword', score: 100 },
+      { text: 'test2', type: 'keyword', score: 90 }
+    ];
+    (controller as any).state.visible = true;
+    (controller as any).state.activeIndex = 1;
+    
+    const event = new KeyboardEvent('keydown', { key: 'ArrowUp' });
+    controller.handleKeyDown(event);
+    const newState = controller.getState();
+    
+    expect(newState.activeIndex).toBe(0);
+  });
+
+  /**
+   * Test: handleKeyDown with Escape hides UI
+   * **Validates: Requirements 6.5, 8.2**
+   */
+  it('should handle Escape to hide UI', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    (controller as any).state.visible = true;
+    
+    const event = new KeyboardEvent('keydown', { key: 'Escape' });
+    controller.handleKeyDown(event);
+    const newState = controller.getState();
+    
+    expect(newState.visible).toBe(false);
+  });
+
+  /**
+   * Test: handleKeyDown with Enter hides UI without inserting
+   * **Validates: Requirements 8.4**
+   */
+  it('should handle Enter to hide UI without inserting', async () => {
+    const textarea = createMockTextarea();
+    textarea.value = 'test';
+    
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    (controller as any).state.visible = true;
+    (controller as any).state.suggestions = [
+      { text: 'testing', type: 'keyword', score: 100 }
+    ];
+    
+    const event = new KeyboardEvent('keydown', { key: 'Enter' });
+    controller.handleKeyDown(event);
+    const newState = controller.getState();
+    
+    expect(newState.visible).toBe(false);
+    expect(textarea.value).toBe('test'); // Not modified
+  });
+
+  /**
+   * Test: handleBlur hides UI
+   * **Validates: Requirements 8.5**
+   */
+  it('should hide UI on blur', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    (controller as any).state.visible = true;
+    
+    controller.handleBlur();
+    const newState = controller.getState();
+    
+    expect(newState.visible).toBe(false);
+  });
+
+  /**
+   * Test: destroy clears timers and hides UI
+   * **Validates: Requirements 10.1**
+   */
+  it('should cleanup on destroy', async () => {
+    const textarea = createMockTextarea();
+    const controller = new AutocompleteController(textarea);
+    
+    await controller.setLanguage('javascript');
+    (controller as any).state.visible = true;
+    (controller as any).state.debounceTimer = window.setTimeout(() => {}, 1000);
+    
+    controller.destroy();
+    const newState = controller.getState();
+    
+    expect(newState.visible).toBe(false);
+    expect(newState.debounceTimer).toBeNull();
+  });
+});
