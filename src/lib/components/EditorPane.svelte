@@ -18,7 +18,10 @@
   let editorElement: HTMLTextAreaElement;
   let highlightElement: HTMLElement;
   let lineNumbersElement: HTMLElement;
+  let lineHighlightWrapper: HTMLElement;
   let showLineNumbers = true; // Default to true
+  let currentLine = 1; // Track current cursor line
+  let measuredLineHeight = 19.5; // Will measure from actual DOM
   
   // Load line numbers preference from settings
   $: if ($settingsStore) {
@@ -35,6 +38,15 @@
   
   onMount(() => {
     console.log('[EditorPane] Mounted, pane:', pane.id, 'files:', pane.files.length);
+    
+    // Measure actual line height from rendered line numbers
+    if (lineNumbersElement) {
+      const firstLine = lineNumbersElement.querySelector('.line-number');
+      if (firstLine) {
+        measuredLineHeight = firstLine.getBoundingClientRect().height;
+        console.log('[EditorPane] Measured line height:', measuredLineHeight);
+      }
+    }
   });
   
   $: activeFile = pane.activeIndex >= 0 ? pane.files[pane.activeIndex] : null;
@@ -134,10 +146,56 @@
     const line = lines.length;
     const column = lines[lines.length - 1].length + 1;
     
+    currentLine = line;
     editorPanes.updateCursor(activeFile.path, line, column);
   }
   
   function handleClick(e: MouseEvent) {
+    const target = e.target as HTMLTextAreaElement;
+    if (activeFile) {
+      updateCursorPosition(target);
+    }
+  }
+  
+  function handleLineNumberClick(lineNumber: number) {
+    if (!activeFile || !editorElement) return;
+    
+    const lines = activeFile.content.split('\n');
+    const targetLine = lines[lineNumber - 1];
+    
+    // Calculate position to place cursor
+    let cursorPosition = 0;
+    for (let i = 0; i < lineNumber - 1; i++) {
+      cursorPosition += lines[i].length + 1; // +1 for newline
+    }
+    
+    if (targetLine && targetLine.trim().length > 0) {
+      // Line has content - place cursor at end of line
+      cursorPosition += targetLine.length;
+    } else {
+      // Empty line - find indentation from closest line above with content
+      let indentColumn = 0;
+      for (let i = lineNumber - 2; i >= 0; i--) {
+        const line = lines[i];
+        if (line.trim().length > 0) {
+          // Found a line with content - match its indentation
+          const match = line.match(/^(\s*)/);
+          if (match) {
+            indentColumn = match[1].length;
+          }
+          break;
+        }
+      }
+      cursorPosition += indentColumn;
+    }
+    
+    // Set cursor position
+    editorElement.focus();
+    editorElement.selectionStart = editorElement.selectionEnd = cursorPosition;
+    updateCursorPosition(editorElement);
+  }
+  
+  function handleMouseUp(e: MouseEvent) {
     const target = e.target as HTMLTextAreaElement;
     if (activeFile) {
       updateCursorPosition(target);
@@ -159,6 +217,9 @@
     }
     if (lineNumbersElement) {
       lineNumbersElement.scrollTop = target.scrollTop;
+    }
+    if (lineHighlightWrapper) {
+      lineHighlightWrapper.scrollTop = target.scrollTop;
     }
   }
   
@@ -477,11 +538,23 @@
             {#if showLineNumbers}
               <div class="line-numbers" bind:this={lineNumbersElement} aria-hidden="true">
                 {#each activeFile.content.split('\n') as _, i}
-                  <div class="line-number">{i + 1}</div>
+                  <div 
+                    class="line-number" 
+                    class:current-line={i + 1 === currentLine}
+                    on:click={() => handleLineNumberClick(i + 1)}
+                    on:keydown={(e) => e.key === 'Enter' && handleLineNumberClick(i + 1)}
+                    role="button"
+                    tabindex="-1"
+                  >{i + 1}</div>
                 {/each}
               </div>
             {/if}
             <div class="editor-wrapper">
+              <div class="line-highlight-wrapper" bind:this={lineHighlightWrapper} aria-hidden="true">
+                <div class="line-highlight-spacer" style="height: {activeFile.content.split('\n').length * measuredLineHeight + 24}px">
+                  <div class="line-highlight" style="top: {12 + (currentLine - 1) * measuredLineHeight}px; height: {measuredLineHeight}px"></div>
+                </div>
+              </div>
               <pre class="code-highlight" bind:this={highlightElement} aria-hidden="true"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
               <textarea
                 bind:this={editorElement}
@@ -492,6 +565,7 @@
                 on:keydown={handleKeyDown}
                 on:keyup={handleKeyUp}
                 on:click={handleClick}
+                on:mouseup={handleMouseUp}
                 spellcheck="false"
                 autocomplete="off"
                 autocorrect="off"
@@ -696,10 +770,11 @@
   }
 
   .code-highlight {
-    background: var(--color-bg-primary);
+    background: transparent;
     color: var(--color-text-primary);
     pointer-events: none;
     z-index: 1;
+    position: relative;
   }
 
   .code-highlight code {
@@ -874,11 +949,46 @@
     color: var(--color-text-muted);
     opacity: 0.6;
     white-space: pre; /* Match editor whitespace handling */
+    cursor: pointer;
+  }
+
+  .line-number:hover {
+    opacity: 0.8;
+  }
+
+  .line-number.current-line {
+    opacity: 1;
+    color: var(--color-text-primary);
   }
 
   .editor-wrapper {
     position: relative;
     flex: 1;
     overflow: hidden;
+    background: var(--color-bg-primary);
+  }
+
+  .line-highlight-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    overflow: auto;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .line-highlight-spacer {
+    position: relative;
+    width: 100%;
+  }
+
+  .line-highlight {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.04);
+    pointer-events: none;
   }
 </style>
