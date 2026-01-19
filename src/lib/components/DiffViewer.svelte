@@ -5,6 +5,7 @@
 
   export let filePath: string;
   export let repoPath: string;
+  export let commitId: string | undefined = undefined;
 
   interface DiffLine {
     origin: string;
@@ -47,11 +48,12 @@
         }
       }
       
-      console.log('[DiffViewer] Loading diff for:', relativePath, 'in repo:', repoPath);
+      console.log('[DiffViewer] Loading diff for:', relativePath, 'in repo:', repoPath, 'commit:', commitId || 'working directory');
       
       const result = await invoke<FileDiff | null>('git_file_diff', {
         repoPath,
         filePath: relativePath,
+        commitId: commitId || null,
       });
       
       const loadTime = performance.now() - startTime;

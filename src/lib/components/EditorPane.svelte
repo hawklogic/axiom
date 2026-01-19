@@ -574,6 +574,7 @@
             <DiffViewer 
               filePath={activeFile.diffContext.filePath}
               repoPath={activeFile.diffContext.repoPath}
+              commitId={activeFile.diffContext.commitId}
             />
           {/key}
         {:else}

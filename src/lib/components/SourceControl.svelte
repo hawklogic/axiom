@@ -5,6 +5,7 @@
   import { gitStore } from '$lib/stores/git';
   import { workspace } from '$lib/stores/workspace';
   import { consoleStore } from '$lib/stores/console';
+  import { editorPanes } from '$lib/stores/editorPanes';
   import type { StatusEntry } from '$lib/stores/git';
 
   let commitMessage = '';
@@ -452,7 +453,36 @@
 
   async function handleCommitFileClick(filePath: string) {
     if (!workspacePath || !selectedCommit) return;
-    handleViewDiff(filePath);
+    
+    // Open diff for this specific commit
+    try {
+      let currentPanes: any;
+      editorPanes.subscribe(p => currentPanes = p)();
+      
+      if (currentPanes && currentPanes.panes.length > 0) {
+        const targetPane = currentPanes.panes[currentPanes.panes.length - 1];
+        
+        const diffFile = {
+          path: `diff://${selectedCommit.id}/${filePath}`,
+          name: `${filePath.split('/').pop()} (${selectedCommit.short_id})`,
+          content: '',
+          language: 'text' as const,
+          modified: false,
+          cursor: { line: 1, column: 1 },
+          type: 'diff' as const,
+          diffContext: {
+            repoPath: workspacePath,
+            filePath: filePath,
+            commitId: selectedCommit.id,
+          },
+        };
+        
+        editorPanes.openFile(targetPane.id, diffFile);
+        consoleStore.log('info', 'git', `Opened diff for ${filePath} at commit ${selectedCommit.short_id}`);
+      }
+    } catch (err) {
+      consoleStore.log('error', 'git', `Failed to open commit diff: ${err}`);
+    }
   }
 </script>
 
@@ -1459,69 +1489,6 @@
     outline: none;
     border-color: var(--color-accent);
     box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
-  }
-
-  .commit-actions {
-    display: flex;
-    gap: var(--space-xs);
-    margin-top: var(--space-xs);
-  }
-
-  .commit-button {
-    flex: 1;
-    padding: var(--space-xs) var(--space-sm);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    background: var(--color-accent);
-    color: var(--color-bg-primary);
-    border-radius: var(--radius-sm);
-    transition: opacity 0.15s;
-  }
-
-  .commit-button:hover:not(:disabled) {
-    opacity: 0.9;
-  }
-
-  .commit-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .cancel-button {
-    padding: var(--space-xs) var(--space-sm);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    transition: background 0.15s;
-  }
-
-  .cancel-button:hover {
-    background: var(--color-bg-hover);
-  }
-
-  .show-commit-button {
-    width: 100%;
-    padding: var(--space-sm);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    background: var(--color-accent);
-    color: var(--color-bg-primary);
-    border-radius: var(--radius-sm);
-    transition: opacity 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-xs);
-  }
-
-  .show-commit-button svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .show-commit-button:hover {
-    opacity: 0.9;
   }
 
   .empty-state {

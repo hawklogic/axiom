@@ -58,6 +58,8 @@ function createWorkspaceStore() {
     tree: [],
   });
 
+  let isOpeningFolder = false;
+
   return {
     subscribe,
 
@@ -73,6 +75,13 @@ function createWorkspaceStore() {
         return false;
       }
 
+      // Prevent multiple simultaneous dialog opens
+      if (isOpeningFolder) {
+        console.log('[Workspace] Already opening folder, ignoring duplicate request');
+        return false;
+      }
+
+      isOpeningFolder = true;
       try {
         const open = await getDialog();
         const selected = await open({
@@ -81,12 +90,18 @@ function createWorkspaceStore() {
           title: 'Open Workspace',
         });
 
+        console.log('[Workspace] Dialog result:', selected);
+
         if (selected && typeof selected === 'string') {
           await this.loadWorkspace(selected);
           return true;
         }
+        
+        console.log('[Workspace] No folder selected or dialog cancelled');
       } catch (e) {
         console.error('Failed to open folder:', e);
+      } finally {
+        isOpeningFolder = false;
       }
       return false;
     },
