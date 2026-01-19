@@ -75,7 +75,7 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
     - Create `java.json` with ~400 entries
     - _Requirements: 2.1, 2.4_
   
-  - [~] 4.3 Create low-priority language corpuses
+  - [x] 4.3 Create low-priority language corpuses
     - Create `assembly.json` with ~200 entries (instructions, registers)
     - Create `bash.json` with ~150 entries (commands, built-ins)
     - Create `makefile.json` with ~80 entries
