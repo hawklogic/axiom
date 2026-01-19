@@ -18,10 +18,10 @@
   let editorElement: HTMLTextAreaElement;
   let highlightElement: HTMLElement;
   let lineNumbersElement: HTMLElement;
-  let lineHighlightWrapper: HTMLElement;
   let showLineNumbers = true; // Default to true
   let currentLine = 1; // Track current cursor line
   let measuredLineHeight = 19.5; // Will measure from actual DOM
+  let scrollTop = 0; // Track scroll position for line highlight
   
   // Load line numbers preference from settings
   $: if ($settingsStore) {
@@ -40,17 +40,55 @@
     console.log('[EditorPane] Mounted, pane:', pane.id, 'files:', pane.files.length);
     
     // Measure actual line height from rendered line numbers
-    if (lineNumbersElement) {
-      const firstLine = lineNumbersElement.querySelector('.line-number');
+    const lineNumbers = document.querySelector('.line-numbers');
+    if (lineNumbers) {
+      const firstLine = lineNumbers.querySelector('.line-number');
       if (firstLine) {
         measuredLineHeight = firstLine.getBoundingClientRect().height;
         console.log('[EditorPane] Measured line height:', measuredLineHeight);
       }
     }
+    
+    // Watch for resize events to remeasure line height
+    const resizeObserver = new ResizeObserver(() => {
+      const lineNumbers = document.querySelector('.line-numbers');
+      if (lineNumbers) {
+        const firstLine = lineNumbers.querySelector('.line-number');
+        if (firstLine) {
+          const newHeight = firstLine.getBoundingClientRect().height;
+          if (newHeight > 0 && newHeight !== measuredLineHeight) {
+            measuredLineHeight = newHeight;
+            console.log('[EditorPane] Remeasured line height after resize:', measuredLineHeight);
+          }
+        }
+      }
+    });
+    
+    const editorPane = document.querySelector('.editor-pane');
+    if (editorPane) {
+      resizeObserver.observe(editorPane);
+    }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
   });
   
   $: activeFile = pane.activeIndex >= 0 ? pane.files[pane.activeIndex] : null;
   $: highlightedContent = activeFile ? highlightCode(activeFile.content, activeFile.language) : [];
+  
+  // Remeasure line height when active file changes
+  $: if (activeFile && lineNumbersElement) {
+    setTimeout(() => {
+      const firstLine = lineNumbersElement.querySelector('.line-number');
+      if (firstLine) {
+        const newHeight = firstLine.getBoundingClientRect().height;
+        if (newHeight > 0) {
+          measuredLineHeight = newHeight;
+        }
+      }
+    }, 0);
+  }
   
   // Undo/Redo state
   interface HistoryState {
@@ -211,15 +249,20 @@
   
   function handleScroll(e: Event) {
     const target = e.target as HTMLTextAreaElement;
+    scrollTop = target.scrollTop;
+    const scrollLeft = target.scrollLeft;
+    
+    // Sync code highlight using transform on the code element
     if (highlightElement) {
-      highlightElement.scrollTop = target.scrollTop;
-      highlightElement.scrollLeft = target.scrollLeft;
+      const code = highlightElement.querySelector('code') as HTMLElement;
+      if (code) {
+        code.style.transform = `translate(${-scrollLeft}px, ${-scrollTop}px)`;
+      }
     }
+    
+    // Sync line numbers
     if (lineNumbersElement) {
-      lineNumbersElement.scrollTop = target.scrollTop;
-    }
-    if (lineHighlightWrapper) {
-      lineHighlightWrapper.scrollTop = target.scrollTop;
+      lineNumbersElement.scrollTop = scrollTop;
     }
   }
   
@@ -550,12 +593,10 @@
               </div>
             {/if}
             <div class="editor-wrapper">
-              <div class="line-highlight-wrapper" bind:this={lineHighlightWrapper} aria-hidden="true">
-                <div class="line-highlight-spacer" style="height: {activeFile.content.split('\n').length * measuredLineHeight + 24}px">
-                  <div class="line-highlight" style="top: {12 + (currentLine - 1) * measuredLineHeight}px; height: {measuredLineHeight}px"></div>
-                </div>
-              </div>
               <pre class="code-highlight" bind:this={highlightElement} aria-hidden="true"><code>{#each highlightedContent as token}<span class="token-{token.type}">{token.value}</span>{/each}</code></pre>
+              <div class="line-highlight-container">
+                <div class="line-highlight" style="top: {12 + (currentLine - 1) * measuredLineHeight - scrollTop}px; height: {measuredLineHeight}px" aria-hidden="true"></div>
+              </div>
               <textarea
                 bind:this={editorElement}
                 class="code-editor"
@@ -749,32 +790,96 @@
     position: relative;
     flex: 1;
     overflow: hidden;
+    display: flex;
+  }
+
+  .line-numbers {
+    flex-shrink: 0;
+    width: 50px;
+    background: var(--color-bg-secondary);
+    border-right: 1px solid var(--color-border);
+    overflow: auto;
+    user-select: none;
+    padding: 12px 0;
+  }
+
+  .line-numbers::-webkit-scrollbar {
+    display: none;
+  }
+
+  .line-numbers {
+    scrollbar-width: none;
+  }
+
+  .editor-wrapper {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: var(--color-bg-primary);
+  }
+
+  .line-highlight-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .line-highlight-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .line-highlight-container {
+    scrollbar-width: none;
+  }
+
+  .line-highlight {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.04);
+    pointer-events: none;
   }
 
   .code-highlight,
   .code-editor {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
     margin: 0;
     padding: 12px;
-    overflow: auto;
     font-family: var(--font-mono);
     font-size: 13px;
     line-height: 1.5;
     white-space: pre;
     tab-size: 4;
     word-wrap: normal;
+    border: none;
+    outline: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
   }
 
   .code-highlight {
     background: transparent;
     color: var(--color-text-primary);
     pointer-events: none;
-    z-index: 1;
-    position: relative;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .code-highlight::-webkit-scrollbar {
+    display: none;
+  }
+
+  .code-highlight {
+    scrollbar-width: none;
   }
 
   .code-highlight code {
@@ -785,10 +890,9 @@
     background: transparent;
     color: transparent;
     caret-color: var(--color-text-primary);
-    border: none;
-    outline: none;
     resize: none;
     z-index: 2;
+    overflow: auto;
   }
 
   .code-editor::selection {
@@ -968,27 +1072,5 @@
     background: var(--color-bg-primary);
   }
 
-  .line-highlight-wrapper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 100%;
-    overflow: auto;
-    pointer-events: none;
-    z-index: 0;
-  }
 
-  .line-highlight-spacer {
-    position: relative;
-    width: 100%;
-  }
-
-  .line-highlight {
-    position: absolute;
-    left: 0;
-    right: 0;
-    background: rgba(255, 255, 255, 0.04);
-    pointer-events: none;
-  }
 </style>
