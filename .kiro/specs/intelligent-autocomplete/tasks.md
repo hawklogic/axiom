@@ -14,7 +14,7 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
   - Set up fast-check library for property-based testing
   - _Requirements: 11.1_
 
-- [ ] 2. Implement Trie data structure for efficient matching
+- [x] 2. Implement Trie data structure for efficient matching
   - [x] 2.1 Create TrieNode interface and Trie class
     - Define TrieNode interface with char, children map, isEndOfWord, and entry fields
     - Implement Trie class with insert, search, and findByPrefix methods
@@ -32,7 +32,7 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
     - For any Trie and any prefix, all words returned by findByPrefix should start with that prefix
     - Tag: `Feature: intelligent-autocomplete, Property: Prefix search correctness`
 
-- [ ] 3. Implement Corpus Manager
+- [x] 3. Implement Corpus Manager
   - [x] 3.1 Create CorpusEntry and Corpus interfaces
     - Define CorpusEntry with text, type, description, category fields
     - Define Corpus with language, entries, and trie fields
@@ -57,7 +57,7 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
     - Test error logging occurs
     - _Requirements: 2.2_
 
-- [ ] 4. Create language corpus files
+- [x] 4. Create language corpus files
   - [x] 4.1 Create high-priority language corpuses
     - Create `javascript.json` with ~500 entries (keywords, built-ins, Web APIs)
     - Create `typescript.json` with ~600 entries (JS + TS-specific)
@@ -88,7 +88,7 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
     - For any supported language, its corpus should contain entries of expected types (keywords, functions, types)
     - Tag: `Feature: intelligent-autocomplete, Property 3: Corpus completeness`
 
-- [ ] 5. Checkpoint - Verify corpus loading and Trie functionality
+- [x] 5. Checkpoint - Verify corpus loading and Trie functionality
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 6. Implement Matching Engine
