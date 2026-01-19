@@ -142,9 +142,9 @@
   }
   
   $: {
-    console.log('[EditorSplitView] Panes updated:', $editorPanes.panes.length, 'split:', $editorPanes.splitDirection);
+    // Reactive statement to track pane changes
     if ($editorPanes.panes.length > 1) {
-      consoleStore.log('info', 'editor', `Panes: ${$editorPanes.panes.length}, Split: ${$editorPanes.splitDirection}`);
+      console.log('[EditorSplitView] Panes updated:', $editorPanes.panes.length, 'split:', $editorPanes.splitDirection);
     }
   }
   
