@@ -1893,6 +1893,75 @@ describe('AutocompleteController', () => {
   });
 
   /**
+   * Test: handleKeyDown with Tab inserts active suggestion
+   * **Validates: Requirements 7.1, 6.5**
+   */
+  it('should handle Tab to insert active suggestion', async () => {
+    const textarea = createMockTextarea();
+    textarea.value = 'func';
+    textarea.selectionStart = 4;
+    textarea.selectionEnd = 4;
+    
+    const controller = new AutocompleteController(textarea);
+    await controller.setLanguage('javascript');
+    
+    (controller as any).state.prefix = 'func';
+    (controller as any).state.suggestions = [
+      { text: 'function', type: 'keyword', score: 100 },
+      { text: 'forEach', type: 'function', score: 90 }
+    ];
+    (controller as any).state.visible = true;
+    (controller as any).state.activeIndex = 0;
+    
+    const event = new KeyboardEvent('keydown', { key: 'Tab' });
+    controller.handleKeyDown(event);
+    
+    expect(textarea.value).toBe('function');
+    const newState = controller.getState();
+    expect(newState.visible).toBe(false);
+  });
+
+  /**
+   * Test: handleKeyDown with trigger character initiates debounced update
+   * **Validates: Requirements 4.1, 9.4**
+   */
+  it('should trigger debounced update on alphanumeric key', async () => {
+    const textarea = createMockTextarea();
+    textarea.value = 'f';
+    textarea.selectionStart = 1;
+    textarea.selectionEnd = 1;
+    
+    const controller = new AutocompleteController(textarea);
+    await controller.setLanguage('javascript');
+    
+    const event = new KeyboardEvent('keydown', { key: 'u' });
+    controller.handleKeyDown(event);
+    
+    const state = controller.getState();
+    // Debounce timer should be set
+    expect(state.debounceTimer).not.toBeNull();
+  });
+
+  /**
+   * Test: handleKeyDown does not trigger on modifier key combinations
+   * **Validates: Requirements 4.1**
+   */
+  it('should not trigger on Ctrl+key combinations', async () => {
+    const textarea = createMockTextarea();
+    textarea.value = 'test';
+    
+    const controller = new AutocompleteController(textarea);
+    await controller.setLanguage('javascript');
+    
+    const event = new KeyboardEvent('keydown', { key: 's', ctrlKey: true });
+    controller.handleKeyDown(event);
+    
+    const state = controller.getState();
+    // Should not set debounce timer
+    expect(state.debounceTimer).toBeNull();
+  });
+
+  /**
    * Test: handleBlur hides UI
    * **Validates: Requirements 8.5**
    */
