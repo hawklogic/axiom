@@ -5,7 +5,6 @@
   import { editorPanes } from '$lib/stores/editorPanes';
   import { ideStatus } from '$lib/stores/status';
   
-  let encoding = 'UTF-8';
   let branch = 'dev';
   let toolchain = 'Clang 15.0.0';
   
@@ -19,6 +18,8 @@
   $: position = activeFile?.cursor 
     ? `Ln ${activeFile.cursor.line}, Col ${activeFile.cursor.column}`
     : 'Ln 1, Col 1';
+  
+  $: encoding = activeFile?.encoding || 'UTF-8';
 </script>
 
 <footer class="status-bar no-select">

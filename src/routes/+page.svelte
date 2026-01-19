@@ -17,6 +17,7 @@
   import { editorPanes } from '$lib/stores/editorPanes';
   import { ideStatus } from '$lib/stores/status';
   import { detectLanguage } from '$lib/utils/syntax';
+  import { detectEncoding } from '$lib/utils/encoding';
 
   let ready = false;
   let activePanel = 'files';
@@ -204,6 +205,7 @@
         language: detectLanguage(name),
         modified: false,
         cursor: { line: 1, column: 1 },
+        encoding: detectEncoding(content),
       });
       console.log('[Editor] File opened in editor');
       ideStatus.ready();
