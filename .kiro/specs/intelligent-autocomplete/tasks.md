@@ -216,49 +216,49 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
     - Implement handleScroll to reposition UI
     - _Requirements: 5.6, 8.5_
 
-- [ ] 10. Implement Completion UI Component
-  - [~] 10.1 Create Autocomplete.svelte component structure
+- [x] 10. Implement Completion UI Component
+  - [x] 10.1 Create Autocomplete.svelte component structure
     - Define component props (visible, suggestions, activeIndex, position, onSelect, onDismiss)
     - Create basic HTML structure with dropdown list
     - _Requirements: 5.1_
   
-  - [~] 10.2 Implement suggestion rendering
+  - [x] 10.2 Implement suggestion rendering
     - Render list of suggestions with syntax-aware coloring
     - Highlight active suggestion
     - Limit display to 10 items with scrolling
     - Apply monospace font and styling
     - _Requirements: 5.2, 5.3, 5.4_
   
-  - [~] 10.3 Write property test for UI display constraint
+  - [x] 10.3 Write property test for UI display constraint
     - **Property: UI Display Constraint**
     - **Validates: Requirements 5.2**
     - For any set of suggestions, UI should display at most 10 items
     - Tag: `Feature: intelligent-autocomplete, Property 12: UI display constraint`
   
-  - [~] 10.4 Implement dynamic positioning logic
+  - [x] 10.4 Implement dynamic positioning logic
     - Calculate position below cursor
     - Detect insufficient space and position above if needed
     - Update position on cursor move and scroll
     - _Requirements: 5.1, 5.5, 5.6_
   
-  - [~] 10.5 Write property test for dynamic repositioning
+  - [x] 10.5 Write property test for dynamic repositioning
     - **Property: Dynamic UI Repositioning**
     - **Validates: Requirements 5.5, 5.6**
     - For any cursor position change or scroll, UI should reposition to remain near cursor
     - Tag: `Feature: intelligent-autocomplete, Property 13: Dynamic repositioning`
   
-  - [~] 10.6 Implement click-outside dismissal
+  - [x] 10.6 Implement click-outside dismissal
     - Add click event listener to detect clicks outside UI
     - Call onDismiss when clicked outside
     - _Requirements: 8.3_
   
-  - [~] 10.7 Add fade-in animation and styling
+  - [x] 10.7 Add fade-in animation and styling
     - Add CSS transition for smooth appearance
     - Style with shadow and border
     - Match editor theme colors
     - _Requirements: 5.4_
 
-- [ ] 11. Checkpoint - Verify UI component functionality
+- [x] 11. Checkpoint - Verify UI component functionality
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Integrate autocomplete with EditorPane
