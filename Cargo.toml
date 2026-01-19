@@ -45,7 +45,7 @@ tree-sitter-c = "0.20"
 tree-sitter-cpp = "0.20"
 
 # Git
-git2 = "0.18"
+git2 = { version = "0.18", features = ["vendored-openssl", "vendored-libgit2"] }
 
 # Terminal
 portable-pty = "0.8"
