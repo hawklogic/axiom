@@ -561,10 +561,19 @@
     background: var(--color-bg-secondary);
     z-index: 10;
     opacity: 0;
-    transition: opacity 0.2s;
+    transition: opacity 0.2s, background 0.15s;
   }
   
   .pane-wrapper:hover .close-pane-btn {
+    opacity: 1;
+  }
+  
+  /* Make close button more visible on empty panes */
+  .pane-wrapper:has(.empty-state) .close-pane-btn {
+    opacity: 0.7;
+  }
+  
+  .pane-wrapper:has(.empty-state):hover .close-pane-btn {
     opacity: 1;
   }
   
