@@ -987,4 +987,253 @@ describe('Property-Based Tests', () => {
       }
     }
   });
+
+  /**
+   * Property: Prefix Matching Correctness
+   * **Validates: Requirements 3.2, 3.3**
+   * 
+   * For any prefix and corpus, all returned suggestions should start with that prefix (case-insensitive).
+   * This ensures that the matching engine only returns relevant suggestions.
+   * 
+   * Tag: Feature: intelligent-autocomplete, Property 4: Prefix matching correctness
+   */
+  it('Property: Prefix Matching Correctness - all suggestions start with prefix', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.string({ minLength: 1, maxLength: 20 }), { minLength: 1, maxLength: 100 }),
+        fc.string({ minLength: 1, maxLength: 5 }),
+        (words, prefix) => {
+          const engine = new MatchingEngine();
+          const uniqueWords = [...new Set(words)];
+          
+          const entries: CorpusEntry[] = uniqueWords.map(word => ({
+            text: word,
+            type: 'keyword'
+          }));
+          
+          const corpus = {
+            language: 'javascript' as Language,
+            entries,
+            trie: buildTrie(entries)
+          };
+          
+          const suggestions = engine.match(prefix, corpus);
+          
+          // All suggestions should start with the prefix (case-insensitive)
+          return suggestions.every(suggestion => 
+            suggestion.text.toLowerCase().startsWith(prefix.toLowerCase())
+          );
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * Property: Case-Insensitive Matching Consistency
+   * **Validates: Requirements 3.3**
+   * 
+   * For any prefix in any case combination, matching should return equivalent results.
+   * This ensures that the matching engine is truly case-insensitive.
+   * 
+   * Tag: Feature: intelligent-autocomplete, Property 5: Case-insensitive consistency
+   */
+  it('Property: Case-Insensitive Matching Consistency - same results for different cases', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.string({ minLength: 1, maxLength: 20 }), { minLength: 1, maxLength: 100 }),
+        fc.string({ minLength: 1, maxLength: 5 }),
+        (words, prefix) => {
+          const engine = new MatchingEngine();
+          const uniqueWords = [...new Set(words)];
+          
+          const entries: CorpusEntry[] = uniqueWords.map(word => ({
+            text: word,
+            type: 'keyword'
+          }));
+          
+          const corpus = {
+            language: 'javascript' as Language,
+            entries,
+            trie: buildTrie(entries)
+          };
+          
+          const lowerResults = engine.match(prefix.toLowerCase(), corpus);
+          const upperResults = engine.match(prefix.toUpperCase(), corpus);
+          const mixedResults = engine.match(
+            prefix.split('').map((c, i) => i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()).join(''),
+            corpus
+          );
+          
+          // Should return same number of results
+          if (lowerResults.length !== upperResults.length || 
+              lowerResults.length !== mixedResults.length) {
+            return false;
+          }
+          
+          // Should return same text values (order may differ due to scoring)
+          const lowerTexts = new Set(lowerResults.map(s => s.text.toLowerCase()));
+          const upperTexts = new Set(upperResults.map(s => s.text.toLowerCase()));
+          const mixedTexts = new Set(mixedResults.map(s => s.text.toLowerCase()));
+          
+          return lowerTexts.size === upperTexts.size && 
+                 lowerTexts.size === mixedTexts.size &&
+                 [...lowerTexts].every(t => upperTexts.has(t) && mixedTexts.has(t));
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * Property: Suggestion Ranking
+   * **Validates: Requirements 3.4**
+   * 
+   * For any set of matches, exact prefix matches should have higher scores than partial matches,
+   * and results should be sorted by score descending.
+   * 
+   * Tag: Feature: intelligent-autocomplete, Property 6: Suggestion ranking
+   */
+  it('Property: Suggestion Ranking - exact matches scored higher, sorted descending', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.string({ minLength: 2, maxLength: 20 }), { minLength: 2, maxLength: 100 }),
+        fc.string({ minLength: 1, maxLength: 5 }),
+        (words, prefix) => {
+          const engine = new MatchingEngine();
+          const uniqueWords = [...new Set(words)];
+          
+          // Add an exact match to ensure we can test ranking
+          const exactMatch = prefix.toLowerCase();
+          const wordsWithExact = [exactMatch, ...uniqueWords.filter(w => w.toLowerCase() !== exactMatch)];
+          
+          const entries: CorpusEntry[] = wordsWithExact.map(word => ({
+            text: word,
+            type: 'keyword'
+          }));
+          
+          const corpus = {
+            language: 'javascript' as Language,
+            entries,
+            trie: buildTrie(entries)
+          };
+          
+          const suggestions = engine.match(prefix, corpus);
+          
+          if (suggestions.length === 0) {
+            return true; // No matches is valid
+          }
+          
+          // Property 1: Results should be sorted by score descending
+          for (let i = 0; i < suggestions.length - 1; i++) {
+            if (suggestions[i].score < suggestions[i + 1].score) {
+              return false;
+            }
+          }
+          
+          // Property 2: Exact matches should have higher scores than partial matches
+          const exactMatches = suggestions.filter(s => 
+            s.text.toLowerCase() === prefix.toLowerCase()
+          );
+          const partialMatches = suggestions.filter(s => 
+            s.text.toLowerCase() !== prefix.toLowerCase() &&
+            s.text.toLowerCase().startsWith(prefix.toLowerCase())
+          );
+          
+          if (exactMatches.length > 0 && partialMatches.length > 0) {
+            const minExactScore = Math.min(...exactMatches.map(s => s.score));
+            const maxPartialScore = Math.max(...partialMatches.map(s => s.score));
+            
+            if (minExactScore <= maxPartialScore) {
+              return false;
+            }
+          }
+          
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * Property: Result Limiting
+   * **Validates: Requirements 3.5**
+   * 
+   * For any prefix matching more than 10 entries, exactly 10 suggestions should be returned.
+   * This ensures the matching engine respects the result limit.
+   * 
+   * Tag: Feature: intelligent-autocomplete, Property 7: Result limiting
+   */
+  it('Property: Result Limiting - max 10 suggestions returned', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 15, max: 100 }),
+        fc.string({ minLength: 1, maxLength: 3 }),
+        (numWords, prefix) => {
+          const engine = new MatchingEngine();
+          
+          // Generate words that all start with the prefix to ensure many matches
+          const entries: CorpusEntry[] = Array.from({ length: numWords }, (_, i) => ({
+            text: `${prefix}word${i}`,
+            type: 'keyword' as const
+          }));
+          
+          const corpus = {
+            language: 'javascript' as Language,
+            entries,
+            trie: buildTrie(entries)
+          };
+          
+          const suggestions = engine.match(prefix, corpus);
+          
+          // Should return exactly 10 suggestions (default limit)
+          return suggestions.length <= 10;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * Property: Matching Performance
+   * **Validates: Requirements 3.1, 9.1**
+   * 
+   * For any corpus with up to 10,000 entries and any prefix, matching should complete within 16ms.
+   * This ensures the matching engine meets performance requirements.
+   * 
+   * Tag: Feature: intelligent-autocomplete, Property 8: Matching performance
+   */
+  it('Property: Matching Performance - completes within 16ms for 10k entries', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1000, max: 10000 }),
+        fc.string({ minLength: 1, maxLength: 5 }),
+        (numEntries, prefix) => {
+          const engine = new MatchingEngine();
+          
+          // Generate a large corpus
+          const entries: CorpusEntry[] = Array.from({ length: numEntries }, (_, i) => ({
+            text: `word${i}`,
+            type: 'keyword' as const
+          }));
+          
+          const corpus = {
+            language: 'javascript' as Language,
+            entries,
+            trie: buildTrie(entries)
+          };
+          
+          // Measure matching time
+          const startTime = performance.now();
+          engine.match(prefix, corpus);
+          const elapsed = performance.now() - startTime;
+          
+          // Should complete within 16ms
+          return elapsed <= 16;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
 });

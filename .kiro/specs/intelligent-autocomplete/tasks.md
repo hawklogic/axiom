@@ -91,38 +91,38 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
 - [x] 5. Checkpoint - Verify corpus loading and Trie functionality
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Implement Matching Engine
+- [x] 6. Implement Matching Engine
   - [x] 6.1 Create Suggestion interface and MatchingEngine class
     - Define Suggestion interface with text, type, description, score
     - Implement match method with prefix search and ranking
     - Implement scoring algorithm (exact match: 100, starts with: 90, contains: 70)
     - _Requirements: 3.2, 3.3, 3.4_
   
-  - [~] 6.2 Write property test for prefix matching correctness
+  - [x] 6.2 Write property test for prefix matching correctness
     - **Property: Prefix Matching Correctness**
     - **Validates: Requirements 3.2, 3.3**
     - For any prefix and corpus, all returned suggestions should start with that prefix (case-insensitive)
     - Tag: `Feature: intelligent-autocomplete, Property 4: Prefix matching correctness`
   
-  - [~] 6.3 Write property test for case-insensitive matching
+  - [x] 6.3 Write property test for case-insensitive matching
     - **Property: Case-Insensitive Matching Consistency**
     - **Validates: Requirements 3.3**
     - For any prefix in any case combination, matching should return equivalent results
     - Tag: `Feature: intelligent-autocomplete, Property 5: Case-insensitive consistency`
   
-  - [~] 6.4 Write property test for suggestion ranking
+  - [x] 6.4 Write property test for suggestion ranking
     - **Property: Suggestion Ranking**
     - **Validates: Requirements 3.4**
     - For any set of matches, exact prefix matches should have higher scores than partial matches, sorted descending
     - Tag: `Feature: intelligent-autocomplete, Property 6: Suggestion ranking`
   
-  - [~] 6.5 Write property test for result limiting
+  - [x] 6.5 Write property test for result limiting
     - **Property: Result Limiting**
     - **Validates: Requirements 3.5**
     - For any prefix matching more than 10 entries, exactly 10 suggestions should be returned
     - Tag: `Feature: intelligent-autocomplete, Property 7: Result limiting`
   
-  - [~] 6.6 Write property test for matching performance
+  - [x] 6.6 Write property test for matching performance
     - **Property: Matching Performance**
     - **Validates: Requirements 3.1, 9.1**
     - For any corpus with up to 10,000 entries and any prefix, matching should complete within 16ms
