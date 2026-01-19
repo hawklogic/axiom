@@ -161,7 +161,7 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
 - [x] 8. Checkpoint - Verify matching and trigger logic
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Implement Autocomplete Controller
+- [x] 9. Implement Autocomplete Controller
   - [x] 9.1 Create AutocompleteState interface and AutocompleteController class
     - Define AutocompleteState with visible, suggestions, activeIndex, prefix, position, language, debounceTimer
     - Implement constructor with editor element reference
@@ -176,42 +176,42 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
     - Add debouncing logic (50ms)
     - _Requirements: 4.1, 6.1, 6.2, 6.5, 7.1, 9.4_
   
-  - [~] 9.3 Write property test for debouncing behavior
+  - [x] 9.3 Write property test for debouncing behavior
     - **Property: Debouncing Behavior**
     - **Validates: Requirements 9.4**
     - For any rapid keystroke sequence within 50ms, matching should be invoked at most once per 50ms window
     - Tag: `Feature: intelligent-autocomplete, Property 18: Debouncing`
   
-  - [~] 9.4 Implement suggestion insertion logic
+  - [x] 9.4 Implement suggestion insertion logic
     - Extract current prefix from editor
     - Replace prefix with selected suggestion
     - Update cursor position
     - Trigger editor input event for undo/redo integration
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 10.2_
   
-  - [~] 9.5 Write property test for Tab completion insertion
+  - [x] 9.5 Write property test for Tab completion insertion
     - **Property: Tab Completion Insertion**
     - **Validates: Requirements 7.1, 7.2, 7.3, 7.4**
     - For any active suggestion, Tab should insert text, replace prefix, hide UI, and position cursor correctly
     - Tag: `Feature: intelligent-autocomplete, Property 16: Tab completion`
   
-  - [~] 9.6 Write property test for undo integration
+  - [x] 9.6 Write property test for undo integration
     - **Property: Undo Integration**
     - **Validates: Requirements 10.2**
     - For any completion insertion, undo should revert to state before insertion
     - Tag: `Feature: intelligent-autocomplete, Property 19: Undo integration`
   
-  - [~] 9.7 Implement navigation with wrapping
+  - [x] 9.7 Implement navigation with wrapping
     - Implement selectNext with wrap-around at end
     - Implement selectPrevious with wrap-around at start
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
   
-  - [~] 9.8 Write unit tests for navigation wrapping
+  - [x] 9.8 Write unit tests for navigation wrapping
     - Test Down Arrow at last item wraps to first
     - Test Up Arrow at first item wraps to last
     - _Requirements: 6.3, 6.4_
   
-  - [~] 9.9 Implement blur and scroll handlers
+  - [x] 9.9 Implement blur and scroll handlers
     - Implement handleBlur to hide UI
     - Implement handleScroll to reposition UI
     - _Requirements: 5.6, 8.5_

@@ -1996,4 +1996,45 @@ describe('AutocompleteController', () => {
     expect(newState.visible).toBe(false);
     expect(newState.debounceTimer).toBeNull();
   });
+
+  /**
+   * Property: Debouncing Behavior
+   * **Validates: Requirements 9.4**
+   * 
+   * For any rapid keystroke sequence, the debounce timer should be set and cleared properly.
+   * This ensures that matching is not invoked excessively during rapid typing.
+   * 
+   * Tag: Feature: intelligent-autocomplete, Property 18: Debouncing
+   */
+  it('Property: Debouncing - timer is set and cleared properly', async () => {
+    const textarea = createMockTextarea();
+    textarea.value = 'test';
+    textarea.selectionStart = 4;
+    textarea.selectionEnd = 4;
+    
+    const controller = new AutocompleteController(textarea);
+    await controller.setLanguage('javascript');
+    
+    // Simulate rapid keystrokes
+    const event1 = new KeyboardEvent('keydown', { key: 'a' });
+    controller.handleKeyDown(event1);
+    
+    // Timer should be set after first keystroke
+    let state = controller.getState();
+    expect(state.debounceTimer).not.toBeNull();
+    const firstTimer = state.debounceTimer;
+    
+    // Simulate another keystroke before debounce completes
+    const event2 = new KeyboardEvent('keydown', { key: 'b' });
+    controller.handleKeyDown(event2);
+    
+    // Timer should be replaced (cleared and set again)
+    state = controller.getState();
+    expect(state.debounceTimer).not.toBeNull();
+    expect(state.debounceTimer).not.toBe(firstTimer);
+    
+    // Cleanup
+    controller.destroy();
+  });
 });
+
