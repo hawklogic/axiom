@@ -216,6 +216,22 @@
       pushHistory(target.value, target.selectionStart);
       editorPanes.updateContent(activeFile.path, target.value);
       updateCursorPosition(target);
+      
+      // Trigger autocomplete after text has been inserted
+      if (autocompleteController) {
+        // Use a microtask to ensure the cursor position is updated
+        Promise.resolve().then(() => {
+          if (autocompleteController) {
+            autocompleteController.handleInput();
+            // Force update of reactive state
+            const newState = autocompleteController.getState();
+            autocompleteVisible = newState.visible;
+            autocompleteSuggestions = newState.suggestions;
+            autocompleteActiveIndex = newState.activeIndex;
+            autocompletePosition = newState.position;
+          }
+        });
+      }
     }
   }
   
@@ -284,6 +300,12 @@
   }
   
   function handleKeyUp(e: KeyboardEvent) {
+    // NEVER process arrow keys - they should only navigate the dropdown
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+      return;
+    }
+    
     const target = e.target as HTMLTextAreaElement;
     if (activeFile) {
       updateCursorPosition(target);
@@ -387,17 +409,6 @@
         saveFile(activeFile.path, activeFile.content);
       }
       return;
-    }
-    
-    // Trigger autocomplete for typing
-    if (autocompleteController) {
-      autocompleteController.handleKeyDown(e);
-      // Force update of reactive state including position
-      const newState = autocompleteController.getState();
-      autocompleteVisible = newState.visible;
-      autocompleteSuggestions = newState.suggestions;
-      autocompleteActiveIndex = newState.activeIndex;
-      autocompletePosition = newState.position;
     }
     
     if (e.key === 'Enter') {

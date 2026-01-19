@@ -9,6 +9,8 @@
  * @module autocomplete
  */
 
+import { consoleStore } from '$lib/stores/console';
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -610,6 +612,7 @@ export class AutocompleteController {
   private corpusManager: CorpusManager;
   private matchingEngine: MatchingEngine;
   private assemblyCaseStyle: 'upper' | 'lower' | 'mixed' = 'upper';
+  private isInserting: boolean = false;
   
   /**
    * Initialize with editor element reference
@@ -759,6 +762,8 @@ export class AutocompleteController {
    * Inserts the selected suggestion into the editor
    */
   insertSuggestion(suggestion: Suggestion): void {
+    this.isInserting = true;
+    
     const cursorPosition = this.editorElement.selectionStart;
     const text = this.editorElement.value;
     
@@ -782,12 +787,17 @@ export class AutocompleteController {
     this.editorElement.selectionStart = newCursorPosition;
     this.editorElement.selectionEnd = newCursorPosition;
     
+    // Hide the UI BEFORE triggering input event
+    this.hide();
+    
     // Trigger input event for undo/redo integration
     const inputEvent = new Event('input', { bubbles: true });
     this.editorElement.dispatchEvent(inputEvent);
     
-    // Hide the UI
-    this.hide();
+    // Reset flag after a short delay to allow input event to process
+    setTimeout(() => {
+      this.isInserting = false;
+    }, 10);
   }
   
   /**
@@ -834,10 +844,34 @@ export class AutocompleteController {
       }
     }
     
-    // Check if this key should trigger autocomplete
-    if (shouldTrigger(event, this.state.language)) {
-      // Debounce the update
-      this.debounceUpdate();
+    // NEVER trigger on arrow keys
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+      return;
+    }
+  }
+  
+  /**
+   * Handles input events from the editor (after text has been inserted)
+   */
+  handleInput(): void {
+    // Don't trigger if we're currently inserting a suggestion
+    if (this.isInserting) {
+      return;
+    }
+    
+    // Extract prefix at cursor with the FULL current text
+    const cursorPosition = this.editorElement.selectionStart;
+    const text = this.editorElement.value;
+    const prefix = extractPrefix(text, cursorPosition);
+    
+    consoleStore.log('info', 'autocomplete', `handleInput - cursor:${cursorPosition} prefix:"${prefix}" char:"${text[cursorPosition - 1]}"`);
+    
+    // Only trigger if we have a valid prefix
+    if (prefix.length >= 1) {
+      // Update immediately without debounce to avoid lag
+      this.performUpdate();
+    } else {
+      this.hide();
     }
   }
   
@@ -867,6 +901,8 @@ export class AutocompleteController {
     // Extract prefix at cursor
     const prefix = extractPrefix(text, cursorPosition);
     
+    consoleStore.log('info', 'autocomplete', `performUpdate - cursor:${cursorPosition} prefix:"${prefix}"`);
+    
     // Update suggestions
     this.updateSuggestions(prefix);
     
@@ -875,7 +911,7 @@ export class AutocompleteController {
     
     // Log to console for debugging
     if (this.state.visible && this.state.suggestions.length > 0) {
-      console.log('[Autocomplete] Showing', this.state.suggestions.length, 'suggestions for prefix:', prefix, 'at position:', this.state.position);
+      consoleStore.log('info', 'autocomplete', `Showing ${this.state.suggestions.length} suggestions for "${prefix}"`);
     }
   }
   
