@@ -549,6 +549,54 @@ export function extractCursorContext(
   };
 }
 
+/**
+ * Detects the predominant case style in assembly code
+ */
+export function detectAssemblyCaseStyle(text: string): 'upper' | 'lower' | 'mixed' {
+  // Extract instruction-like words (at start of lines or after whitespace)
+  const instructionPattern = /(?:^|\s+)([a-z]{2,}|[A-Z]{2,})(?:\s|$)/gm;
+  const matches = text.matchAll(instructionPattern);
+  
+  let upperCount = 0;
+  let lowerCount = 0;
+  
+  for (const match of matches) {
+    const word = match[1];
+    if (word === word.toUpperCase()) {
+      upperCount++;
+    } else if (word === word.toLowerCase()) {
+      lowerCount++;
+    }
+  }
+  
+  // Need at least 3 samples to make a determination
+  if (upperCount + lowerCount < 3) {
+    return 'upper'; // Default to uppercase
+  }
+  
+  // If 80% or more are one case, use that
+  const total = upperCount + lowerCount;
+  if (upperCount / total >= 0.8) {
+    return 'upper';
+  } else if (lowerCount / total >= 0.8) {
+    return 'lower';
+  }
+  
+  return 'mixed';
+}
+
+/**
+ * Transforms suggestion text to match the target case style
+ */
+export function transformCase(text: string, caseStyle: 'upper' | 'lower' | 'mixed'): string {
+  if (caseStyle === 'lower') {
+    return text.toLowerCase();
+  } else if (caseStyle === 'upper') {
+    return text.toUpperCase();
+  }
+  return text; // mixed - keep original
+}
+
 // ============================================================================
 // Autocomplete Controller
 // ============================================================================
@@ -561,6 +609,7 @@ export class AutocompleteController {
   private editorElement: HTMLTextAreaElement;
   private corpusManager: CorpusManager;
   private matchingEngine: MatchingEngine;
+  private assemblyCaseStyle: 'upper' | 'lower' | 'mixed' = 'upper';
   
   /**
    * Initialize with editor element reference
@@ -593,6 +642,11 @@ export class AutocompleteController {
    */
   async setLanguage(language: Language | null): Promise<void> {
     this.state.language = language;
+    
+    // Detect case style for assembly files
+    if (language === 'assembly') {
+      this.assemblyCaseStyle = detectAssemblyCaseStyle(this.editorElement.value);
+    }
     
     // Load corpus for the language if not already loaded
     if (language && !this.corpusManager.isLoaded(language)) {
@@ -638,7 +692,15 @@ export class AutocompleteController {
     const corpus = this.corpusManager.getCorpus(this.state.language);
     
     // Match suggestions
-    const suggestions = this.matchingEngine.match(prefix, corpus, 10);
+    let suggestions = this.matchingEngine.match(prefix, corpus, 10);
+    
+    // Apply case transformation for assembly
+    if (this.state.language === 'assembly') {
+      suggestions = suggestions.map(s => ({
+        ...s,
+        text: transformCase(s.text, this.assemblyCaseStyle)
+      }));
+    }
     
     // Update state
     this.state.suggestions = suggestions;
