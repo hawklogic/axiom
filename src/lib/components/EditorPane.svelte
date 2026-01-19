@@ -508,6 +508,10 @@
       case 'go': return 'Go';
       case 'java': return 'Java';
       case 'sql': return 'SQL';
+      case 'toml': return 'TOML';
+      case 'lock': return 'Lock File';
+      case 'log': return 'Log File';
+      case 'cursorrules': return 'Cursor Rules';
       case 'text': return 'Text';
       default: return 'Text';
     }
