@@ -66,11 +66,19 @@ pub fn get_staged_diff(repo: &Repository) -> Result<Vec<FileDiff>, GitError> {
 
 /// Get diff for a specific file.
 pub fn get_file_diff(repo: &Repository, path: &std::path::Path) -> Result<Option<FileDiff>, GitError> {
-    let diffs = get_working_diff(repo)?;
-    Ok(diffs.into_iter().find(|d| {
-        d.new_path.as_ref().map(|p| p == path).unwrap_or(false)
-            || d.old_path.as_ref().map(|p| p == path).unwrap_or(false)
-    }))
+    // Use pathspec to filter diff to only the requested file - much faster
+    let head = repo.inner().head()?.peel_to_tree()?;
+    
+    let mut opts = git2::DiffOptions::new();
+    opts.pathspec(path);
+    opts.include_untracked(false);
+    
+    let diff = repo.inner().diff_tree_to_workdir(Some(&head), Some(&mut opts))?;
+    
+    let mut diffs = parse_diff(&diff)?;
+    
+    // Should only have 0 or 1 results due to pathspec filter
+    Ok(diffs.pop())
 }
 
 /// Parse a git2 diff into our types.

@@ -15,7 +15,6 @@ export interface OpenFile {
   language: Language;
   modified: boolean;
   cursor: { line: number; column: number };
-  encoding?: string;
   type?: 'file' | 'diff';
   diffContext?: {
     repoPath: string;
