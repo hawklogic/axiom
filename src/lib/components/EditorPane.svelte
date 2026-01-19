@@ -260,9 +260,9 @@
       }
     }
     
-    // Sync line numbers
+    // Sync line numbers using transform
     if (lineNumbersElement) {
-      lineNumbersElement.scrollTop = scrollTop;
+      lineNumbersElement.style.transform = `translateY(${-scrollTop}px)`;
     }
   }
   
@@ -579,17 +579,19 @@
         {:else}
           <div class="editor-container" class:show-line-numbers={showLineNumbers}>
             {#if showLineNumbers}
-              <div class="line-numbers" bind:this={lineNumbersElement} aria-hidden="true">
-                {#each activeFile.content.split('\n') as _, i}
-                  <div 
-                    class="line-number" 
-                    class:current-line={i + 1 === currentLine}
-                    on:click={() => handleLineNumberClick(i + 1)}
-                    on:keydown={(e) => e.key === 'Enter' && handleLineNumberClick(i + 1)}
-                    role="button"
-                    tabindex="-1"
-                  >{i + 1}</div>
-                {/each}
+              <div class="line-numbers" aria-hidden="true">
+                <div class="line-numbers-inner" bind:this={lineNumbersElement}>
+                  {#each activeFile.content.split('\n') as _, i}
+                    <div 
+                      class="line-number" 
+                      class:current-line={i + 1 === currentLine}
+                      on:click={() => handleLineNumberClick(i + 1)}
+                      on:keydown={(e) => e.key === 'Enter' && handleLineNumberClick(i + 1)}
+                      role="button"
+                      tabindex="-1"
+                    >{i + 1}</div>
+                  {/each}
+                </div>
               </div>
             {/if}
             <div class="editor-wrapper">
@@ -798,9 +800,10 @@
     width: 50px;
     background: var(--color-bg-secondary);
     border-right: 1px solid var(--color-border);
-    overflow: auto;
+    overflow: hidden;
     user-select: none;
     padding: 12px 0;
+    position: relative;
   }
 
   .line-numbers::-webkit-scrollbar {
