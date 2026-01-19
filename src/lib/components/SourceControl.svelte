@@ -5,6 +5,7 @@
   import { gitStore } from '$lib/stores/git';
   import { workspace } from '$lib/stores/workspace';
   import { consoleStore } from '$lib/stores/console';
+  import { editorPanes } from '$lib/stores/editorPanes';
   import type { StatusEntry } from '$lib/stores/git';
 
   let commitMessage = '';
@@ -284,9 +285,6 @@
     if (!workspacePath) return;
     try {
       consoleStore.log('info', 'git', `Opening diff for ${path}...`);
-      
-      // Import editorPanes
-      const { editorPanes } = await import('$lib/stores/editorPanes');
       
       // Get the current panes
       let currentPanes: any;
