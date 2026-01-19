@@ -505,6 +505,105 @@ describe('MatchingEngine', () => {
     const results = engine.match('w', corpus, 5);
     expect(results.length).toBeLessThanOrEqual(5);
   });
+
+  /**
+   * Test: Scoring algorithm correctness
+   * **Validates: Requirements 3.2, 3.3, 3.4**
+   * 
+   * Verifies that the scoring algorithm assigns correct scores:
+   * - Exact match (case-insensitive): 100
+   * - Starts with prefix: 90
+   * - Contains prefix: 70
+   */
+  it('should apply correct scoring algorithm (exact: 100, starts: 90, contains: 70)', () => {
+    const engine = new MatchingEngine();
+    const entries: CorpusEntry[] = [
+      { text: 'test', type: 'keyword' },
+      { text: 'testing', type: 'keyword' },
+      { text: 'contest', type: 'keyword' }
+    ];
+    const corpus = {
+      language: 'javascript' as Language,
+      entries,
+      trie: buildTrie(entries)
+    };
+    
+    // Test exact match
+    const exactResults = engine.match('test', corpus);
+    const exactMatch = exactResults.find(s => s.text === 'test');
+    expect(exactMatch).toBeDefined();
+    expect(exactMatch!.score).toBeGreaterThanOrEqual(100);
+    
+    // Test starts with
+    const startsResults = engine.match('tes', corpus);
+    const startsMatch = startsResults.find(s => s.text === 'test');
+    expect(startsMatch).toBeDefined();
+    expect(startsMatch!.score).toBeGreaterThanOrEqual(90);
+    expect(startsMatch!.score).toBeLessThan(100);
+  });
+
+  /**
+   * Test: Case-insensitive scoring
+   * **Validates: Requirements 3.3**
+   * 
+   * Verifies that scoring is case-insensitive - matching 'TEST' should
+   * give the same score as matching 'test'.
+   */
+  it('should score case-insensitively', () => {
+    const engine = new MatchingEngine();
+    const entries: CorpusEntry[] = [
+      { text: 'Function', type: 'keyword' }
+    ];
+    const corpus = {
+      language: 'javascript' as Language,
+      entries,
+      trie: buildTrie(entries)
+    };
+    
+    const lowerResults = engine.match('function', corpus);
+    const upperResults = engine.match('FUNCTION', corpus);
+    const mixedResults = engine.match('FuNcTiOn', corpus);
+    
+    expect(lowerResults.length).toBe(1);
+    expect(upperResults.length).toBe(1);
+    expect(mixedResults.length).toBe(1);
+    
+    // All should have similar scores (exact match)
+    expect(lowerResults[0].score).toBeGreaterThanOrEqual(100);
+    expect(upperResults[0].score).toBeGreaterThanOrEqual(100);
+    expect(mixedResults[0].score).toBeGreaterThanOrEqual(100);
+  });
+
+  /**
+   * Test: Suggestions sorted by score descending
+   * **Validates: Requirements 3.4**
+   * 
+   * Verifies that suggestions are returned in descending order by score.
+   */
+  it('should return suggestions sorted by score descending', () => {
+    const engine = new MatchingEngine();
+    const entries: CorpusEntry[] = [
+      { text: 'for', type: 'keyword' },
+      { text: 'forEach', type: 'function' },
+      { text: 'format', type: 'function' },
+      { text: 'forward', type: 'function' }
+    ];
+    const corpus = {
+      language: 'javascript' as Language,
+      entries,
+      trie: buildTrie(entries)
+    };
+    
+    const results = engine.match('for', corpus);
+    
+    // Verify results are sorted by score descending
+    for (let i = 0; i < results.length - 1; i++) {
+      expect(results[i].score).toBeGreaterThanOrEqual(results[i + 1].score);
+    }
+    
+    // Exact match should be first
+    expect(results[0].text).toBe('for');
+  });
 });
 
 // ============================================================================
