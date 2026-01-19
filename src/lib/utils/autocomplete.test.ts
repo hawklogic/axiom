@@ -780,4 +780,112 @@ describe('Property-Based Tests', () => {
       { numRuns: 100 }
     );
   });
+
+  /**
+   * Property: Corpus Completeness
+   * **Validates: Requirements 2.1**
+   * 
+   * For any supported language, its corpus should contain entries of expected types
+   * (keywords, functions, types) relevant to that language.
+   * 
+   * This property verifies:
+   * 1. Each supported language has a corpus file that exists
+   * 2. The corpus contains entries (not empty)
+   * 3. The corpus contains entries of multiple expected types
+   * 4. All entries have valid type values
+   * 5. Language-specific expectations are met (e.g., Python has 'def', JavaScript has 'function')
+   * 
+   * Tag: Feature: intelligent-autocomplete, Property 3: Corpus completeness
+   */
+  it('Property: Corpus Completeness - corpus contains expected entry types', async () => {
+    // Import fs module for reading corpus files directly in test environment
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    
+    // Define supported languages with their expected characteristics
+    const supportedLanguages: Array<{
+      language: Language;
+      expectedKeywords: string[];  // Sample keywords that should exist
+      minEntries: number;           // Minimum expected entries
+    }> = [
+      // High priority languages
+      { language: 'javascript', expectedKeywords: ['function', 'const', 'let', 'var'], minEntries: 50 },
+      { language: 'typescript', expectedKeywords: ['interface', 'type', 'const', 'let'], minEntries: 50 },
+      { language: 'python', expectedKeywords: ['def', 'class', 'if', 'for'], minEntries: 50 },
+      { language: 'c', expectedKeywords: ['int', 'char', 'void', 'struct'], minEntries: 50 },
+      { language: 'cpp', expectedKeywords: ['class', 'namespace', 'template', 'int'], minEntries: 50 },
+      
+      // Medium priority languages
+      { language: 'html', expectedKeywords: ['div', 'span', 'a', 'img'], minEntries: 20 },
+      { language: 'css', expectedKeywords: ['color', 'margin', 'padding', 'display'], minEntries: 20 },
+      { language: 'sql', expectedKeywords: ['SELECT', 'FROM', 'WHERE', 'INSERT'], minEntries: 20 },
+      { language: 'rust', expectedKeywords: ['fn', 'let', 'mut', 'struct'], minEntries: 30 },
+      { language: 'go', expectedKeywords: ['func', 'var', 'type', 'struct'], minEntries: 30 },
+      { language: 'java', expectedKeywords: ['class', 'public', 'private', 'void'], minEntries: 50 },
+      
+      // Low priority languages
+      { language: 'assembly', expectedKeywords: ['mov', 'add', 'sub', 'jmp'], minEntries: 20 },
+      { language: 'bash', expectedKeywords: ['if', 'then', 'else', 'fi'], minEntries: 20 },
+      { language: 'makefile', expectedKeywords: ['all', 'clean', 'install'], minEntries: 10 },
+      { language: 'yaml', expectedKeywords: [], minEntries: 5 },
+      { language: 'json', expectedKeywords: [], minEntries: 5 },
+      { language: 'toml', expectedKeywords: [], minEntries: 5 },
+      { language: 'markdown', expectedKeywords: [], minEntries: 5 }
+    ];
+
+    // Test each supported language
+    for (const { language, expectedKeywords, minEntries } of supportedLanguages) {
+      // Read corpus file directly from filesystem
+      const corpusPath = path.join(process.cwd(), 'static', 'data', 'corpuses', `${language}.json`);
+      
+      // Property 1: Corpus file should exist
+      let corpusData: { language: string; entries: CorpusEntry[] };
+      try {
+        const fileContent = await fs.readFile(corpusPath, 'utf-8');
+        corpusData = JSON.parse(fileContent);
+      } catch (error) {
+        throw new Error(`Corpus file for ${language} not found or invalid at ${corpusPath}`);
+      }
+      
+      // Property 2: Corpus should have entries
+      expect(corpusData.entries.length).toBeGreaterThanOrEqual(minEntries);
+      
+      // Property 3: Corpus should have the correct language
+      expect(corpusData.language).toBe(language);
+      
+      // Property 4: All entries should have valid types
+      const validTypes: EntryType[] = ['keyword', 'function', 'type', 'constant', 'variable'];
+      for (const entry of corpusData.entries) {
+        expect(validTypes).toContain(entry.type);
+        expect(entry.text).toBeTruthy();
+        expect(entry.text.length).toBeGreaterThan(0);
+      }
+      
+      // Property 5: Corpus should contain multiple entry types (for languages with rich syntax)
+      if (minEntries >= 50) {
+        const entryTypes = new Set(corpusData.entries.map(e => e.type));
+        expect(entryTypes.size).toBeGreaterThanOrEqual(2);
+      }
+      
+      // Property 6: Language-specific keywords should exist
+      for (const expectedKeyword of expectedKeywords) {
+        const hasKeyword = corpusData.entries.some(
+          entry => entry.text.toLowerCase() === expectedKeyword.toLowerCase()
+        );
+        expect(hasKeyword).toBe(true);
+      }
+      
+      // Property 7: Trie can be built from the corpus
+      const trie = buildTrie(corpusData.entries);
+      expect(trie).toBeDefined();
+      expect(trie.children).toBeDefined();
+      
+      // Property 8: Trie should contain the entries (spot check)
+      if (corpusData.entries.length > 0) {
+        const firstEntry = corpusData.entries[0];
+        const found = searchInTrie(trie, firstEntry.text);
+        expect(found).toBe(true);
+      }
+    }
+  });
 });

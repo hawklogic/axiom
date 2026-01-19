@@ -82,7 +82,7 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
     - Create remaining language corpuses (yaml, json, toml, markdown, etc.)
     - _Requirements: 2.1, 2.4_
   
-  - [~] 4.4 Write property test for corpus completeness
+  - [x] 4.4 Write property test for corpus completeness
     - **Property: Corpus Completeness**
     - **Validates: Requirements 2.1**
     - For any supported language, its corpus should contain entries of expected types (keywords, functions, types)
