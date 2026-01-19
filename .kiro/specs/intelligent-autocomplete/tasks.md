@@ -66,7 +66,7 @@ This implementation plan breaks down the autocomplete feature into discrete, inc
     - Create `cpp.json` with ~600 entries (C + C++-specific)
     - _Requirements: 2.1, 2.4_
   
-  - [~] 4.2 Create medium-priority language corpuses
+  - [x] 4.2 Create medium-priority language corpuses
     - Create `html.json` with ~150 entries (tags)
     - Create `css.json` with ~200 entries (properties)
     - Create `sql.json` with ~100 entries (keywords)
