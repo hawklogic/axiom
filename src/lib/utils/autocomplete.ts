@@ -813,10 +813,37 @@ export class AutocompleteController {
    * Updates the UI position based on cursor location
    */
   private updatePosition(): void {
-    // This is a simplified version - actual implementation would need
-    // to calculate the exact pixel position of the cursor
-    // For now, we'll set a placeholder position
-    this.state.position = { x: 0, y: 0 };
+    if (!this.editorElement) return;
+    
+    // Get cursor position in the textarea
+    const cursorPosition = this.editorElement.selectionStart;
+    const text = this.editorElement.value.substring(0, cursorPosition);
+    
+    // Count lines and column position
+    const lines = text.split('\n');
+    const lineNumber = lines.length - 1;
+    const columnNumber = lines[lines.length - 1].length;
+    
+    // Get textarea bounding rect and computed style
+    const rect = this.editorElement.getBoundingClientRect();
+    const style = window.getComputedStyle(this.editorElement);
+    
+    // Parse padding
+    const paddingLeft = parseFloat(style.paddingLeft) || 0;
+    const paddingTop = parseFloat(style.paddingTop) || 0;
+    
+    // Get font metrics
+    const fontSize = parseFloat(style.fontSize) || 13;
+    const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.5;
+    
+    // Estimate character width for monospace font
+    const charWidth = fontSize * 0.6;
+    
+    // Calculate position relative to viewport
+    const x = rect.left + paddingLeft + (columnNumber * charWidth);
+    const y = rect.top + paddingTop + ((lineNumber + 1) * lineHeight);
+    
+    this.state.position = { x, y };
   }
   
   /**
