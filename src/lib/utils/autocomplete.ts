@@ -970,7 +970,7 @@ export class AutocompleteController {
     
     // Calculate position
     let x = rect.left + paddingLeft + textWidth - scrollLeft;
-    let y = rect.top + paddingTop + (lineNumber * lineHeight) + lineHeight - scrollTop;
+    let y = rect.top + paddingTop + (lineNumber * lineHeight) - scrollTop;
     
     // Viewport boundary checks
     const viewportWidth = window.innerWidth;
