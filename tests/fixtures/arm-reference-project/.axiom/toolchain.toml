@@ -1,0 +1,43 @@
+# Axiom ARM Toolchain Configuration
+# Project: STM32F103C8 Reference Project
+
+[toolchain]
+type = "arm-none-eabi-gcc"
+auto_detect = true
+# path = "/opt/homebrew/bin/arm-none-eabi-gcc"  # Optional: override auto-detection
+
+[arm]
+mcu = "cortex-m3"
+fpu = ""  # Cortex-M3 has no FPU
+float_abi = "soft"
+thumb = true
+
+[arm.defines]
+STM32F103xB = true
+USE_HAL_DRIVER = false
+
+[arm.include_paths]
+paths = [
+    "Core/Inc",
+    "Drivers"
+]
+
+[linker]
+script = "STM32F103C8_FLASH.ld"
+generate_map = true
+map_path = "build/output.map"
+flags = [
+    "--gc-sections",
+    "--print-memory-usage"
+]
+
+[build]
+optimization = "O2"
+debug = true
+warnings = "all"
+
+[compliance]
+do178c_enabled = false
+do330_enabled = false
+arp4754a_enabled = false
+dal = "E"  # Design Assurance Level (A-E, where A is highest)

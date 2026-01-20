@@ -13,3 +13,7 @@ description = "Axiom toolchain detection and compiler invocation"
 axiom-core = { path = "../axiom-core" }
 serde = { workspace = true }
 thiserror = { workspace = true }
+glob = "0.3"
+
+[dev-dependencies]
+proptest = "1.4"

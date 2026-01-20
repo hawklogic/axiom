@@ -19,6 +19,59 @@ pub enum ToolchainKind {
     Python,
 }
 
+/// Source of a detected toolchain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ToolchainSource {
+    /// Installed via Homebrew (macOS).
+    Homebrew,
+    /// Bundled with STM32CubeIDE.
+    Stm32CubeIde,
+    /// Found in system PATH.
+    SystemPath,
+    /// Manually specified by user.
+    Manual,
+}
+
+/// Completeness status of a toolchain suite.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ToolchainCompleteness {
+    /// All required tools are present.
+    Complete,
+    /// Some tools are missing.
+    Incomplete {
+        /// List of missing tool names.
+        missing: Vec<String>,
+    },
+}
+
+/// Complete ARM toolchain suite with all required tools.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArmToolchainSuite {
+    /// Path to arm-none-eabi-gcc.
+    pub gcc: PathBuf,
+    /// Path to arm-none-eabi-g++.
+    pub gxx: PathBuf,
+    /// Path to arm-none-eabi-as (assembler).
+    pub as_: PathBuf,
+    /// Path to arm-none-eabi-ld (linker).
+    pub ld: PathBuf,
+    /// Path to arm-none-eabi-objcopy.
+    pub objcopy: PathBuf,
+    /// Path to arm-none-eabi-objdump.
+    pub objdump: PathBuf,
+    /// Path to arm-none-eabi-size.
+    pub size: PathBuf,
+    /// Path to arm-none-eabi-gdb.
+    pub gdb: PathBuf,
+    /// Version string from gcc.
+    pub version: String,
+    /// Source of this toolchain.
+    pub source: ToolchainSource,
+    /// Completeness status.
+    pub completeness: ToolchainCompleteness,
+}
+
+
 impl std::fmt::Display for ToolchainKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

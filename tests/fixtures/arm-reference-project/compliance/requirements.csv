@@ -1,0 +1,65 @@
+Requirement ID,Title,Description,Priority,Status
+REQ-001,System Initialization,System shall initialize all peripherals on startup,High,Approved
+REQ-001.1,Clock Configuration,Configure system clock,High,Approved
+REQ-001.2,GPIO Initialization,Initialize GPIO peripherals,High,Approved
+REQ-001.3,UART Initialization,Initialize UART peripherals,Medium,Approved
+REQ-002,System Clock,System clock shall be configured to 72MHz using HSE and PLL,High,Approved
+REQ-002.1,HSE Enable,Enable High Speed External oscillator,High,Approved
+REQ-002.2,PLL Configuration,Configure PLL multiplier,High,Approved
+REQ-002.3,Clock Switch,Switch system clock to PLL,High,Approved
+REQ-003,LED Control,System shall provide LED toggle functionality,Low,Approved
+REQ-003.1,GPIO Toggle,Toggle GPIO pin state,Low,Approved
+REQ-004,Delay Function,System shall provide millisecond delay functionality,Medium,Approved
+REQ-004.1,Tick Wait,Wait for specified milliseconds,Medium,Approved
+REQ-005,System Tick,System shall increment tick counter every millisecond,High,Approved
+REQ-005.1,Tick Increment,Increment system tick counter,High,Approved
+REQ-006,Error Handling,System shall enter safe state on error,Critical,Approved
+REQ-006.1,Disable Interrupts,Disable all interrupts on error,Critical,Approved
+REQ-006.2,Error Loop,Enter infinite loop in error state,Critical,Approved
+REQ-007,Main Loop,Main function shall initialize system and run main loop,High,Approved
+REQ-007.1,System Init,Initialize system in main,High,Approved
+REQ-007.2,Main Loop,Execute main application loop,High,Approved
+REQ-007.3,LED Blink,Toggle LED every second,Low,Approved
+REQ-GPIO-001,GPIO Init,GPIO driver shall support pin initialization,High,Approved
+REQ-GPIO-001.1,Clear Config,Clear configuration bits,High,Approved
+REQ-GPIO-001.2,Set Config,Set mode and configuration,High,Approved
+REQ-GPIO-002,GPIO Write,GPIO driver shall support pin write operations,High,Approved
+REQ-GPIO-002.1,Set High,Set pin to high state,High,Approved
+REQ-GPIO-002.2,Set Low,Set pin to low state,High,Approved
+REQ-GPIO-003,GPIO Read,GPIO driver shall support pin read operations,High,Approved
+REQ-GPIO-003.1,Read State,Read pin state from input register,High,Approved
+REQ-GPIO-004,GPIO Toggle,GPIO driver shall support pin toggle operations,Medium,Approved
+REQ-GPIO-004.1,Toggle Pin,Toggle pin state via XOR,Medium,Approved
+REQ-UART-001,UART Init,UART driver shall support initialization,High,Approved
+REQ-UART-002,UART TX,UART driver shall support byte transmission,High,Approved
+REQ-UART-003,UART RX,UART driver shall support byte reception,High,Approved
+REQ-UART-004,UART String,UART driver shall support string transmission,Medium,Approved
+REQ-TIMER-001,Timer Init,Timer driver shall support initialization,High,Approved
+REQ-TIMER-002,Timer Start,Timer driver shall support start operation,High,Approved
+REQ-TIMER-003,Timer Stop,Timer driver shall support stop operation,High,Approved
+REQ-TIMER-004,Timer Count,Timer driver shall support count read operation,Medium,Approved
+REQ-SENSOR-001,Sensor Init,System shall initialize sensor subsystem,High,Approved
+REQ-SENSOR-001.1,Sensor GPIO,Configure sensor GPIO pins,High,Approved
+REQ-SENSOR-001.2,Sensor Comm,Initialize sensor communication interface,High,Approved
+REQ-SENSOR-001.3,Sensor Test,Perform sensor self-test,Medium,Approved
+REQ-SENSOR-002,Sensor Read,System shall read sensor data at 100Hz,High,Approved
+REQ-SENSOR-002.1,Trigger Measure,Trigger sensor measurement,High,Approved
+REQ-SENSOR-002.2,Wait Ready,Wait for conversion complete,High,Approved
+REQ-SENSOR-002.3,Read Value,Read sensor value,High,Approved
+REQ-SENSOR-003,Sensor Validate,System shall validate sensor readings are within range,High,Approved
+REQ-SENSOR-003.1,Min Check,Check minimum threshold,High,Approved
+REQ-SENSOR-003.2,Max Check,Check maximum threshold,High,Approved
+REQ-SENSOR-003.3,Return Result,Return validation result,High,Approved
+REQ-SENSOR-004,Sensor Calibrate,System shall apply calibration to sensor readings,Medium,Approved
+REQ-SENSOR-004.1,Offset Correct,Apply offset correction,Medium,Approved
+REQ-SENSOR-004.2,Scale Factor,Apply scale factor,Medium,Approved
+REQ-SENSOR-004.3,Return Calibrated,Return calibrated value,Medium,Approved
+REQ-SENSOR-005,Sensor Fault,System shall detect sensor fault conditions,High,Approved
+REQ-SENSOR-005.1,Stuck Zero,Check for stuck-at-zero fault,High,Approved
+REQ-SENSOR-005.2,Stuck Max,Check for stuck-at-max fault,High,Approved
+REQ-SENSOR-005.3,Out of Range,Check for out-of-range fault,High,Approved
+REQ-SENSOR-006,Sensor Process,System shall process sensor data and update state,High,Approved
+REQ-SENSOR-006.1,Read Sensor,Read sensor value,High,Approved
+REQ-SENSOR-006.2,Validate,Validate sensor reading,High,Approved
+REQ-SENSOR-006.3,Calibrate,Apply calibration,Medium,Approved
+REQ-SENSOR-006.4,Update State,Update system state,High,Approved

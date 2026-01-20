@@ -16,98 +16,98 @@
 ## Task 1: Create Test Reference Project Structure
 **Validates: All requirements (test foundation)**
 
-- [ ] 1. Create Test Reference Project Structure
+- [x] 1. Create Test Reference Project Structure
   - [x] 1.1 Create `tests/fixtures/arm-reference-project/` directory structure
-  - [ ] 1.2 Create `Core/Inc/main.h` with basic STM32 definitions
-  - [ ] 1.3 Create `Core/Inc/config.h` with project configuration
-  - [ ] 1.4 Create `Core/Src/main.c` with REQ annotations for traceability testing
-  - [ ] 1.5 Create `Drivers/gpio.c` and `Drivers/gpio.h` with GPIO driver implementation
-  - [ ] 1.6 Create `Drivers/uart.c` and `Drivers/uart.h` with UART driver stubs
-  - [ ] 1.7 Create `Drivers/timer.c` and `Drivers/timer.h` with timer driver stubs
-  - [ ] 1.8 Create `STM32F103C8_FLASH.ld` linker script (64KB flash, 20KB RAM)
-  - [ ] 1.9 Create `Makefile` with targets: all, clean, flash, debug, coverage, edge-*
-  - [ ] 1.10 Create `edge_cases/empty_file.c` (empty source)
-  - [ ] 1.11 Create `edge_cases/syntax_error.c` (intentional errors)
-  - [ ] 1.12 Create `edge_cases/linker_overflow.c` (128KB array for overflow test)
-  - [ ] 1.13 Create `edge_cases/inline_assembly.c` (ARM inline asm: MRS, MSR, CPSID, DSB)
-  - [ ] 1.14 Create `edge_cases/missing_include.c` (references nonexistent header)
-  - [ ] 1.15 Create `compliance/traced_module.c` with full REQ annotations
-  - [ ] 1.16 Create `compliance/untraced_module.c` without annotations
-  - [ ] 1.17 Create `compliance/requirements.csv` with requirement definitions
-  - [ ] 1.18 Create `Tests/test_gpio.c` with TEST: REQ-xxx annotations
-  - [ ] 1.19 Create `.axiom/toolchain.toml` project config file
-  - [ ] 1.20 **VERIFY**: All files created and Makefile syntax valid
+  - [x] 1.2 Create `Core/Inc/main.h` with basic STM32 definitions
+  - [x] 1.3 Create `Core/Inc/config.h` with project configuration
+  - [x] 1.4 Create `Core/Src/main.c` with REQ annotations for traceability testing
+  - [x] 1.5 Create `Drivers/gpio.c` and `Drivers/gpio.h` with GPIO driver implementation
+  - [x] 1.6 Create `Drivers/uart.c` and `Drivers/uart.h` with UART driver stubs
+  - [x] 1.7 Create `Drivers/timer.c` and `Drivers/timer.h` with timer driver stubs
+  - [x] 1.8 Create `STM32F103C8_FLASH.ld` linker script (64KB flash, 20KB RAM)
+  - [x] 1.9 Create `Makefile` with targets: all, clean, flash, debug, coverage, edge-*
+  - [x] 1.10 Create `edge_cases/empty_file.c` (empty source)
+  - [x] 1.11 Create `edge_cases/syntax_error.c` (intentional errors)
+  - [x] 1.12 Create `edge_cases/linker_overflow.c` (128KB array for overflow test)
+  - [x] 1.13 Create `edge_cases/inline_assembly.c` (ARM inline asm: MRS, MSR, CPSID, DSB)
+  - [x] 1.14 Create `edge_cases/missing_include.c` (references nonexistent header)
+  - [x] 1.15 Create `compliance/traced_module.c` with full REQ annotations
+  - [x] 1.16 Create `compliance/untraced_module.c` without annotations
+  - [x] 1.17 Create `compliance/requirements.csv` with requirement definitions
+  - [x] 1.18 Create `Tests/test_gpio.c` with TEST: REQ-xxx annotations
+  - [x] 1.19 Create `.axiom/toolchain.toml` project config file
+  - [x] 1.20 **VERIFY**: All files created and Makefile syntax valid
 
 ---
 
 ## Task 2: Extend Toolchain Detection for STM32CubeIDE
 **Validates: Requirements 1, 2, 11, 12**
 
-- [ ] 2. Extend Toolchain Detection for STM32CubeIDE
-  - [ ] 2.1 Implementation
-    - [ ] 2.1.1 Add STM32CubeIDE macOS paths to `ARM_GCC_PATHS` in detection.rs
-    - [ ] 2.1.2 Add STM32CubeIDE Linux paths to detection.rs
-    - [ ] 2.1.3 Add STM32CubeIDE Windows paths to detection.rs
-    - [ ] 2.1.4 Implement glob pattern expansion for versioned plugin directories
-    - [ ] 2.1.5 Add `ToolchainSource` enum (Homebrew, Stm32CubeIde, SystemPath, Manual)
-    - [ ] 2.1.6 Add `ToolchainCompleteness` enum (Complete, Incomplete { missing: Vec<String> })
-    - [ ] 2.1.7 Create `ArmToolchainSuite` struct with all tool paths (gcc, g++, as, ld, objcopy, objdump, size, gdb)
-    - [ ] 2.1.8 Implement `validate_toolchain_suite()` to check all tools exist
-    - [ ] 2.1.9 Implement `detect_source()` to identify toolchain origin from path
-    - [ ] 2.1.10 Update `detect_all()` to return `Vec<ArmToolchainSuite>`
-  - [ ] 2.2 Unit Tests
-    - [ ] 2.2.1 Test `parse_arm_gcc_version()` with standard ARM toolchain output
-    - [ ] 2.2.2 Test `parse_arm_gcc_version()` with STM32CubeIDE toolchain output
-    - [ ] 2.2.3 Test `detect_source()` returns Homebrew for /opt/homebrew paths
-    - [ ] 2.2.4 Test `detect_source()` returns Stm32CubeIde for STM32CubeIDE paths
-    - [ ] 2.2.5 Test `validate_toolchain_suite()` marks complete when all tools present
-    - [ ] 2.2.6 Test `validate_toolchain_suite()` marks incomplete with missing tools list
-    - [ ] 2.2.7 Test version comparison `is_version_compatible("14.3.1", "8.0.0")` returns true
-    - [ ] 2.2.8 Test version comparison `is_version_compatible("7.9.9", "8.0.0")` returns false
-  - [ ] 2.3 Integration Tests
-    - [ ] 2.3.1 Test `detect_all()` finds toolchain if arm-none-eabi-gcc installed
-    - [ ] 2.3.2 Test `detect_at_path()` returns None for nonexistent path
-    - [ ] 2.3.3 Test detected toolchain has valid version string
-    - [ ] 2.3.4 Test detected toolchain has existing gcc path
-  - [ ] 2.4 Property-Based Test
-    - [ ] 2.4.1 Write P1: For any returned toolchain, gcc path exists and version is non-empty
-  - [ ] 2.5 Verification Gate
-    - [ ] 2.5.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
-    - [ ] 2.5.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
-    - [ ] 2.5.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 2. Extend Toolchain Detection for STM32CubeIDE
+  - [x] 2.1 Implementation
+    - [x] 2.1.1 Add STM32CubeIDE macOS paths to `ARM_GCC_PATHS` in detection.rs
+    - [x] 2.1.2 Add STM32CubeIDE Linux paths to detection.rs
+    - [x] 2.1.3 Add STM32CubeIDE Windows paths to detection.rs
+    - [x] 2.1.4 Implement glob pattern expansion for versioned plugin directories
+    - [x] 2.1.5 Add `ToolchainSource` enum (Homebrew, Stm32CubeIde, SystemPath, Manual)
+    - [x] 2.1.6 Add `ToolchainCompleteness` enum (Complete, Incomplete { missing: Vec<String> })
+    - [x] 2.1.7 Create `ArmToolchainSuite` struct with all tool paths (gcc, g++, as, ld, objcopy, objdump, size, gdb)
+    - [x] 2.1.8 Implement `validate_toolchain_suite()` to check all tools exist
+    - [x] 2.1.9 Implement `detect_source()` to identify toolchain origin from path
+    - [x] 2.1.10 Update `detect_all()` to return `Vec<ArmToolchainSuite>`
+  - [x] 2.2 Unit Tests
+    - [x] 2.2.1 Test `parse_arm_gcc_version()` with standard ARM toolchain output
+    - [x] 2.2.2 Test `parse_arm_gcc_version()` with STM32CubeIDE toolchain output
+    - [x] 2.2.3 Test `detect_source()` returns Homebrew for /opt/homebrew paths
+    - [x] 2.2.4 Test `detect_source()` returns Stm32CubeIde for STM32CubeIDE paths
+    - [x] 2.2.5 Test `validate_toolchain_suite()` marks complete when all tools present
+    - [x] 2.2.6 Test `validate_toolchain_suite()` marks incomplete with missing tools list
+    - [x] 2.2.7 Test version comparison `is_version_compatible("14.3.1", "8.0.0")` returns true
+    - [x] 2.2.8 Test version comparison `is_version_compatible("7.9.9", "8.0.0")` returns false
+  - [x] 2.3 Integration Tests
+    - [x] 2.3.1 Test `detect_all()` finds toolchain if arm-none-eabi-gcc installed
+    - [x] 2.3.2 Test `detect_at_path()` returns None for nonexistent path
+    - [x] 2.3.3 Test detected toolchain has valid version string
+    - [x] 2.3.4 Test detected toolchain has existing gcc path
+  - [x] 2.4 Property-Based Test
+    - [x] 2.4.1 Write P1: For any returned toolchain, gcc path exists and version is non-empty
+  - [x] 2.5 Verification Gate
+    - [x] 2.5.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
+    - [x] 2.5.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
+    - [x] 2.5.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 3: Implement ARM MCU Configuration Module
 **Validates: Requirements 3, 4**
 
-- [ ] 3. Implement ARM MCU Configuration Module
-  - [ ] 3.1 Implementation
-    - [ ] 3.1.1 Create `crates/axiom-toolchain/src/arm_mcu.rs` module
-    - [ ] 3.1.2 Add `mod arm_mcu;` and `pub use arm_mcu::*;` to lib.rs
-    - [ ] 3.1.3 Create `FloatAbi` enum (Soft, SoftFp, Hard)
-    - [ ] 3.1.4 Create `ArmMcuConfig` struct (cpu, thumb, fpu, float_abi, defines)
-    - [ ] 3.1.5 Implement `ArmMcuConfig::compiler_flags()` method
-    - [ ] 3.1.6 Create `LinkerConfig` struct (script, generate_map, map_path, flags)
-    - [ ] 3.1.7 Implement `ArmMcuConfig::linker_flags(&LinkerConfig)` method
-    - [ ] 3.1.8 Add preset constructors: `cortex_m0()`, `cortex_m3()`, `cortex_m4()`, `cortex_m7()`
-    - [ ] 3.1.9 Implement `validate_linker_config()` to check script exists
-  - [ ] 3.2 Unit Tests
-    - [ ] 3.2.1 Test `compiler_flags()` includes `-mcpu=cortex-m3` for cortex_m3 config
-    - [ ] 3.2.2 Test `compiler_flags()` includes `-mthumb` when thumb=true
-    - [ ] 3.2.3 Test `compiler_flags()` includes `-mfpu=fpv5-d16` when fpu specified
-    - [ ] 3.2.4 Test `compiler_flags()` includes `-mfloat-abi=hard` for Hard ABI
-    - [ ] 3.2.5 Test `compiler_flags()` includes `-DSTM32H750xx` for defines
-    - [ ] 3.2.6 Test `linker_flags()` includes `-T<script>` for linker script
-    - [ ] 3.2.7 Test `linker_flags()` includes `-Wl,-Map=output.map` when generate_map=true
-    - [ ] 3.2.8 Test `linker_flags()` includes `-Wl,--gc-sections`
-    - [ ] 3.2.9 Test `validate_linker_config()` returns error for nonexistent script
-  - [ ] 3.3 Property-Based Test
-    - [ ] 3.3.1 Write P2: For any ArmMcuConfig, flags contain -mcpu with specified CPU
-  - [ ] 3.4 Verification Gate
-    - [ ] 3.4.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
-    - [ ] 3.4.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
-    - [ ] 3.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 3. Implement ARM MCU Configuration Module
+  - [x] 3.1 Implementation
+    - [x] 3.1.1 Create `crates/axiom-toolchain/src/arm_mcu.rs` module
+    - [x] 3.1.2 Add `mod arm_mcu;` and `pub use arm_mcu::*;` to lib.rs
+    - [x] 3.1.3 Create `FloatAbi` enum (Soft, SoftFp, Hard)
+    - [x] 3.1.4 Create `ArmMcuConfig` struct (cpu, thumb, fpu, float_abi, defines)
+    - [x] 3.1.5 Implement `ArmMcuConfig::compiler_flags()` method
+    - [x] 3.1.6 Create `LinkerConfig` struct (script, generate_map, map_path, flags)
+    - [x] 3.1.7 Implement `ArmMcuConfig::linker_flags(&LinkerConfig)` method
+    - [x] 3.1.8 Add preset constructors: `cortex_m0()`, `cortex_m3()`, `cortex_m4()`, `cortex_m7()`
+    - [x] 3.1.9 Implement `validate_linker_config()` to check script exists
+  - [x] 3.2 Unit Tests
+    - [x] 3.2.1 Test `compiler_flags()` includes `-mcpu=cortex-m3` for cortex_m3 config
+    - [x] 3.2.2 Test `compiler_flags()` includes `-mthumb` when thumb=true
+    - [x] 3.2.3 Test `compiler_flags()` includes `-mfpu=fpv5-d16` when fpu specified
+    - [x] 3.2.4 Test `compiler_flags()` includes `-mfloat-abi=hard` for Hard ABI
+    - [x] 3.2.5 Test `compiler_flags()` includes `-DSTM32H750xx` for defines
+    - [x] 3.2.6 Test `linker_flags()` includes `-T<script>` for linker script
+    - [x] 3.2.7 Test `linker_flags()` includes `-Wl,-Map=output.map` when generate_map=true
+    - [x] 3.2.8 Test `linker_flags()` includes `-Wl,--gc-sections`
+    - [x] 3.2.9 Test `validate_linker_config()` returns error for nonexistent script
+  - [x] 3.3 Property-Based Test
+    - [x] 3.3.1 Write P2: For any ArmMcuConfig, flags contain -mcpu with specified CPU
+  - [x] 3.4 Verification Gate
+    - [x] 3.4.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
+    - [x] 3.4.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
+    - [x] 3.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
