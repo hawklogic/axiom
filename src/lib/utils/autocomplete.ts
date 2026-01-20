@@ -917,6 +917,7 @@ export class AutocompleteController {
   
   /**
    * Updates the UI position based on cursor location
+   * Uses a more accurate method with a hidden span element to measure actual cursor position
    */
   private updatePosition(): void {
     if (!this.editorElement) return;
@@ -946,15 +947,51 @@ export class AutocompleteController {
     
     const paddingLeft = parseFloat(style.paddingLeft) || 12;
     const paddingTop = parseFloat(style.paddingTop) || 12;
-    const charWidth = fontSize * 0.6;
+    
+    // Use a more accurate character width measurement
+    // Create a temporary span to measure the actual width of the text before cursor
+    const measureSpan = document.createElement('span');
+    measureSpan.style.font = style.font;
+    measureSpan.style.fontSize = style.fontSize;
+    measureSpan.style.fontFamily = style.fontFamily;
+    measureSpan.style.fontWeight = style.fontWeight;
+    measureSpan.style.letterSpacing = style.letterSpacing;
+    measureSpan.style.whiteSpace = 'pre';
+    measureSpan.style.visibility = 'hidden';
+    measureSpan.style.position = 'absolute';
+    measureSpan.textContent = lines[lineNumber];
+    document.body.appendChild(measureSpan);
+    const textWidth = measureSpan.offsetWidth;
+    document.body.removeChild(measureSpan);
     
     // Account for scroll position
     const scrollTop = this.editorElement.scrollTop;
     const scrollLeft = this.editorElement.scrollLeft;
     
-    const x = rect.left + paddingLeft + (columnNumber * charWidth) - scrollLeft;
-    // Position dropdown at the cursor's baseline (same line as cursor)
-    const y = rect.top + paddingTop + (lineNumber * lineHeight) - scrollTop;
+    // Calculate position
+    let x = rect.left + paddingLeft + textWidth - scrollLeft;
+    let y = rect.top + paddingTop + (lineNumber * lineHeight) + lineHeight - scrollTop;
+    
+    // Viewport boundary checks
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const dropdownWidth = 300; // Approximate dropdown width
+    const dropdownHeight = 300; // Max dropdown height
+    
+    // Adjust X if dropdown would go off-screen to the right
+    if (x + dropdownWidth > viewportWidth) {
+      x = Math.max(10, viewportWidth - dropdownWidth - 10);
+    }
+    
+    // Adjust Y if dropdown would go off-screen at the bottom
+    // Show above cursor instead of below
+    if (y + dropdownHeight > viewportHeight) {
+      y = rect.top + paddingTop + (lineNumber * lineHeight) - scrollTop - dropdownHeight;
+      // If still off-screen at top, clamp to top of viewport
+      if (y < 10) {
+        y = 10;
+      }
+    }
     
     this.state.position = { x, y };
   }

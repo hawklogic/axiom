@@ -95,6 +95,8 @@
     border-radius: 4px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     max-height: 300px;
+    min-width: 200px;
+    max-width: 400px;
     overflow-y: auto;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 13px;
