@@ -190,3 +190,58 @@ impl CompileResult {
         self.exit_code == 0
     }
 }
+
+/// A request to compile ARM source code.
+#[derive(Debug, Clone)]
+pub struct ArmCompileRequest {
+    /// Source file path.
+    pub source: PathBuf,
+    /// Output file path.
+    pub output: PathBuf,
+    /// MCU configuration.
+    pub mcu: crate::ArmMcuConfig,
+    /// Include paths.
+    pub include_paths: Vec<PathBuf>,
+    /// Optimization level (0-3).
+    pub optimization: u8,
+    /// Include debug symbols.
+    pub debug: bool,
+}
+
+impl ArmCompileRequest {
+    /// Create a new ARM compile request.
+    pub fn new(source: PathBuf, output: PathBuf, mcu: crate::ArmMcuConfig) -> Self {
+        Self {
+            source,
+            output,
+            mcu,
+            include_paths: Vec::new(),
+            optimization: 0,
+            debug: true,
+        }
+    }
+    
+    /// Add an include path.
+    pub fn with_include_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.include_paths.push(path.into());
+        self
+    }
+    
+    /// Add a preprocessor define.
+    pub fn with_define(mut self, define: impl Into<String>) -> Self {
+        self.mcu = self.mcu.with_define(define);
+        self
+    }
+    
+    /// Set optimization level.
+    pub fn with_optimization(mut self, level: u8) -> Self {
+        self.optimization = level.min(3);
+        self
+    }
+    
+    /// Enable or disable debug symbols.
+    pub fn with_debug(mut self, debug: bool) -> Self {
+        self.debug = debug;
+        self
+    }
+}

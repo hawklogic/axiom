@@ -45,3 +45,47 @@ proptest! {
             "Flags should contain -mcpu={}", cpu);
     }
 }
+
+
+proptest! {
+    /// P3: Include paths in flags match order in request
+    #[test]
+    fn prop_include_paths_preserve_order(
+        paths in proptest::collection::vec("[a-z]{3,10}", 1..5)
+    ) {
+        use std::path::PathBuf;
+        
+        let mcu = ArmMcuConfig::cortex_m3();
+        let mut request = ArmCompileRequest::new(
+            PathBuf::from("test.c"),
+            PathBuf::from("test.o"),
+            mcu,
+        );
+        
+        // Add paths in order
+        for path in &paths {
+            request = request.with_include_path(path);
+        }
+        
+        let args = build_arm_compile_command(
+            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
+            &request,
+        );
+        
+        // Find positions of -I flags
+        let mut positions = Vec::new();
+        for (i, arg) in args.iter().enumerate() {
+            if arg.starts_with("-I") {
+                positions.push((i, &arg[2..]));
+            }
+        }
+        
+        // Verify order matches
+        for (i, path) in paths.iter().enumerate() {
+            if i < positions.len() {
+                prop_assert_eq!(positions[i].1, path.as_str(),
+                    "Include path order should be preserved");
+            }
+        }
+    }
+}

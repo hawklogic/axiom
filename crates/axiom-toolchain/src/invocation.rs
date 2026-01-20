@@ -112,6 +112,80 @@ fn parse_diagnostics(stderr: &str, _kind: ToolchainKind) -> Vec<Diagnostic> {
     diagnostics
 }
 
+/// Build command arguments for ARM compilation.
+pub fn build_arm_compile_command(
+    _gcc_path: &std::path::Path,
+    request: &crate::ArmCompileRequest,
+) -> Vec<String> {
+    let mut args = Vec::new();
+    
+    // Compile only (don't link)
+    args.push("-c".to_string());
+    
+    // MCU-specific flags
+    args.extend(request.mcu.compiler_flags());
+    
+    // Include paths (in order)
+    for path in &request.include_paths {
+        args.push(format!("-I{}", path.display()));
+    }
+    
+    // Optimization
+    args.push(format!("-O{}", request.optimization));
+    
+    // Debug symbols
+    if request.debug {
+        args.push("-g3".to_string());
+    }
+    
+    // Source file
+    args.push(request.source.display().to_string());
+    
+    // Output file
+    args.push("-o".to_string());
+    args.push(request.output.display().to_string());
+    
+    args
+}
+
+/// Compile ARM source code.
+pub fn compile_arm(
+    gcc_path: &std::path::Path,
+    request: &crate::ArmCompileRequest,
+) -> CompileResult {
+    let args = build_arm_compile_command(gcc_path, request);
+    let start = Instant::now();
+    
+    let output = Command::new(gcc_path)
+        .args(&args)
+        .output();
+    
+    let duration_ms = start.elapsed().as_millis() as u64;
+    
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            let diagnostics = parse_diagnostics(&stderr, ToolchainKind::ArmGcc);
+            
+            CompileResult {
+                exit_code: output.status.code().unwrap_or(-1),
+                stdout,
+                stderr,
+                duration_ms,
+                diagnostics,
+            }
+        }
+        Err(e) => CompileResult {
+            exit_code: -1,
+            stdout: String::new(),
+            stderr: e.to_string(),
+            duration_ms,
+            diagnostics: vec![Diagnostic::error(e.to_string())],
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -179,5 +253,122 @@ main.c:15:10: warning: unused variable 'y' [-Wunused-variable]
 
         let diags = parse_diagnostics(stderr, ToolchainKind::Clang);
         assert_eq!(diags.len(), 2);
+    }
+    
+    #[test]
+    fn test_build_arm_compile_command_includes_c_flag() {
+        let mcu = crate::ArmMcuConfig::cortex_m3();
+        let request = crate::ArmCompileRequest::new(
+            PathBuf::from("test.c"),
+            PathBuf::from("test.o"),
+            mcu,
+        );
+        
+        let args = build_arm_compile_command(
+            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
+            &request,
+        );
+        
+        assert!(args.contains(&"-c".to_string()));
+    }
+    
+    #[test]
+    fn test_build_arm_compile_command_includes_source_and_output() {
+        let mcu = crate::ArmMcuConfig::cortex_m3();
+        let request = crate::ArmCompileRequest::new(
+            PathBuf::from("test.c"),
+            PathBuf::from("test.o"),
+            mcu,
+        );
+        
+        let args = build_arm_compile_command(
+            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
+            &request,
+        );
+        
+        assert!(args.contains(&"test.c".to_string()));
+        assert!(args.contains(&"-o".to_string()));
+        assert!(args.contains(&"test.o".to_string()));
+    }
+    
+    #[test]
+    fn test_build_arm_compile_command_includes_mcu_flags() {
+        let mcu = crate::ArmMcuConfig::cortex_m3();
+        let request = crate::ArmCompileRequest::new(
+            PathBuf::from("test.c"),
+            PathBuf::from("test.o"),
+            mcu,
+        );
+        
+        let args = build_arm_compile_command(
+            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
+            &request,
+        );
+        
+        assert!(args.contains(&"-mcpu=cortex-m3".to_string()));
+        assert!(args.contains(&"-mthumb".to_string()));
+    }
+    
+    #[test]
+    fn test_build_arm_compile_command_include_paths_in_order() {
+        let mcu = crate::ArmMcuConfig::cortex_m3();
+        let request = crate::ArmCompileRequest::new(
+            PathBuf::from("test.c"),
+            PathBuf::from("test.o"),
+            mcu,
+        )
+        .with_include_path("inc1")
+        .with_include_path("inc2");
+        
+        let args = build_arm_compile_command(
+            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
+            &request,
+        );
+        
+        let inc1_pos = args.iter().position(|a| a == "-Iinc1");
+        let inc2_pos = args.iter().position(|a| a == "-Iinc2");
+        
+        assert!(inc1_pos.is_some());
+        assert!(inc2_pos.is_some());
+        assert!(inc1_pos.unwrap() < inc2_pos.unwrap());
+    }
+    
+    #[test]
+    fn test_build_arm_compile_command_optimization_levels() {
+        let mcu = crate::ArmMcuConfig::cortex_m3();
+        
+        for level in 0..=3 {
+            let request = crate::ArmCompileRequest::new(
+                PathBuf::from("test.c"),
+                PathBuf::from("test.o"),
+                mcu.clone(),
+            )
+            .with_optimization(level);
+            
+            let args = build_arm_compile_command(
+                std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
+                &request,
+            );
+            
+            assert!(args.contains(&format!("-O{}", level)));
+        }
+    }
+    
+    #[test]
+    fn test_build_arm_compile_command_debug_flag() {
+        let mcu = crate::ArmMcuConfig::cortex_m3();
+        let request = crate::ArmCompileRequest::new(
+            PathBuf::from("test.c"),
+            PathBuf::from("test.o"),
+            mcu,
+        )
+        .with_debug(true);
+        
+        let args = build_arm_compile_command(
+            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
+            &request,
+        );
+        
+        assert!(args.contains(&"-g3".to_string()));
     }
 }
