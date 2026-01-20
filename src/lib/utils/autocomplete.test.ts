@@ -285,7 +285,7 @@ describe('CorpusManager Error Handling', () => {
         json: async () => {
           throw new Error('Invalid JSON');
         }
-      } as Response;
+      } as unknown as Response;
     };
     
     try {
@@ -1096,7 +1096,7 @@ describe('Property-Based Tests', () => {
       expect(corpusData.language).toBe(language);
       
       // Property 4: All entries should have valid types
-      const validTypes: EntryType[] = ['keyword', 'function', 'type', 'constant', 'variable'];
+      const validTypes: import('$lib/utils/autocomplete').EntryType[] = ['keyword', 'function', 'type', 'constant', 'variable'];
       for (const entry of corpusData.entries) {
         expect(validTypes).toContain(entry.type);
         expect(entry.text).toBeTruthy();

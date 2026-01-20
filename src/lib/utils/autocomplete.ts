@@ -931,7 +931,19 @@ export class AutocompleteController {
     const columnNumber = lines[lines.length - 1].length;
     
     const fontSize = parseFloat(style.fontSize) || 13;
-    const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.5;
+    // Parse lineHeight - it might be "normal" or a pixel value
+    let lineHeight: number;
+    const lineHeightStyle = style.lineHeight;
+    if (lineHeightStyle === 'normal' || !lineHeightStyle) {
+      lineHeight = fontSize * 1.5;
+    } else {
+      lineHeight = parseFloat(lineHeightStyle);
+      // If lineHeight is a unitless number, multiply by fontSize
+      if (!lineHeightStyle.includes('px')) {
+        lineHeight = lineHeight * fontSize;
+      }
+    }
+    
     const paddingLeft = parseFloat(style.paddingLeft) || 12;
     const paddingTop = parseFloat(style.paddingTop) || 12;
     const charWidth = fontSize * 0.6;
@@ -941,7 +953,8 @@ export class AutocompleteController {
     const scrollLeft = this.editorElement.scrollLeft;
     
     const x = rect.left + paddingLeft + (columnNumber * charWidth) - scrollLeft;
-    const y = rect.top + paddingTop + ((lineNumber + 1) * lineHeight) - scrollTop;
+    // Position dropdown at the cursor's baseline (same line as cursor)
+    const y = rect.top + paddingTop + (lineNumber * lineHeight) - scrollTop;
     
     this.state.position = { x, y };
   }

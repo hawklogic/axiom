@@ -82,9 +82,12 @@
       resizeObserver.disconnect();
       if (autocompleteController) {
         autocompleteController.destroy();
+        autocompleteController = null;
       }
     };
   });
+  
+  $: activeFile = pane.activeIndex >= 0 ? pane.files[pane.activeIndex] : null;
   
   // Initialize autocomplete controller when editor element is available
   $: if (editorElement && !autocompleteController) {
@@ -100,7 +103,12 @@
     }
   }
   
-  $: activeFile = pane.activeIndex >= 0 ? pane.files[pane.activeIndex] : null;
+  // Destroy and recreate controller when all files are closed
+  $: if (!activeFile && autocompleteController) {
+    consoleStore.log('info', 'autocomplete', 'No active file, destroying controller');
+    autocompleteController.destroy();
+    autocompleteController = null;
+  }
   $: highlightedContent = activeFile ? highlightCode(activeFile.content, activeFile.language) : [];
   
   // Update autocomplete language when active file changes
