@@ -106,7 +106,8 @@ impl Repository {
     /// Unstage a file.
     pub fn unstage(&self, path: &Path) -> Result<(), GitError> {
         let head = self.inner.head()?.peel_to_commit()?;
-        self.inner.reset_default(Some(&head.into_object()), [path])?;
+        self.inner
+            .reset_default(Some(&head.into_object()), [path])?;
         Ok(())
     }
 
@@ -119,14 +120,9 @@ impl Repository {
         let sig = self.inner.signature()?;
         let head = self.inner.head()?.peel_to_commit()?;
 
-        let commit_id = self.inner.commit(
-            Some("HEAD"),
-            &sig,
-            &sig,
-            message,
-            &tree,
-            &[&head],
-        )?;
+        let commit_id = self
+            .inner
+            .commit(Some("HEAD"), &sig, &sig, message, &tree, &[&head])?;
 
         Ok(commit_id.to_string())
     }
@@ -149,17 +145,17 @@ impl Repository {
         // Get current branch
         let head = self.inner.head()?;
         let branch_name = head.shorthand().ok_or(GitError::NotARepository)?;
-        
+
         // Fetch from origin
         let mut remote = self.inner.find_remote("origin")?;
         remote.fetch(&[branch_name], None, None)?;
-        
+
         // Fast-forward merge
         let fetch_head = self.inner.find_reference("FETCH_HEAD")?;
         let fetch_commit = self.inner.reference_to_annotated_commit(&fetch_head)?;
-        
+
         let analysis = self.inner.merge_analysis(&[&fetch_commit])?;
-        
+
         if analysis.0.is_up_to_date() {
             Ok(())
         } else if analysis.0.is_fast_forward() {
@@ -167,7 +163,8 @@ impl Repository {
             let mut reference = self.inner.find_reference(&refname)?;
             reference.set_target(fetch_commit.id(), "Fast-forward")?;
             self.inner.set_head(&refname)?;
-            self.inner.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
+            self.inner
+                .checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
             Ok(())
         } else {
             Err(GitError::Git2(git2::Error::from_str("Cannot fast-forward")))
@@ -186,7 +183,7 @@ impl Repository {
         let short_id = id[..7].to_string();
         let message = commit.message().unwrap_or("").to_string();
         let author = commit.author();
-        
+
         Ok(Some(CommitInfo {
             id,
             short_id,
@@ -204,12 +201,24 @@ impl Repository {
 
         let local = match self.inner.find_reference(&local_ref) {
             Ok(r) => r,
-            Err(_) => return Ok(RemoteStatus { ahead: 0, behind: 0, has_remote: false }),
+            Err(_) => {
+                return Ok(RemoteStatus {
+                    ahead: 0,
+                    behind: 0,
+                    has_remote: false,
+                })
+            }
         };
 
         let remote = match self.inner.find_reference(&remote_ref) {
             Ok(r) => r,
-            Err(_) => return Ok(RemoteStatus { ahead: 0, behind: 0, has_remote: false }),
+            Err(_) => {
+                return Ok(RemoteStatus {
+                    ahead: 0,
+                    behind: 0,
+                    has_remote: false,
+                })
+            }
         };
 
         let local_oid = local.target().ok_or(GitError::NotARepository)?;
@@ -234,12 +243,12 @@ impl Repository {
         for oid in revwalk.take(limit) {
             let oid = oid?;
             let commit = self.inner.find_commit(oid)?;
-            
+
             let id = commit.id().to_string();
             let short_id = id[..7].to_string();
             let message = commit.message().unwrap_or("").to_string();
             let author = commit.author();
-            
+
             commits.push(CommitInfo {
                 id,
                 short_id,
@@ -257,7 +266,7 @@ impl Repository {
     pub fn commit_files(&self, commit_id: &str) -> Result<Vec<String>, GitError> {
         let oid = git2::Oid::from_str(commit_id)?;
         let commit = self.inner.find_commit(oid)?;
-        
+
         let tree = commit.tree()?;
         let parent_tree = if commit.parent_count() > 0 {
             Some(commit.parent(0)?.tree()?)
@@ -265,11 +274,9 @@ impl Repository {
             None
         };
 
-        let diff = self.inner.diff_tree_to_tree(
-            parent_tree.as_ref(),
-            Some(&tree),
-            None,
-        )?;
+        let diff = self
+            .inner
+            .diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), None)?;
 
         let mut files = Vec::new();
         diff.foreach(
@@ -291,8 +298,8 @@ impl Repository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use std::fs;
+    use tempfile::TempDir;
 
     fn init_test_repo() -> (TempDir, Repository) {
         let dir = TempDir::new().unwrap();
@@ -307,7 +314,8 @@ mod tests {
         let sig = repo.signature().unwrap();
         let tree_id = repo.index().unwrap().write_tree().unwrap();
         let tree = repo.find_tree(tree_id).unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[]).unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[])
+            .unwrap();
 
         let repo = Repository::open(dir.path()).unwrap();
         (dir, repo)

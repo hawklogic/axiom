@@ -1,0 +1,321 @@
+# Axiom ARM Toolchain Configuration Example
+# 
+# This file demonstrates all available configuration options for ARM embedded
+# development in Axiom IDE. Copy this file to your project root as 
+# .axiom/toolchain.toml and customize for your specific MCU and requirements.
+#
+# For more information, see: docs/arm-toolchain-config.md
+
+# ==============================================================================
+# TOOLCHAIN DETECTION
+# ==============================================================================
+
+[toolchain]
+# Toolchain type identifier
+type = "arm-none-eabi-gcc"
+
+# Auto-detect ARM toolchain installations on system startup
+# Searches: Homebrew, STM32CubeIDE, system paths
+auto_detect = true
+
+# Optional: Manually specify toolchain path (overrides auto-detection)
+# Uncomment and set to your toolchain location if auto-detection fails
+# path = "/opt/homebrew/bin/arm-none-eabi-gcc"
+# path = "/usr/local/bin/arm-none-eabi-gcc"  # Linux
+# path = "C:\\Program Files\\GNU Arm Embedded Toolchain\\bin\\arm-none-eabi-gcc.exe"  # Windows
+
+# Additional search paths for toolchain detection
+# search_paths = [
+#     "/Applications/STM32CubeIDE.app/Contents/Eclipse/plugins",
+#     "/opt/gcc-arm-none-eabi"
+# ]
+
+# ==============================================================================
+# ARM MCU CONFIGURATION
+# ==============================================================================
+
+[arm]
+# Target MCU core type
+# Options: cortex-m0, cortex-m0plus, cortex-m3, cortex-m4, cortex-m7, cortex-m33
+mcu = "cortex-m7"
+
+# Floating Point Unit (FPU) type
+# - Empty string "" for cores without FPU (M0, M0+, M3)
+# - "fpv4-sp-d16" for Cortex-M4 (single-precision, 16 double-word registers)
+# - "fpv5-d16" for Cortex-M7 (double-precision, 16 double-word registers)
+# - "fpv5-sp-d16" for Cortex-M7 single-precision variant
+fpu = "fpv5-d16"
+
+# Floating-point ABI (Application Binary Interface)
+# - "soft": Software floating-point emulation (no FPU hardware used)
+# - "softfp": Hardware FPU with software calling convention (compatible)
+# - "hard": Hardware FPU with hardware calling convention (best performance)
+float_abi = "hard"
+
+# Use Thumb instruction set (recommended for all Cortex-M)
+# Thumb provides better code density than ARM instruction set
+thumb = true
+
+# Preprocessor defines (macros passed to compiler with -D flag)
+[arm.defines]
+# MCU-specific defines (check your MCU datasheet/reference manual)
+STM32H750xx = true
+USE_HAL_DRIVER = true
+USE_PWR_LDO_SUPPLY = true
+
+# Clock configuration
+HSE_VALUE = 25000000  # External crystal frequency in Hz
+
+# Debug/development defines
+# DEBUG = true
+# USE_FULL_ASSERT = true
+
+# Include paths for headers (relative to project root)
+[arm.include_paths]
+paths = [
+    # Application code
+    "Core/Inc",
+    "Core/Inc/config",
+    
+    # HAL drivers
+    "Drivers/STM32H7xx_HAL_Driver/Inc",
+    "Drivers/STM32H7xx_HAL_Driver/Inc/Legacy",
+    
+    # CMSIS (Cortex Microcontroller Software Interface Standard)
+    "Drivers/CMSIS/Device/ST/STM32H7xx/Include",
+    "Drivers/CMSIS/Include",
+    
+    # Middleware (if used)
+    # "Middlewares/Third_Party/FreeRTOS/Source/include",
+    # "Middlewares/ST/STM32_USB_Device_Library/Core/Inc"
+]
+
+# ==============================================================================
+# LINKER CONFIGURATION
+# ==============================================================================
+
+[linker]
+# Linker script path (relative to project root)
+# Defines memory layout (FLASH, RAM, etc.) for your specific MCU
+script = "STM32H750VBTx_FLASH.ld"
+
+# Generate memory map file for analysis
+generate_map = true
+
+# Map file output path (relative to project root)
+map_path = "build/firmware.map"
+
+# Additional linker flags
+flags = [
+    "--gc-sections",           # Remove unused sections (reduces binary size)
+    "--print-memory-usage",    # Display memory usage after linking
+    # "--cref",                # Output cross-reference table
+    # "--no-warn-rwx-segments" # Suppress RWX segment warnings (if needed)
+]
+
+# ==============================================================================
+# BUILD CONFIGURATION
+# ==============================================================================
+
+[build]
+# Optimization level
+# - "O0": No optimization (fastest compile, largest code, best for debugging)
+# - "O1": Basic optimization
+# - "O2": Moderate optimization (recommended for production)
+# - "O3": Aggressive optimization (may increase code size)
+# - "Os": Optimize for size (recommended for resource-constrained MCUs)
+# - "Og": Optimize for debugging experience
+optimization = "O2"
+
+# Generate debug symbols
+# Set to true during development, false for production releases
+debug = true
+
+# Debug symbol format
+# Options: "dwarf-2", "dwarf-3", "dwarf-4"
+# dwarf-2 is most compatible with older debuggers
+debug_format = "dwarf-2"
+
+# Warning level
+# - "none": No warnings
+# - "all": Enable all warnings (-Wall)
+# - "extra": Enable extra warnings (-Wall -Wextra)
+# - "pedantic": Enable pedantic warnings (-Wall -Wextra -Wpedantic)
+warnings = "extra"
+
+# Treat warnings as errors (recommended for production code)
+# warnings_as_errors = true
+
+# Language standard
+# - "c99", "c11", "c17", "c23" for C
+# - "c++11", "c++14", "c++17", "c++20" for C++
+# c_standard = "c11"
+# cpp_standard = "c++17"
+
+# ==============================================================================
+# BINARY OUTPUT CONFIGURATION
+# ==============================================================================
+
+[binary]
+# Generate Intel HEX format (for most flash programmers)
+generate_hex = true
+hex_path = "build/firmware.hex"
+
+# Generate raw binary format (for some bootloaders)
+generate_bin = true
+bin_path = "build/firmware.bin"
+
+# Display size statistics after build
+show_size = true
+
+# ==============================================================================
+# COMPLIANCE CONFIGURATION (Safety-Critical Development)
+# ==============================================================================
+
+[compliance]
+# Enable DO-178C software airworthiness compliance mode
+# Activates traceability tracking, coverage analysis, and certification artifacts
+do178c_enabled = false
+
+# Enable DO-330 tool qualification support
+# Logs all tool invocations with checksums for tool qualification evidence
+do330_enabled = false
+
+# Enable ARP4754A system-level integration support
+# Tracks system requirements allocation and safety analysis integration
+arp4754a_enabled = false
+
+# Design Assurance Level (DAL) for DO-178C
+# - "A": Catastrophic failure conditions (highest rigor)
+# - "B": Hazardous failure conditions
+# - "C": Major failure conditions
+# - "D": Minor failure conditions
+# - "E": No safety effect (lowest rigor)
+dal = "E"
+
+# Traceability configuration (when DO-178C enabled)
+[compliance.traceability]
+# Requirement annotation format in source code
+# Default: "// REQ-{id}" or "/* REQ-{id} */"
+# annotation_pattern = "REQ-"
+
+# Test annotation format in test code
+# Default: "// TEST: REQ-{id}" or "/* TEST: REQ-{id} */"
+# test_annotation_pattern = "TEST: REQ-"
+
+# Requirements database file (CSV, ReqIF, or DOORS export)
+# requirements_file = "requirements/system_requirements.csv"
+
+# Coverage configuration (when DO-178C enabled)
+[compliance.coverage]
+# Enable statement coverage analysis
+statement_coverage = true
+
+# Enable branch coverage analysis
+branch_coverage = true
+
+# Enable decision coverage analysis
+decision_coverage = true
+
+# Enable MC/DC (Modified Condition/Decision Coverage) analysis
+# Required for DAL A and B
+mcdc_coverage = false
+
+# Minimum coverage thresholds (percentage)
+# min_statement_coverage = 100.0  # DAL A/B requirement
+# min_branch_coverage = 100.0     # DAL A/B requirement
+# min_mcdc_coverage = 100.0       # DAL A/B requirement
+
+# ==============================================================================
+# STATIC ANALYSIS CONFIGURATION
+# ==============================================================================
+
+[static_analysis]
+# Enable static analysis integration
+enabled = false
+
+# Coding standard to enforce
+# Options: "misra-c-2012", "cert-c", "autosar", "custom"
+# coding_standard = "misra-c-2012"
+
+# Static analysis tool integration
+# tool = "pc-lint"  # Options: pc-lint, coverity, ldra, cppcheck
+
+# Custom rule configuration file
+# rules_file = ".axiom/static-analysis-rules.xml"
+
+# ==============================================================================
+# MAKEFILE INTEGRATION (Optional)
+# ==============================================================================
+
+[makefile]
+# Use existing Makefile instead of Axiom's built-in build system
+# use_makefile = true
+
+# Makefile path (relative to project root)
+# path = "Makefile"
+
+# Default make target
+# default_target = "all"
+
+# Pass toolchain path to Makefile as environment variable
+# export_toolchain_path = true
+# toolchain_env_var = "ARM_TOOLCHAIN_PATH"
+
+# ==============================================================================
+# ADVANCED COMPILER FLAGS
+# ==============================================================================
+
+[advanced]
+# Additional compiler flags (passed directly to arm-none-eabi-gcc)
+# compiler_flags = [
+#     "-ffunction-sections",    # Place each function in its own section
+#     "-fdata-sections",        # Place each data item in its own section
+#     "-fstack-usage",          # Generate stack usage information
+#     "-fno-common",            # Do not use common symbols
+#     "-fno-strict-aliasing"    # Disable strict aliasing optimizations
+# ]
+
+# Additional assembler flags
+# assembler_flags = [
+#     "-x", "assembler-with-cpp"  # Enable C preprocessor for assembly files
+# ]
+
+# Additional linker flags (beyond those in [linker] section)
+# linker_flags = [
+#     "-Wl,--wrap=malloc",      # Wrap malloc for custom implementation
+#     "-Wl,--wrap=free"         # Wrap free for custom implementation
+# ]
+
+# ==============================================================================
+# PROJECT METADATA (Optional)
+# ==============================================================================
+
+[project]
+# Project name
+# name = "My STM32 Project"
+
+# Project version
+# version = "1.0.0"
+
+# Target board/hardware
+# board = "STM32H750B-DK Discovery Kit"
+
+# Author/organization
+# author = "Your Name"
+
+# ==============================================================================
+# NOTES
+# ==============================================================================
+#
+# 1. All file paths are relative to the project root directory
+# 2. Boolean values: true or false (lowercase, no quotes)
+# 3. Strings: Use quotes for paths and text values
+# 4. Arrays: Use square brackets with comma-separated values
+# 5. Comments: Use # for single-line comments
+#
+# For detailed documentation and examples, see:
+# - docs/arm-toolchain-config.md
+# - https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html
+#
+# ==============================================================================

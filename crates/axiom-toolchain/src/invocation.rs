@@ -1,7 +1,37 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2024 HawkLogic Systems
 
-//! Compiler invocation.
+//! Compiler and linker invocation for ARM toolchains.
+//!
+//! This module provides functions to build command-line arguments and execute
+//! compilation and linking operations for both general toolchains and ARM-specific
+//! embedded development.
+//!
+//! # Example
+//!
+//! ```no_run
+//! use axiom_toolchain::{compile_arm, ArmCompileRequest, ArmMcuConfig};
+//! use std::path::{Path, PathBuf};
+//!
+//! let gcc = Path::new("/usr/bin/arm-none-eabi-gcc");
+//! let mcu = ArmMcuConfig::cortex_m4()
+//!     .with_define("STM32F407xx");
+//!
+//! let request = ArmCompileRequest::new(
+//!     PathBuf::from("main.c"),
+//!     PathBuf::from("main.o"),
+//!     mcu,
+//! )
+//! .with_include_path("Core/Inc")
+//! .with_optimization(2);
+//!
+//! let result = compile_arm(gcc, &request);
+//! if result.success() {
+//!     println!("Compilation successful!");
+//! } else {
+//!     eprintln!("Compilation failed: {}", result.stderr);
+//! }
+//! ```
 
 use crate::{CompileRequest, CompileResult, DetectedToolchain, ToolchainKind};
 use axiom_core::Diagnostic;
@@ -9,6 +39,18 @@ use std::process::Command;
 use std::time::Instant;
 
 /// Build command arguments for a compile request.
+///
+/// Generates the complete argument list for invoking a compiler with the
+/// specified compilation settings.
+///
+/// # Arguments
+///
+/// * `toolchain` - Detected toolchain to use for compilation
+/// * `request` - Compilation request with source, output, and flags
+///
+/// # Returns
+///
+/// Vector of command-line arguments to pass to the compiler.
 pub fn build_command(toolchain: &DetectedToolchain, request: &CompileRequest) -> Vec<String> {
     let mut args = Vec::new();
 
@@ -51,19 +93,47 @@ pub fn build_command(toolchain: &DetectedToolchain, request: &CompileRequest) ->
 }
 
 /// Get the command that would be executed (dry run).
+///
+/// Returns the full command line that would be executed for a compilation
+/// request, useful for debugging and logging.
+///
+/// # Example
+///
+/// ```no_run
+/// # use axiom_toolchain::{DetectedToolchain, ToolchainKind, CompileRequest, dry_run};
+/// # use std::path::PathBuf;
+/// # let toolchain = DetectedToolchain::new(
+/// #     ToolchainKind::Clang,
+/// #     PathBuf::from("/usr/bin/clang"),
+/// #     "15.0.0".to_string(),
+/// # );
+/// # let request = CompileRequest::new(PathBuf::from("main.c"), PathBuf::from("main.o"));
+/// let cmd = dry_run(&toolchain, &request);
+/// println!("Would execute: {}", cmd);
+/// ```
 pub fn dry_run(toolchain: &DetectedToolchain, request: &CompileRequest) -> String {
     let args = build_command(toolchain, request);
     format!("{} {}", toolchain.path.display(), args.join(" "))
 }
 
-/// Execute compilation.
+/// Execute compilation with the specified toolchain.
+///
+/// Runs the compiler with the given request and captures the output,
+/// including timing information and parsed diagnostics.
+///
+/// # Arguments
+///
+/// * `toolchain` - Detected toolchain to use
+/// * `request` - Compilation request
+///
+/// # Returns
+///
+/// `CompileResult` containing exit code, output, and diagnostics.
 pub fn compile(toolchain: &DetectedToolchain, request: &CompileRequest) -> CompileResult {
     let args = build_command(toolchain, request);
     let start = Instant::now();
 
-    let output = Command::new(&toolchain.path)
-        .args(&args)
-        .output();
+    let output = Command::new(&toolchain.path).args(&args).output();
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
@@ -92,6 +162,9 @@ pub fn compile(toolchain: &DetectedToolchain, request: &CompileRequest) -> Compi
 }
 
 /// Parse diagnostics from compiler stderr.
+///
+/// Extracts error and warning messages from compiler output.
+/// Uses simple heuristics to identify diagnostic lines.
 fn parse_diagnostics(stderr: &str, _kind: ToolchainKind) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
 
@@ -113,61 +186,100 @@ fn parse_diagnostics(stderr: &str, _kind: ToolchainKind) -> Vec<Diagnostic> {
 }
 
 /// Build command arguments for ARM compilation.
+///
+/// Generates ARM-specific compiler arguments including MCU configuration,
+/// include paths, and optimization settings.
+///
+/// # Arguments
+///
+/// * `_gcc_path` - Path to arm-none-eabi-gcc (unused, for API consistency)
+/// * `request` - ARM compilation request with MCU config and settings
+///
+/// # Returns
+///
+/// Vector of command-line arguments for arm-none-eabi-gcc.
 pub fn build_arm_compile_command(
     _gcc_path: &std::path::Path,
     request: &crate::ArmCompileRequest,
 ) -> Vec<String> {
     let mut args = Vec::new();
-    
+
     // Compile only (don't link)
     args.push("-c".to_string());
-    
+
     // MCU-specific flags
     args.extend(request.mcu.compiler_flags());
-    
+
     // Include paths (in order)
     for path in &request.include_paths {
         args.push(format!("-I{}", path.display()));
     }
-    
+
     // Optimization
     args.push(format!("-O{}", request.optimization));
-    
+
     // Debug symbols
     if request.debug {
         args.push("-g3".to_string());
     }
-    
+
     // Source file
     args.push(request.source.display().to_string());
-    
+
     // Output file
     args.push("-o".to_string());
     args.push(request.output.display().to_string());
-    
+
     args
 }
 
 /// Compile ARM source code.
+///
+/// Executes arm-none-eabi-gcc with ARM-specific flags to compile source code
+/// for ARM Cortex-M microcontrollers.
+///
+/// # Arguments
+///
+/// * `gcc_path` - Path to arm-none-eabi-gcc
+/// * `request` - ARM compilation request with MCU config
+///
+/// # Returns
+///
+/// `CompileResult` with exit code, output, and diagnostics.
+///
+/// # Example
+///
+/// ```no_run
+/// # use axiom_toolchain::{compile_arm, ArmCompileRequest, ArmMcuConfig};
+/// # use std::path::{Path, PathBuf};
+/// let gcc = Path::new("/usr/bin/arm-none-eabi-gcc");
+/// let mcu = ArmMcuConfig::cortex_m4();
+/// let request = ArmCompileRequest::new(
+///     PathBuf::from("main.c"),
+///     PathBuf::from("main.o"),
+///     mcu,
+/// );
+///
+/// let result = compile_arm(gcc, &request);
+/// assert!(result.success());
+/// ```
 pub fn compile_arm(
     gcc_path: &std::path::Path,
     request: &crate::ArmCompileRequest,
 ) -> CompileResult {
     let args = build_arm_compile_command(gcc_path, request);
     let start = Instant::now();
-    
-    let output = Command::new(gcc_path)
-        .args(&args)
-        .output();
-    
+
+    let output = Command::new(gcc_path).args(&args).output();
+
     let duration_ms = start.elapsed().as_millis() as u64;
-    
+
     match output {
         Ok(output) => {
             let stdout = String::from_utf8_lossy(&output.stdout).to_string();
             let stderr = String::from_utf8_lossy(&output.stderr).to_string();
             let diagnostics = parse_diagnostics(&stderr, ToolchainKind::ArmGcc);
-            
+
             CompileResult {
                 exit_code: output.status.code().unwrap_or(-1),
                 stdout,
@@ -187,50 +299,88 @@ pub fn compile_arm(
 }
 
 /// Build command arguments for ARM linking.
+///
+/// Generates linker arguments including MCU flags, linker script,
+/// and object files.
+///
+/// # Arguments
+///
+/// * `_gcc_path` - Path to arm-none-eabi-gcc (unused, for API consistency)
+/// * `request` - ARM link request with objects and linker config
+///
+/// # Returns
+///
+/// Vector of command-line arguments for the linker.
 pub fn build_arm_link_command(
     _gcc_path: &std::path::Path,
     request: &crate::ArmLinkRequest,
 ) -> Vec<String> {
     let mut args = Vec::new();
-    
+
     // MCU-specific flags
     args.extend(request.mcu.linker_flags(&request.linker));
-    
+
     // Nano specs for smaller code size
     args.push("--specs=nano.specs".to_string());
-    
+
     // No startup files (we provide our own)
     args.push("-nostartfiles".to_string());
-    
+
     // Object files
     for obj in &request.objects {
         args.push(obj.display().to_string());
     }
-    
+
     // Output file
     args.push("-o".to_string());
     args.push(request.output.display().to_string());
-    
+
     args
 }
 
-/// Link ARM object files.
-pub fn link_arm(
-    gcc_path: &std::path::Path,
-    request: &crate::ArmLinkRequest,
-) -> crate::LinkResult {
+/// Link ARM object files into an executable.
+///
+/// Executes arm-none-eabi-gcc in linker mode to combine object files
+/// with a linker script and produce an ELF executable.
+///
+/// # Arguments
+///
+/// * `gcc_path` - Path to arm-none-eabi-gcc
+/// * `request` - ARM link request with objects and configuration
+///
+/// # Returns
+///
+/// `LinkResult` with exit code, output, and diagnostics.
+///
+/// # Example
+///
+/// ```no_run
+/// # use axiom_toolchain::{link_arm, ArmLinkRequest, ArmMcuConfig, LinkerConfig};
+/// # use std::path::{Path, PathBuf};
+/// let gcc = Path::new("/usr/bin/arm-none-eabi-gcc");
+/// let mcu = ArmMcuConfig::cortex_m4();
+/// let linker = LinkerConfig::new("STM32F407.ld");
+/// let request = ArmLinkRequest::new(
+///     vec![PathBuf::from("main.o")],
+///     PathBuf::from("firmware.elf"),
+///     linker,
+///     mcu,
+/// );
+///
+/// let result = link_arm(gcc, &request);
+/// assert!(result.success());
+/// ```
+pub fn link_arm(gcc_path: &std::path::Path, request: &crate::ArmLinkRequest) -> crate::LinkResult {
     let args = build_arm_link_command(gcc_path, request);
-    
-    let output = Command::new(gcc_path)
-        .args(&args)
-        .output();
-    
+
+    let output = Command::new(gcc_path).args(&args).output();
+
     match output {
         Ok(output) => {
             let stdout = String::from_utf8_lossy(&output.stdout).to_string();
             let stderr = String::from_utf8_lossy(&output.stderr).to_string();
             let diagnostics = parse_diagnostics(&stderr, ToolchainKind::ArmGcc);
-            
+
             crate::LinkResult {
                 exit_code: output.status.code().unwrap_or(-1),
                 stdout,
@@ -263,10 +413,7 @@ mod tests {
     #[test]
     fn test_build_command_basic() {
         let tc = test_toolchain();
-        let request = CompileRequest::new(
-            PathBuf::from("main.c"),
-            PathBuf::from("main.o"),
-        );
+        let request = CompileRequest::new(PathBuf::from("main.c"), PathBuf::from("main.o"));
 
         let args = build_command(&tc, &request);
         assert!(args.contains(&"-c".to_string()));
@@ -280,12 +427,9 @@ mod tests {
     #[test]
     fn test_build_command_with_optimization() {
         let tc = test_toolchain();
-        let request = CompileRequest::new(
-            PathBuf::from("main.c"),
-            PathBuf::from("main.o"),
-        )
-        .with_optimization(2)
-        .with_debug(false);
+        let request = CompileRequest::new(PathBuf::from("main.c"), PathBuf::from("main.o"))
+            .with_optimization(2)
+            .with_debug(false);
 
         let args = build_command(&tc, &request);
         assert!(args.contains(&"-O2".to_string()));
@@ -295,10 +439,7 @@ mod tests {
     #[test]
     fn test_dry_run() {
         let tc = test_toolchain();
-        let request = CompileRequest::new(
-            PathBuf::from("main.c"),
-            PathBuf::from("main.o"),
-        );
+        let request = CompileRequest::new(PathBuf::from("main.c"), PathBuf::from("main.o"));
 
         let cmd = dry_run(&tc, &request);
         assert!(cmd.starts_with("/usr/bin/clang"));
@@ -315,89 +456,69 @@ main.c:15:10: warning: unused variable 'y' [-Wunused-variable]
         let diags = parse_diagnostics(stderr, ToolchainKind::Clang);
         assert_eq!(diags.len(), 2);
     }
-    
+
     #[test]
     fn test_build_arm_compile_command_includes_c_flag() {
         let mcu = crate::ArmMcuConfig::cortex_m3();
-        let request = crate::ArmCompileRequest::new(
-            PathBuf::from("test.c"),
-            PathBuf::from("test.o"),
-            mcu,
-        );
-        
-        let args = build_arm_compile_command(
-            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
-            &request,
-        );
-        
+        let request =
+            crate::ArmCompileRequest::new(PathBuf::from("test.c"), PathBuf::from("test.o"), mcu);
+
+        let args =
+            build_arm_compile_command(std::path::Path::new("/usr/bin/arm-none-eabi-gcc"), &request);
+
         assert!(args.contains(&"-c".to_string()));
     }
-    
+
     #[test]
     fn test_build_arm_compile_command_includes_source_and_output() {
         let mcu = crate::ArmMcuConfig::cortex_m3();
-        let request = crate::ArmCompileRequest::new(
-            PathBuf::from("test.c"),
-            PathBuf::from("test.o"),
-            mcu,
-        );
-        
-        let args = build_arm_compile_command(
-            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
-            &request,
-        );
-        
+        let request =
+            crate::ArmCompileRequest::new(PathBuf::from("test.c"), PathBuf::from("test.o"), mcu);
+
+        let args =
+            build_arm_compile_command(std::path::Path::new("/usr/bin/arm-none-eabi-gcc"), &request);
+
         assert!(args.contains(&"test.c".to_string()));
         assert!(args.contains(&"-o".to_string()));
         assert!(args.contains(&"test.o".to_string()));
     }
-    
+
     #[test]
     fn test_build_arm_compile_command_includes_mcu_flags() {
         let mcu = crate::ArmMcuConfig::cortex_m3();
-        let request = crate::ArmCompileRequest::new(
-            PathBuf::from("test.c"),
-            PathBuf::from("test.o"),
-            mcu,
-        );
-        
-        let args = build_arm_compile_command(
-            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
-            &request,
-        );
-        
+        let request =
+            crate::ArmCompileRequest::new(PathBuf::from("test.c"), PathBuf::from("test.o"), mcu);
+
+        let args =
+            build_arm_compile_command(std::path::Path::new("/usr/bin/arm-none-eabi-gcc"), &request);
+
         assert!(args.contains(&"-mcpu=cortex-m3".to_string()));
         assert!(args.contains(&"-mthumb".to_string()));
     }
-    
+
     #[test]
     fn test_build_arm_compile_command_include_paths_in_order() {
         let mcu = crate::ArmMcuConfig::cortex_m3();
-        let request = crate::ArmCompileRequest::new(
-            PathBuf::from("test.c"),
-            PathBuf::from("test.o"),
-            mcu,
-        )
-        .with_include_path("inc1")
-        .with_include_path("inc2");
-        
-        let args = build_arm_compile_command(
-            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
-            &request,
-        );
-        
+        let request =
+            crate::ArmCompileRequest::new(PathBuf::from("test.c"), PathBuf::from("test.o"), mcu)
+                .with_include_path("inc1")
+                .with_include_path("inc2");
+
+        let args =
+            build_arm_compile_command(std::path::Path::new("/usr/bin/arm-none-eabi-gcc"), &request);
+
         let inc1_pos = args.iter().position(|a| a == "-Iinc1");
         let inc2_pos = args.iter().position(|a| a == "-Iinc2");
-        
+
         assert!(inc1_pos.is_some());
         assert!(inc2_pos.is_some());
         assert!(inc1_pos.unwrap() < inc2_pos.unwrap());
     }
-    
+
     #[test]
     fn test_build_arm_compile_command_optimization_levels() {
         let mcu = crate::ArmMcuConfig::cortex_m3();
-        
+
         for level in 0..=3 {
             let request = crate::ArmCompileRequest::new(
                 PathBuf::from("test.c"),
@@ -405,34 +526,29 @@ main.c:15:10: warning: unused variable 'y' [-Wunused-variable]
                 mcu.clone(),
             )
             .with_optimization(level);
-            
+
             let args = build_arm_compile_command(
                 std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
                 &request,
             );
-            
+
             assert!(args.contains(&format!("-O{}", level)));
         }
     }
-    
+
     #[test]
     fn test_build_arm_compile_command_debug_flag() {
         let mcu = crate::ArmMcuConfig::cortex_m3();
-        let request = crate::ArmCompileRequest::new(
-            PathBuf::from("test.c"),
-            PathBuf::from("test.o"),
-            mcu,
-        )
-        .with_debug(true);
-        
-        let args = build_arm_compile_command(
-            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
-            &request,
-        );
-        
+        let request =
+            crate::ArmCompileRequest::new(PathBuf::from("test.c"), PathBuf::from("test.o"), mcu)
+                .with_debug(true);
+
+        let args =
+            build_arm_compile_command(std::path::Path::new("/usr/bin/arm-none-eabi-gcc"), &request);
+
         assert!(args.contains(&"-g3".to_string()));
     }
-    
+
     #[test]
     fn test_build_arm_link_command_includes_linker_script() {
         let mcu = crate::ArmMcuConfig::cortex_m3();
@@ -443,15 +559,13 @@ main.c:15:10: warning: unused variable 'y' [-Wunused-variable]
             linker,
             mcu,
         );
-        
-        let args = build_arm_link_command(
-            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
-            &request,
-        );
-        
+
+        let args =
+            build_arm_link_command(std::path::Path::new("/usr/bin/arm-none-eabi-gcc"), &request);
+
         assert!(args.iter().any(|a| a.starts_with("-Ttest.ld")));
     }
-    
+
     #[test]
     fn test_build_arm_link_command_includes_all_objects() {
         let mcu = crate::ArmMcuConfig::cortex_m3();
@@ -466,17 +580,15 @@ main.c:15:10: warning: unused variable 'y' [-Wunused-variable]
             linker,
             mcu,
         );
-        
-        let args = build_arm_link_command(
-            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
-            &request,
-        );
-        
+
+        let args =
+            build_arm_link_command(std::path::Path::new("/usr/bin/arm-none-eabi-gcc"), &request);
+
         assert!(args.contains(&"main.o".to_string()));
         assert!(args.contains(&"gpio.o".to_string()));
         assert!(args.contains(&"uart.o".to_string()));
     }
-    
+
     #[test]
     fn test_build_arm_link_command_includes_mcu_flags() {
         let mcu = crate::ArmMcuConfig::cortex_m3();
@@ -487,16 +599,14 @@ main.c:15:10: warning: unused variable 'y' [-Wunused-variable]
             linker,
             mcu,
         );
-        
-        let args = build_arm_link_command(
-            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
-            &request,
-        );
-        
+
+        let args =
+            build_arm_link_command(std::path::Path::new("/usr/bin/arm-none-eabi-gcc"), &request);
+
         assert!(args.contains(&"-mcpu=cortex-m3".to_string()));
         assert!(args.contains(&"-mthumb".to_string()));
     }
-    
+
     #[test]
     fn test_link_result_memory_overflow_detection_will_not_fit() {
         let result = crate::LinkResult {
@@ -505,10 +615,10 @@ main.c:15:10: warning: unused variable 'y' [-Wunused-variable]
             stderr: "section `.text' will not fit in region `FLASH'".to_string(),
             diagnostics: vec![],
         };
-        
+
         assert!(result.has_memory_overflow());
     }
-    
+
     #[test]
     fn test_link_result_memory_overflow_detection_region_overflow() {
         let result = crate::LinkResult {
@@ -517,7 +627,7 @@ main.c:15:10: warning: unused variable 'y' [-Wunused-variable]
             stderr: "region `RAM' overflowed by 1024 bytes".to_string(),
             diagnostics: vec![],
         };
-        
+
         assert!(result.has_memory_overflow());
     }
 }

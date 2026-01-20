@@ -38,6 +38,15 @@ extern "C" {
 #define LED_PIN               13
 #define LED_PORT              GPIOC_BASE
 
+/* CMSIS-like intrinsics for bare-metal compilation */
+static inline void __disable_irq(void) {
+    __asm volatile ("cpsid i" : : : "memory");
+}
+
+static inline void __enable_irq(void) {
+    __asm volatile ("cpsie i" : : : "memory");
+}
+
 /* Function Prototypes */
 void SystemInit(void);
 void SystemClock_Config(void);

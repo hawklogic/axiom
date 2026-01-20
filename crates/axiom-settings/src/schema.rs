@@ -360,7 +360,10 @@ mod tests {
                 search_paths: vec![PathBuf::from("/opt/arm")],
                 settings: {
                     let mut map = HashMap::new();
-                    map.insert("mcu".to_string(), toml::Value::String("cortex-m7".to_string()));
+                    map.insert(
+                        "mcu".to_string(),
+                        toml::Value::String("cortex-m7".to_string()),
+                    );
                     map
                 },
             },
@@ -389,7 +392,7 @@ mod tests {
 
         let settings: Settings = toml::from_str(toml_str).unwrap();
         assert!(settings.toolchains.toolchains.contains_key("riscv"));
-        
+
         // Verify it survives roundtrip
         let serialized = toml::to_string(&settings).unwrap();
         let parsed: Settings = toml::from_str(&serialized).unwrap();
@@ -430,10 +433,10 @@ mod tests {
             fn prop_toolchain_settings_roundtrip(settings in arb_toolchain_settings()) {
                 // Serialize to TOML
                 let toml_str = toml::to_string(&settings).unwrap();
-                
+
                 // Deserialize back
                 let parsed: ToolchainSettings = toml::from_str(&toml_str).unwrap();
-                
+
                 // Should be identical
                 prop_assert_eq!(settings, parsed);
             }

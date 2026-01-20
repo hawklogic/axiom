@@ -59,12 +59,10 @@ pub fn read_dir(path: String) -> Result<Vec<DirEntry>, String> {
     }
 
     // Sort: directories first, then alphabetically
-    entries.sort_by(|a, b| {
-        match (a.is_dir, b.is_dir) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
-        }
+    entries.sort_by(|a, b| match (a.is_dir, b.is_dir) {
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
     });
 
     logging::debug("fs", format!("read_dir: {} entries", entries.len()));
@@ -91,6 +89,9 @@ pub fn write_file(path: String, contents: String) -> Result<(), String> {
         logging::error("fs", format!("write_file failed: {}", e));
         e.to_string()
     })?;
-    logging::debug("fs", format!("write_file: {} bytes written", contents.len()));
+    logging::debug(
+        "fs",
+        format!("write_file: {} bytes written", contents.len()),
+    );
     Ok(())
 }

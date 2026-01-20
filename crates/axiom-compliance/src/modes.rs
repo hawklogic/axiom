@@ -45,6 +45,10 @@ pub struct ComplianceSnapshot {
 
 impl ComplianceSnapshot {
     /// Creates a new empty snapshot with the current timestamp.
+    ///
+    /// # Returns
+    ///
+    /// A new snapshot with empty collections and the current UTC timestamp
     pub fn new() -> Self {
         Self {
             timestamp: Utc::now(),
@@ -126,6 +130,15 @@ pub struct DeviationReport {
 
 impl DeviationReport {
     /// Creates a new deviation report.
+    ///
+    /// # Arguments
+    ///
+    /// * `mode` - The compliance mode that was re-enabled
+    /// * `disabled_at` - Timestamp when the mode was disabled
+    ///
+    /// # Returns
+    ///
+    /// A new report with the current timestamp and empty deviations list
     pub fn new(mode: ComplianceMode, disabled_at: DateTime<Utc>) -> Self {
         Self {
             mode,
@@ -136,16 +149,28 @@ impl DeviationReport {
     }
 
     /// Adds a deviation to the report.
+    ///
+    /// # Arguments
+    ///
+    /// * `deviation` - The deviation to add
     pub fn add_deviation(&mut self, deviation: Deviation) {
         self.deviations.push(deviation);
     }
 
     /// Returns the number of deviations in the report.
+    ///
+    /// # Returns
+    ///
+    /// The count of deviations
     pub fn deviation_count(&self) -> usize {
         self.deviations.len()
     }
 
     /// Checks if the report has any deviations.
+    ///
+    /// # Returns
+    ///
+    /// `true` if there are deviations, `false` otherwise
     pub fn has_deviations(&self) -> bool {
         !self.deviations.is_empty()
     }
@@ -231,6 +256,10 @@ pub struct ComplianceSystem {
 
 impl ComplianceSystem {
     /// Creates a new ComplianceSystem with no modes enabled.
+    ///
+    /// # Returns
+    ///
+    /// A new system with empty mode sets
     pub fn new() -> Self {
         Self {
             enabled_modes: HashSet::new(),
@@ -266,9 +295,9 @@ impl ComplianceSystem {
     pub fn enable_mode(&mut self, mode: ComplianceMode) -> Option<DeviationReport> {
         // Check if there's a snapshot from a previous disable
         let snapshot = self.disabled_snapshots.remove(&mode);
-        
+
         self.enabled_modes.insert(mode);
-        
+
         // If there was a snapshot, we would generate a deviation report here
         // For now, return None as we don't have current state to compare
         snapshot.map(|snap| DeviationReport::new(mode, snap.timestamp))
@@ -303,7 +332,7 @@ impl ComplianceSystem {
                 current_traced_requirements,
                 current_traced_files,
             );
-            
+
             let mut report = DeviationReport::new(mode, snapshot.timestamp);
             for deviation in deviations {
                 report.add_deviation(deviation);
@@ -477,6 +506,19 @@ impl ComplianceSystem {
 ///
 /// When multiple modes are active, this represents the union of all
 /// requirements, ensuring the strictest standards are applied.
+///
+/// # Examples
+///
+/// ```
+/// use axiom_compliance::{ComplianceSystem, ComplianceMode};
+///
+/// let mut system = ComplianceSystem::new();
+/// system.enable_mode(ComplianceMode::Do178c);
+///
+/// let reqs = system.get_active_requirements();
+/// assert!(reqs.requires_traceability);
+/// assert!(reqs.requires_coverage);
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct ComplianceRequirements {
     /// Requires bidirectional traceability (DO-178C)
@@ -497,6 +539,10 @@ pub struct ComplianceRequirements {
 
 impl ComplianceRequirements {
     /// Checks if any requirements are active.
+    ///
+    /// # Returns
+    ///
+    /// `true` if at least one requirement is active, `false` otherwise
     pub fn has_any_requirements(&self) -> bool {
         self.requires_traceability
             || self.requires_coverage
@@ -605,9 +651,7 @@ mod tests {
         snapshot
             .file_checksums
             .insert(PathBuf::from("test.c"), "abc123".to_string());
-        snapshot
-            .traced_requirements
-            .insert("REQ-001".to_string());
+        snapshot.traced_requirements.insert("REQ-001".to_string());
         snapshot.traced_files.insert(PathBuf::from("test.c"));
 
         // Disable the mode with the snapshot
@@ -639,9 +683,7 @@ mod tests {
         snapshot
             .file_checksums
             .insert(PathBuf::from("test.c"), "abc123".to_string());
-        snapshot
-            .traced_requirements
-            .insert("REQ-001".to_string());
+        snapshot.traced_requirements.insert("REQ-001".to_string());
 
         // Disable with snapshot
         system.disable_mode(ComplianceMode::Do178c, Some(snapshot));

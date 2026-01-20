@@ -39,6 +39,6 @@ pub use tool_qualification::{
 };
 pub use traceability::{
     export_matrix_csv, find_untested_requirements, find_untraceable_functions,
-    generate_traceability_matrix, parse_requirement_annotations, parse_test_annotations,
-    LinkType, TraceabilityLink, TraceabilityMatrix, UntraceableFunction,
+    generate_traceability_matrix, parse_requirement_annotations, parse_test_annotations, LinkType,
+    TraceabilityLink, TraceabilityMatrix, UntraceableFunction,
 };

@@ -126,9 +126,7 @@ pub async fn disable_compliance_mode(
 ///
 /// The complete traceability matrix
 #[tauri::command]
-pub async fn get_traceability_matrix(
-    project_path: PathBuf,
-) -> Result<TraceabilityMatrix, String> {
+pub async fn get_traceability_matrix(project_path: PathBuf) -> Result<TraceabilityMatrix, String> {
     use axiom_compliance::generate_traceability_matrix;
 
     generate_traceability_matrix(&project_path)

@@ -12,11 +12,7 @@ pub enum MigrationError {
     UnknownVersion(u32),
 
     #[error("Migration failed from version {from} to {to}: {reason}")]
-    MigrationFailed {
-        from: u32,
-        to: u32,
-        reason: String,
-    },
+    MigrationFailed { from: u32, to: u32, reason: String },
 }
 
 /// Result of a migration operation.

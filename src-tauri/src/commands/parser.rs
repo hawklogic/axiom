@@ -25,7 +25,11 @@ pub fn parse_file(state: State<AppState>, path: String) -> Result<AstNode, Strin
 
 /// Get AST for source code directly.
 #[tauri::command]
-pub fn get_ast(state: State<AppState>, source: String, language: String) -> Result<AstNode, String> {
+pub fn get_ast(
+    state: State<AppState>,
+    source: String,
+    language: String,
+) -> Result<AstNode, String> {
     let lang = match language.to_lowercase().as_str() {
         "c" => Language::C,
         "cpp" | "c++" => Language::Cpp,

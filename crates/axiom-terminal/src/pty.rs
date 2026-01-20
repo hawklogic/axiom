@@ -3,10 +3,10 @@
 
 //! PTY operations.
 
-use portable_pty::{native_pty_system, CommandBuilder, PtySize, PtyPair};
+use portable_pty::{native_pty_system, CommandBuilder, PtyPair, PtySize};
 use std::io::{Read, Write};
-use std::sync::{Arc, Mutex};
 use std::os::unix::io::RawFd;
+use std::sync::{Arc, Mutex};
 
 /// Terminal error type.
 #[derive(Debug, thiserror::Error)]
@@ -85,18 +85,18 @@ impl Pty {
     pub fn spawn_shell(&self) -> Result<(), TerminalError> {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
         let mut cmd = CommandBuilder::new(&shell);
-        
+
         // Set environment for color support
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
         cmd.env("CLICOLOR", "1");
         cmd.env("CLICOLOR_FORCE", "1");
-        
+
         // For zsh: enable colors
         if shell.contains("zsh") {
             cmd.env("FORCE_COLOR", "1");
         }
-        
+
         // Preserve important env vars
         if let Ok(home) = std::env::var("HOME") {
             cmd.env("HOME", home);
@@ -148,7 +148,7 @@ impl Pty {
         let mut reader = self.reader.lock().map_err(|_| TerminalError::Lock)?;
         Ok(reader.read(buf)?)
     }
-    
+
     /// Check if data is available without blocking.
     pub fn has_data(&self) -> bool {
         if let Some(fd) = self.reader_fd {
@@ -184,7 +184,7 @@ impl Pty {
     pub fn writer(&self) -> Arc<Mutex<Box<dyn Write + Send>>> {
         self.writer.clone()
     }
-    
+
     /// Get the file descriptor for polling.
     pub fn get_fd(&self) -> Option<RawFd> {
         self.reader_fd
@@ -204,7 +204,10 @@ mod tests {
     #[test]
     fn test_resize() {
         let pty = Pty::new(TerminalSize::default()).unwrap();
-        let result = pty.resize(TerminalSize { rows: 40, cols: 120 });
+        let result = pty.resize(TerminalSize {
+            rows: 40,
+            cols: 120,
+        });
         assert!(result.is_ok());
     }
 }

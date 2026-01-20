@@ -98,9 +98,15 @@ mod tests {
     #[test]
     fn test_language_detection() {
         assert_eq!(Language::from_path(Path::new("main.c")), Some(Language::C));
-        assert_eq!(Language::from_path(Path::new("main.cpp")), Some(Language::Cpp));
+        assert_eq!(
+            Language::from_path(Path::new("main.cpp")),
+            Some(Language::Cpp)
+        );
         assert_eq!(Language::from_path(Path::new("main.h")), Some(Language::C));
-        assert_eq!(Language::from_path(Path::new("main.hpp")), Some(Language::Cpp));
+        assert_eq!(
+            Language::from_path(Path::new("main.hpp")),
+            Some(Language::Cpp)
+        );
         assert_eq!(Language::from_path(Path::new("main.rs")), None);
     }
 

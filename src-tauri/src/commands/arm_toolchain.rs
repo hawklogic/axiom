@@ -4,12 +4,10 @@
 //! ARM toolchain command handlers.
 
 use axiom_toolchain::{
-    detect_arm_toolchains, ArmToolchainSuite, ArmMcuConfig, ArmCompileRequest,
-    ArmLinkRequest, LinkerConfig, CompileResult, LinkResult,
-    compile_arm, link_arm, generate_hex,
-    generate_bin, get_size_stats, get_preprocessor_output, get_assembly_output,
-    get_disassembly, get_symbol_table, get_section_headers, detect_makefile,
-    run_make,
+    compile_arm, detect_arm_toolchains, detect_makefile, generate_bin, generate_hex,
+    get_assembly_output, get_disassembly, get_preprocessor_output, get_section_headers,
+    get_size_stats, get_symbol_table, link_arm, run_make, ArmCompileRequest, ArmLinkRequest,
+    ArmMcuConfig, ArmToolchainSuite, CompileResult, LinkResult, LinkerConfig,
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -148,20 +146,20 @@ pub fn validate_toolchain_path(
     path: String,
 ) -> Result<ArmToolchainSuiteResponse, String> {
     let gcc_path = PathBuf::from(&path);
-    
+
     if !gcc_path.exists() {
         return Err(format!("Path does not exist: {}", path));
     }
-    
+
     // Try to detect toolchain at this path
     let toolchains = detect_arm_toolchains();
-    
+
     for suite in toolchains {
         if suite.gcc == gcc_path {
             return Ok(suite.into());
         }
     }
-    
+
     Err(format!("No valid ARM toolchain found at: {}", path))
 }
 
@@ -184,7 +182,7 @@ pub fn compile_arm_cmd(
         },
         defines: request.mcu.defines,
     };
-    
+
     let mut compile_request = ArmCompileRequest::new(
         PathBuf::from(request.source),
         PathBuf::from(request.output),
@@ -192,11 +190,11 @@ pub fn compile_arm_cmd(
     )
     .with_optimization(request.optimization)
     .with_debug(request.debug);
-    
+
     for path in request.include_paths {
         compile_request = compile_request.with_include_path(path);
     }
-    
+
     let result = compile_arm(&PathBuf::from(gcc_path), &compile_request);
     Ok(result)
 }
@@ -220,21 +218,21 @@ pub fn link_arm_cmd(
         },
         defines: request.mcu.defines,
     };
-    
+
     let mut linker = LinkerConfig::new(&request.linker_script);
     if request.generate_map {
         if let Some(map_path) = request.map_path {
             linker = linker.with_map(map_path);
         }
     }
-    
+
     let link_request = ArmLinkRequest::new(
         request.objects.into_iter().map(PathBuf::from).collect(),
         PathBuf::from(request.output),
         linker,
         mcu,
     );
-    
+
     let result = link_arm(&PathBuf::from(gcc_path), &link_request);
     Ok(result)
 }
@@ -251,33 +249,33 @@ pub fn generate_binary_cmd(
     let elf = PathBuf::from(&elf_path);
     let objcopy = PathBuf::from(&objcopy_path);
     let size = PathBuf::from(&size_path);
-    
+
     let mut result = BinaryResultData {
         hex_path: None,
         bin_path: None,
         size_stats: None,
     };
-    
+
     // Generate HEX if requested
     if config.hex {
         let hex_path = elf.with_extension("hex");
         generate_hex(&objcopy, &elf, &hex_path)?;
         result.hex_path = Some(hex_path.display().to_string());
     }
-    
+
     // Generate BIN if requested
     if config.bin {
         let bin_path = elf.with_extension("bin");
         generate_bin(&objcopy, &elf, &bin_path)?;
         result.bin_path = Some(bin_path.display().to_string());
     }
-    
+
     // Get size stats if requested
     if config.size_report {
         let stats = get_size_stats(&size, &elf)?;
         result.size_stats = Some(stats);
     }
-    
+
     Ok(result)
 }
 
@@ -301,7 +299,7 @@ pub fn get_preprocessor_output_cmd(
         },
         defines: mcu.defines,
     };
-    
+
     let flags = mcu_config.compiler_flags();
     get_preprocessor_output(&PathBuf::from(gcc_path), &PathBuf::from(source), &flags)
 }
@@ -327,7 +325,7 @@ pub fn get_assembly_output_cmd(
         },
         defines: mcu.defines,
     };
-    
+
     let flags = mcu_config.compiler_flags();
     get_assembly_output(
         &PathBuf::from(gcc_path),
@@ -374,7 +372,7 @@ pub fn detect_makefile_cmd(
     project_path: String,
 ) -> Result<Option<MakefileInfoData>, String> {
     let path = PathBuf::from(project_path);
-    
+
     if let Some(info) = detect_makefile(&path) {
         Ok(Some(MakefileInfoData {
             path: info.path.display().to_string(),
@@ -395,7 +393,7 @@ pub fn run_make_cmd(
 ) -> Result<MakeResultData, String> {
     let path = PathBuf::from(project_path);
     let prefix = toolchain_prefix.map(PathBuf::from);
-    
+
     let result = run_make(&path, &target, prefix.as_deref());
     Ok(MakeResultData {
         exit_code: result.exit_code,

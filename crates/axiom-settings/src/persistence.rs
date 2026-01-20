@@ -87,7 +87,7 @@ pub fn save_default(settings: &Settings) -> Result<(), PersistenceError> {
 /// Returns None if the project settings file doesn't exist.
 pub fn load_project_settings(project_path: &Path) -> Result<Option<Settings>, PersistenceError> {
     let settings_path = project_path.join(".axiom").join("toolchain.toml");
-    
+
     if !settings_path.exists() {
         return Ok(None);
     }
@@ -187,10 +187,7 @@ fn merge_debug_settings(
     }
 }
 
-fn merge_ui_settings(
-    global: crate::UiSettings,
-    _project: crate::UiSettings,
-) -> crate::UiSettings {
+fn merge_ui_settings(global: crate::UiSettings, _project: crate::UiSettings) -> crate::UiSettings {
     // UI settings are typically global-only
     global
 }
@@ -277,15 +274,17 @@ mod tests {
     fn test_load_project_settings_from_reference_project() {
         // Test loading from the reference project
         let project_path = PathBuf::from("tests/fixtures/arm-reference-project");
-        
+
         if project_path.exists() {
             let result = load_project_settings(&project_path);
             assert!(result.is_ok());
-            
+
             if let Ok(Some(settings)) = result {
                 // Verify the settings were loaded
-                assert!(settings.toolchains.toolchains.contains_key("arm") 
-                    || !settings.toolchains.toolchains.is_empty());
+                assert!(
+                    settings.toolchains.toolchains.contains_key("arm")
+                        || !settings.toolchains.toolchains.is_empty()
+                );
             }
         }
     }
@@ -315,14 +314,19 @@ mod tests {
         );
 
         let merged = merge_settings(global, Some(project));
-        
+
         // Project ARM toolchain should override global
         assert_eq!(
             merged.toolchains.toolchains.get("arm").unwrap().path,
             Some(PathBuf::from("/opt/arm/bin/arm-none-eabi-gcc"))
         );
         assert_eq!(
-            merged.toolchains.toolchains.get("arm").unwrap().search_paths,
+            merged
+                .toolchains
+                .toolchains
+                .get("arm")
+                .unwrap()
+                .search_paths,
             vec![PathBuf::from("/opt/arm")]
         );
     }

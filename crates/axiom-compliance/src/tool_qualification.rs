@@ -79,12 +79,7 @@ pub struct ToolUsageRecord {
 
 impl ToolUsageRecord {
     /// Create a new tool usage record
-    pub fn new(
-        tool: String,
-        version: String,
-        arguments: Vec<String>,
-        exit_code: i32,
-    ) -> Self {
+    pub fn new(tool: String, version: String, arguments: Vec<String>, exit_code: i32) -> Self {
         Self {
             tool,
             version,
@@ -244,8 +239,8 @@ pub fn compute_sha256(path: &Path) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use std::fs;
+    use tempfile::TempDir;
 
     #[test]
     fn test_tool_usage_record_creation() {
@@ -267,12 +262,7 @@ mod tests {
 
     #[test]
     fn test_tool_usage_record_add_checksums() {
-        let mut record = ToolUsageRecord::new(
-            "gcc".to_string(),
-            "1.0".to_string(),
-            vec![],
-            0,
-        );
+        let mut record = ToolUsageRecord::new("gcc".to_string(), "1.0".to_string(), vec![], 0);
 
         record.add_input_checksum(PathBuf::from("input.c"), "abc123".to_string());
         record.add_output_checksum(PathBuf::from("output.o"), "def456".to_string());
@@ -287,12 +277,7 @@ mod tests {
 
     #[test]
     fn test_tool_usage_record_add_diagnostic() {
-        let mut record = ToolUsageRecord::new(
-            "gcc".to_string(),
-            "1.0".to_string(),
-            vec![],
-            0,
-        );
+        let mut record = ToolUsageRecord::new("gcc".to_string(), "1.0".to_string(), vec![], 0);
 
         record.add_diagnostic("warning: unused variable".to_string());
         record.add_diagnostic("error: undefined reference".to_string());
@@ -343,14 +328,8 @@ mod tests {
             0,
         );
 
-        record.add_input_checksum(
-            PathBuf::from("main.c"),
-            "abc123def456".to_string(),
-        );
-        record.add_output_checksum(
-            PathBuf::from("main.o"),
-            "789ghi012jkl".to_string(),
-        );
+        record.add_input_checksum(PathBuf::from("main.c"), "abc123def456".to_string());
+        record.add_output_checksum(PathBuf::from("main.o"), "789ghi012jkl".to_string());
         record.add_diagnostic("warning: unused variable 'x'".to_string());
 
         // Serialize to JSON

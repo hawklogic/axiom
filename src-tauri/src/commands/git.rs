@@ -22,12 +22,17 @@ pub fn git_diff(path: String) -> Result<Vec<FileDiff>, String> {
 
 /// Get git diff for a specific file.
 #[tauri::command]
-pub fn git_file_diff(repo_path: String, file_path: String, commit_id: Option<String>) -> Result<Option<FileDiff>, String> {
+pub fn git_file_diff(
+    repo_path: String,
+    file_path: String,
+    commit_id: Option<String>,
+) -> Result<Option<FileDiff>, String> {
     let repo = Repository::discover(Path::new(&repo_path)).map_err(|e| e.to_string())?;
-    
+
     if let Some(commit_id) = commit_id {
         // Get diff for a specific commit vs its parent
-        axiom_git::get_commit_file_diff(&repo, &commit_id, Path::new(&file_path)).map_err(|e| e.to_string())
+        axiom_git::get_commit_file_diff(&repo, &commit_id, Path::new(&file_path))
+            .map_err(|e| e.to_string())
     } else {
         // Get diff for working directory
         axiom_git::get_file_diff(&repo, Path::new(&file_path)).map_err(|e| e.to_string())
@@ -45,7 +50,8 @@ pub fn git_stage(repo_path: String, file_path: String) -> Result<(), String> {
 #[tauri::command]
 pub fn git_unstage(repo_path: String, file_path: String) -> Result<(), String> {
     let repo = Repository::discover(Path::new(&repo_path)).map_err(|e| e.to_string())?;
-    repo.unstage(Path::new(&file_path)).map_err(|e| e.to_string())
+    repo.unstage(Path::new(&file_path))
+        .map_err(|e| e.to_string())
 }
 
 /// Commit staged changes.

@@ -100,16 +100,14 @@ mod tests {
             range: Range::new(Position::new(0, 0), Position::new(10, 0)),
             is_error: false,
             is_named: true,
-            children: vec![
-                AstNode {
-                    kind: "ERROR".to_string(),
-                    range: Range::new(Position::new(1, 0), Position::new(1, 10)),
-                    is_error: true,
-                    is_named: true,
-                    children: vec![],
-                    text: Some("bad code".to_string()),
-                },
-            ],
+            children: vec![AstNode {
+                kind: "ERROR".to_string(),
+                range: Range::new(Position::new(1, 0), Position::new(1, 10)),
+                is_error: true,
+                is_named: true,
+                children: vec![],
+                text: Some("bad code".to_string()),
+            }],
             text: None,
         };
 

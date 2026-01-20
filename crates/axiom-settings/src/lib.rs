@@ -5,13 +5,13 @@
 //!
 //! TOML-based settings management with versioned schema and migrations.
 
-mod schema;
 mod migration;
 mod persistence;
+mod schema;
 
-pub use schema::*;
 pub use migration::*;
 pub use persistence::*;
+pub use schema::*;
 
 /// Current settings schema version.
 pub const SCHEMA_VERSION: u32 = 1;

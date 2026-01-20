@@ -40,7 +40,9 @@
 //! }
 //! ```
 
-use crate::{DetectedToolchain, ToolchainKind, ArmToolchainSuite, ToolchainSource, ToolchainCompleteness};
+use crate::{
+    ArmToolchainSuite, DetectedToolchain, ToolchainCompleteness, ToolchainKind, ToolchainSource,
+};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -108,7 +110,7 @@ const PYTHON_PATHS: &[&str] = &[
 /// ```
 fn expand_glob_paths(patterns: &[&str]) -> Vec<PathBuf> {
     let mut paths = Vec::new();
-    
+
     for pattern in patterns {
         // Check if pattern contains glob characters
         if pattern.contains('*') || pattern.contains('?') || pattern.contains('[') {
@@ -128,7 +130,7 @@ fn expand_glob_paths(patterns: &[&str]) -> Vec<PathBuf> {
             }
         }
     }
-    
+
     paths
 }
 
@@ -188,6 +190,26 @@ pub fn detect_all() -> Vec<DetectedToolchain> {
 }
 
 /// Detect a specific toolchain kind.
+///
+/// Searches for a toolchain of the specified type in standard installation locations.
+///
+/// # Arguments
+///
+/// * `kind` - The type of toolchain to search for
+///
+/// # Returns
+///
+/// The first detected toolchain of the specified kind, or None if not found.
+///
+/// # Example
+///
+/// ```no_run
+/// use axiom_toolchain::{detect, ToolchainKind};
+///
+/// if let Some(arm_gcc) = detect(ToolchainKind::ArmGcc) {
+///     println!("Found ARM GCC: {} at {:?}", arm_gcc.version, arm_gcc.path);
+/// }
+/// ```
 pub fn detect(kind: ToolchainKind) -> Option<DetectedToolchain> {
     let paths = match kind {
         ToolchainKind::Clang => CLANG_PATHS,
@@ -206,6 +228,18 @@ pub fn detect(kind: ToolchainKind) -> Option<DetectedToolchain> {
 }
 
 /// Detect a toolchain at a specific path.
+///
+/// Validates that a toolchain binary exists at the given path and extracts
+/// its version information.
+///
+/// # Arguments
+///
+/// * `path` - Path to the toolchain binary
+/// * `kind` - Expected toolchain type
+///
+/// # Returns
+///
+/// Detected toolchain information if the binary exists and is valid, None otherwise.
 pub fn detect_at_path(path: &Path, kind: ToolchainKind) -> Option<DetectedToolchain> {
     if !path.exists() {
         return None;
@@ -254,7 +288,11 @@ fn parse_version(output: &str, kind: ToolchainKind) -> Option<String> {
                 let rest = first_line[idx + 1..].trim();
                 // Extract just the version number (first word that looks like a version)
                 for word in rest.split_whitespace() {
-                    if word.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false)
+                    if word
+                        .chars()
+                        .next()
+                        .map(|c| c.is_ascii_digit())
+                        .unwrap_or(false)
                         && word.contains('.')
                     {
                         return Some(word.to_string());
@@ -263,7 +301,11 @@ fn parse_version(output: &str, kind: ToolchainKind) -> Option<String> {
             }
             // Fallback: find version pattern
             for word in first_line.split_whitespace() {
-                if word.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false)
+                if word
+                    .chars()
+                    .next()
+                    .map(|c| c.is_ascii_digit())
+                    .unwrap_or(false)
                     && word.contains('.')
                 {
                     return Some(word.to_string());
@@ -283,51 +325,93 @@ fn parse_version(output: &str, kind: ToolchainKind) -> Option<String> {
 }
 
 /// Parse ARM GCC version string (public for testing).
+///
+/// Extracts the version number from arm-none-eabi-gcc --version output.
+/// Handles various output formats from different ARM GCC distributions.
+///
+/// # Arguments
+///
+/// * `output` - Output from `arm-none-eabi-gcc --version`
+///
+/// # Returns
+///
+/// Parsed version string (e.g., "10.3.1"), or None if parsing fails.
 pub fn parse_arm_gcc_version(output: &str) -> Option<String> {
     parse_version(output, ToolchainKind::ArmGcc)
 }
 
 /// Check if a version is compatible (meets minimum requirement).
-/// Returns true if actual_version >= min_version.
+///
+/// Compares version strings using semantic versioning rules.
+///
+/// # Arguments
+///
+/// * `actual` - The version that was found
+/// * `minimum` - The minimum required version
+///
+/// # Returns
+///
+/// `true` if actual_version >= min_version, `false` otherwise.
+///
+/// # Example
+///
+/// ```
+/// use axiom_toolchain::is_version_compatible;
+///
+/// assert!(is_version_compatible("14.3.1", "8.0.0"));
+/// assert!(!is_version_compatible("7.9.9", "8.0.0"));
+/// assert!(is_version_compatible("10.3.1", "10.3.1"));
+/// ```
 pub fn is_version_compatible(actual: &str, minimum: &str) -> bool {
-    let actual_parts: Vec<u32> = actual
-        .split('.')
-        .filter_map(|s| s.parse().ok())
-        .collect();
-    let min_parts: Vec<u32> = minimum
-        .split('.')
-        .filter_map(|s| s.parse().ok())
-        .collect();
-    
+    let actual_parts: Vec<u32> = actual.split('.').filter_map(|s| s.parse().ok()).collect();
+    let min_parts: Vec<u32> = minimum.split('.').filter_map(|s| s.parse().ok()).collect();
+
     for i in 0..actual_parts.len().max(min_parts.len()) {
         let a = actual_parts.get(i).copied().unwrap_or(0);
         let m = min_parts.get(i).copied().unwrap_or(0);
-        
+
         if a > m {
             return true;
         } else if a < m {
             return false;
         }
     }
-    
+
     true // Equal versions are compatible
 }
 
 /// Get bundled Python path.
+///
+/// Returns the path where a bundled Python interpreter would be located
+/// if shipped with the IDE.
 pub fn bundled_python_path() -> PathBuf {
     // Relative to the application bundle
     PathBuf::from("vendor/python/bin/python3")
 }
 
 /// Check if bundled Python exists.
+///
+/// Returns `true` if a bundled Python interpreter is present at the expected location.
 pub fn has_bundled_python() -> bool {
     bundled_python_path().exists()
 }
 
 /// Validate that all tools in an ARM toolchain suite exist.
+///
+/// Checks each tool path in the suite and returns a completeness status
+/// indicating which tools (if any) are missing.
+///
+/// # Arguments
+///
+/// * `suite` - ARM toolchain suite to validate
+///
+/// # Returns
+///
+/// `ToolchainCompleteness::Complete` if all tools exist,
+/// `ToolchainCompleteness::Incomplete` with a list of missing tools otherwise.
 pub fn validate_toolchain_suite(suite: &ArmToolchainSuite) -> ToolchainCompleteness {
     let mut missing = Vec::new();
-    
+
     let tools = vec![
         ("gcc", &suite.gcc),
         ("g++", &suite.gxx),
@@ -338,13 +422,13 @@ pub fn validate_toolchain_suite(suite: &ArmToolchainSuite) -> ToolchainCompleten
         ("size", &suite.size),
         ("gdb", &suite.gdb),
     ];
-    
+
     for (name, path) in tools {
         if !path.exists() {
             missing.push(name.to_string());
         }
     }
-    
+
     if missing.is_empty() {
         ToolchainCompleteness::Complete
     } else {
@@ -353,9 +437,19 @@ pub fn validate_toolchain_suite(suite: &ArmToolchainSuite) -> ToolchainCompleten
 }
 
 /// Detect the source of a toolchain from its path.
+///
+/// Analyzes the toolchain path to determine where it was installed from.
+///
+/// # Arguments
+///
+/// * `path` - Path to the toolchain binary
+///
+/// # Returns
+///
+/// The detected source (Homebrew, STM32CubeIDE, SystemPath, or Manual).
 pub fn detect_source(path: &Path) -> ToolchainSource {
     let path_str = path.to_string_lossy();
-    
+
     if path_str.contains("homebrew") || path_str.contains("/opt/homebrew/") {
         ToolchainSource::Homebrew
     } else if path_str.contains("STM32CubeIDE") || path_str.contains("stm32cubeide") {
@@ -368,20 +462,47 @@ pub fn detect_source(path: &Path) -> ToolchainSource {
 }
 
 /// Detect all ARM toolchain suites.
+///
+/// Searches all known ARM GCC installation locations and returns complete
+/// information about each detected toolchain, including all tool paths,
+/// version, source, and completeness status.
+///
+/// # Returns
+///
+/// Vector of detected ARM toolchain suites. May be empty if no ARM toolchains are found.
+///
+/// # Example
+///
+/// ```no_run
+/// use axiom_toolchain::{detect_arm_toolchains, ToolchainCompleteness};
+///
+/// let suites = detect_arm_toolchains();
+/// for suite in suites {
+///     println!("Found ARM GCC {} from {:?}", suite.version, suite.source);
+///     match suite.completeness {
+///         ToolchainCompleteness::Complete => {
+///             println!("  Complete toolchain");
+///         }
+///         ToolchainCompleteness::Incomplete { ref missing } => {
+///             println!("  Missing tools: {:?}", missing);
+///         }
+///     }
+/// }
+/// ```
 pub fn detect_arm_toolchains() -> Vec<ArmToolchainSuite> {
     let mut suites = Vec::new();
-    
+
     for gcc_path in expand_glob_paths(ARM_GCC_PATHS) {
         if !gcc_path.exists() {
             continue;
         }
-        
+
         // Get version
         let version = match get_version(&gcc_path, ToolchainKind::ArmGcc) {
             Some(v) => v,
             None => continue,
         };
-        
+
         // Derive other tool paths from gcc path
         let bin_dir = gcc_path.parent().unwrap();
         let gxx = bin_dir.join("arm-none-eabi-g++");
@@ -391,9 +512,9 @@ pub fn detect_arm_toolchains() -> Vec<ArmToolchainSuite> {
         let objdump = bin_dir.join("arm-none-eabi-objdump");
         let size = bin_dir.join("arm-none-eabi-size");
         let gdb = bin_dir.join("arm-none-eabi-gdb");
-        
+
         let source = detect_source(&gcc_path);
-        
+
         let suite = ArmToolchainSuite {
             gcc: gcc_path.clone(),
             gxx,
@@ -407,17 +528,17 @@ pub fn detect_arm_toolchains() -> Vec<ArmToolchainSuite> {
             source,
             completeness: ToolchainCompleteness::Complete, // Will be validated
         };
-        
+
         // Validate completeness
         let completeness = validate_toolchain_suite(&suite);
         let suite = ArmToolchainSuite {
             completeness,
             ..suite
         };
-        
+
         suites.push(suite);
     }
-    
+
     suites
 }
 
@@ -427,7 +548,8 @@ mod tests {
 
     #[test]
     fn test_parse_clang_version() {
-        let output = "Apple clang version 15.0.0 (clang-1500.0.40.1)\nTarget: arm64-apple-darwin23.0.0";
+        let output =
+            "Apple clang version 15.0.0 (clang-1500.0.40.1)\nTarget: arm64-apple-darwin23.0.0";
         let version = parse_version(output, ToolchainKind::Clang);
         assert_eq!(version, Some("15.0.0".to_string()));
     }
@@ -445,38 +567,40 @@ mod tests {
         let version = parse_version(output, ToolchainKind::Python);
         assert_eq!(version, Some("3.11.6".to_string()));
     }
-    
+
     #[test]
     fn test_parse_arm_gcc_version_standard() {
-        let output = "arm-none-eabi-gcc (GNU Arm Embedded Toolchain 10.3-2021.10) 10.3.1\nCopyright...";
+        let output =
+            "arm-none-eabi-gcc (GNU Arm Embedded Toolchain 10.3-2021.10) 10.3.1\nCopyright...";
         let version = parse_arm_gcc_version(output);
         assert_eq!(version, Some("10.3.1".to_string()));
     }
-    
+
     #[test]
     fn test_parse_arm_gcc_version_stm32cubeide() {
-        let output = "arm-none-eabi-gcc (xPack GNU Arm Embedded GCC x86_64) 12.2.1 20221205\nCopyright...";
+        let output =
+            "arm-none-eabi-gcc (xPack GNU Arm Embedded GCC x86_64) 12.2.1 20221205\nCopyright...";
         let version = parse_arm_gcc_version(output);
         // Parser extracts first version-like string after closing paren
         assert_eq!(version, Some("12.2.1".to_string()));
     }
-    
+
     #[test]
     fn test_detect_source_homebrew() {
         let path = Path::new("/opt/homebrew/bin/arm-none-eabi-gcc");
         assert_eq!(detect_source(path), ToolchainSource::Homebrew);
     }
-    
+
     #[test]
     fn test_detect_source_stm32cubeide() {
         let path = Path::new("/Applications/STM32CubeIDE.app/Contents/Eclipse/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.11.3.rel1.202309141235/tools/bin/arm-none-eabi-gcc");
         assert_eq!(detect_source(path), ToolchainSource::Stm32CubeIde);
     }
-    
+
     #[test]
     fn test_validate_toolchain_suite_complete() {
         let suite = ArmToolchainSuite {
-            gcc: PathBuf::from("/usr/bin/true"),  // Use existing file for test
+            gcc: PathBuf::from("/usr/bin/true"), // Use existing file for test
             gxx: PathBuf::from("/usr/bin/true"),
             as_: PathBuf::from("/usr/bin/true"),
             ld: PathBuf::from("/usr/bin/true"),
@@ -488,11 +612,11 @@ mod tests {
             source: ToolchainSource::SystemPath,
             completeness: ToolchainCompleteness::Complete,
         };
-        
+
         let result = validate_toolchain_suite(&suite);
         assert_eq!(result, ToolchainCompleteness::Complete);
     }
-    
+
     #[test]
     fn test_validate_toolchain_suite_incomplete() {
         let suite = ArmToolchainSuite {
@@ -508,7 +632,7 @@ mod tests {
             source: ToolchainSource::SystemPath,
             completeness: ToolchainCompleteness::Complete,
         };
-        
+
         let result = validate_toolchain_suite(&suite);
         match result {
             ToolchainCompleteness::Incomplete { missing } => {
@@ -519,12 +643,12 @@ mod tests {
             _ => panic!("Expected Incomplete"),
         }
     }
-    
+
     #[test]
     fn test_version_comparison_compatible() {
         assert!(is_version_compatible("14.3.1", "8.0.0"));
     }
-    
+
     #[test]
     fn test_version_comparison_incompatible() {
         assert!(!is_version_compatible("7.9.9", "8.0.0"));

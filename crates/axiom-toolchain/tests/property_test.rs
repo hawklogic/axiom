@@ -18,11 +18,11 @@ fn arb_float_abi() -> impl Strategy<Value = FloatAbi> {
 // Arbitrary generator for ArmMcuConfig
 fn arb_arm_mcu_config() -> impl Strategy<Value = ArmMcuConfig> {
     (
-        "[a-z0-9-]{3,20}",  // cpu
-        any::<bool>(),       // thumb
-        prop::option::of("[a-z0-9-]{3,15}"),  // fpu (optional)
-        arb_float_abi(),     // float_abi
-        prop::collection::vec("[A-Z0-9_]{3,20}", 0..5),  // defines
+        "[a-z0-9-]{3,20}",                              // cpu
+        any::<bool>(),                                  // thumb
+        prop::option::of("[a-z0-9-]{3,15}"),            // fpu (optional)
+        arb_float_abi(),                                // float_abi
+        prop::collection::vec("[A-Z0-9_]{3,20}", 0..5), // defines
     )
         .prop_map(|(cpu, thumb, fpu, float_abi, defines)| {
             let mut config = ArmMcuConfig::new(cpu);
@@ -41,23 +41,22 @@ proptest! {
         _dummy in 0..1u8  // Dummy input since we're testing detect_all()
     ) {
         let toolchains = detect_arm_toolchains();
-        
+
         for suite in toolchains {
             // Property 1: GCC path must exist
-            prop_assert!(suite.gcc.exists(), 
+            prop_assert!(suite.gcc.exists(),
                 "GCC path {:?} should exist", suite.gcc);
-            
+
             // Property 2: Version must be non-empty
-            prop_assert!(!suite.version.is_empty(), 
+            prop_assert!(!suite.version.is_empty(),
                 "Version should not be empty");
-            
+
             // Property 3: Version should contain at least one digit
             prop_assert!(suite.version.chars().any(|c| c.is_ascii_digit()),
                 "Version {:?} should contain digits", suite.version);
         }
     }
 }
-
 
 proptest! {
     /// P2: For any ArmMcuConfig, flags contain -mcpu with specified CPU
@@ -67,13 +66,12 @@ proptest! {
     ) {
         let config = ArmMcuConfig::new(cpu.clone());
         let flags = config.compiler_flags();
-        
+
         let expected_flag = format!("-mcpu={}", cpu);
         prop_assert!(flags.contains(&expected_flag),
             "Flags should contain -mcpu={}", cpu);
     }
 }
-
 
 proptest! {
     /// P3: Include paths in flags match order in request
@@ -82,24 +80,24 @@ proptest! {
         paths in proptest::collection::vec("[a-z]{3,10}", 1..5)
     ) {
         use std::path::PathBuf;
-        
+
         let mcu = ArmMcuConfig::cortex_m3();
         let mut request = ArmCompileRequest::new(
             PathBuf::from("test.c"),
             PathBuf::from("test.o"),
             mcu,
         );
-        
+
         // Add paths in order
         for path in &paths {
             request = request.with_include_path(path);
         }
-        
+
         let args = build_arm_compile_command(
             std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
             &request,
         );
-        
+
         // Find positions of -I flags
         let mut positions = Vec::new();
         for (i, arg) in args.iter().enumerate() {
@@ -107,7 +105,7 @@ proptest! {
                 positions.push((i, &arg[2..]));
             }
         }
-        
+
         // Verify order matches
         for (i, path) in paths.iter().enumerate() {
             if i < positions.len() {
@@ -129,27 +127,27 @@ proptest! {
     ) {
         // Generate a version string in semver format
         let version_str = format!("{}.{}.{}", major, minor, patch);
-        
+
         // Create a mock GCC output with the version
         let gcc_output = format!(
             "arm-none-eabi-gcc (GNU Arm Embedded Toolchain 10.3-2021.10) {}\nCopyright...",
             version_str
         );
-        
+
         // Parse the version
         let parsed = parse_arm_gcc_version(&gcc_output);
-        
+
         // Property: Should successfully parse the version
         prop_assert!(parsed.is_some(), "Should parse version from output");
-        
+
         let parsed_version = parsed.unwrap();
-        
+
         // Property: Parsed version should contain digits
         prop_assert!(
             parsed_version.chars().any(|c| c.is_ascii_digit()),
             "Parsed version should contain digits"
         );
-        
+
         // Property: Parsed version should contain dots (for multi-part versions)
         if major > 0 || minor > 0 || patch > 0 {
             prop_assert!(
@@ -157,14 +155,14 @@ proptest! {
                 "Multi-part version should contain dots"
             );
         }
-        
+
         // Property: Should be able to extract version components
         let parts: Vec<&str> = parsed_version.split('.').collect();
         prop_assert!(
             !parts.is_empty(),
             "Should have at least one version component"
         );
-        
+
         // Property: Each component should be parseable as a number
         for part in &parts {
             let trimmed = part.trim_end_matches(|c: char| !c.is_ascii_digit());
@@ -176,7 +174,7 @@ proptest! {
                 );
             }
         }
-        
+
         // Property: Parsed version should start with the major version
         prop_assert!(
             parsed_version.starts_with(&major.to_string()),

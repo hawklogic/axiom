@@ -82,8 +82,8 @@ impl SymbolIndex {
             "function_definition" | "function_declarator" => {
                 if let Some(name) = self.find_identifier(node) {
                     let location = Location::new(path.clone(), node.range);
-                    let symbol = Symbol::new(name, SymbolKind::Function, location)
-                        .with_scope(scope.clone());
+                    let symbol =
+                        Symbol::new(name, SymbolKind::Function, location).with_scope(scope.clone());
                     symbols.push(symbol);
                 }
             }
@@ -118,16 +118,16 @@ impl SymbolIndex {
             "preproc_def" | "preproc_function_def" => {
                 if let Some(name) = self.find_macro_name(node) {
                     let location = Location::new(path.clone(), node.range);
-                    let symbol = Symbol::new(name, SymbolKind::Macro, location)
-                        .with_scope(scope.clone());
+                    let symbol =
+                        Symbol::new(name, SymbolKind::Macro, location).with_scope(scope.clone());
                     symbols.push(symbol);
                 }
             }
             "field_declaration" => {
                 if let Some(name) = self.find_identifier(node) {
                     let location = Location::new(path.clone(), node.range);
-                    let symbol = Symbol::new(name, SymbolKind::Field, location)
-                        .with_scope(scope.clone());
+                    let symbol =
+                        Symbol::new(name, SymbolKind::Field, location).with_scope(scope.clone());
                     symbols.push(symbol);
                 }
             }
