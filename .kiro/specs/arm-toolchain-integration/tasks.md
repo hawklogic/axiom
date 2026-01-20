@@ -114,63 +114,63 @@
 ## Task 4: Extend Compilation System for ARM
 **Validates: Requirements 3, 6, 7**
 
-- [ ] 4. Extend Compilation System for ARM
-  - [ ] 4.1 Implementation
-    - [ ] 4.1.1 Create `ArmCompileRequest` struct in types.rs
-    - [ ] 4.1.2 Add `source`, `output`, `mcu: ArmMcuConfig`, `include_paths`, `optimization`, `debug` fields
-    - [ ] 4.1.3 Implement `ArmCompileRequest::new()` constructor
-    - [ ] 4.1.4 Implement `with_mcu()`, `with_include_path()`, `with_define()` builder methods
-    - [ ] 4.1.5 Implement `build_arm_compile_command()` in invocation.rs
-    - [ ] 4.1.6 Implement `compile_arm()` function that invokes arm-none-eabi-gcc
-    - [ ] 4.1.7 Ensure include paths are added in order with -I flags
-    - [ ] 4.1.8 Parse compiler errors/warnings from stderr
-  - [ ] 4.2 Unit Tests
-    - [ ] 4.2.1 Test `build_arm_compile_command()` includes -c flag
-    - [ ] 4.2.2 Test `build_arm_compile_command()` includes source and output paths
-    - [ ] 4.2.3 Test `build_arm_compile_command()` includes MCU flags from config
-    - [ ] 4.2.4 Test include paths appear in order specified
-    - [ ] 4.2.5 Test optimization level -O0 through -O3
-    - [ ] 4.2.6 Test debug flag -g3 when debug=true
-  - [ ] 4.3 Integration Tests
-    - [ ] 4.3.1 Test compile simple C file from reference project (gpio.c)
-    - [ ] 4.3.2 Test compile with FPU configuration (cortex-m7 + fpv5-d16)
-    - [ ] 4.3.3 Test compile syntax_error.c returns non-zero exit code
-    - [ ] 4.3.4 Test compile missing_include.c returns error with "fatal error"
-    - [ ] 4.3.5 Test compile inline_assembly.c succeeds for ARM target
-  - [ ] 4.4 Property-Based Test
-    - [ ] 4.4.1 Write P3: Include paths in flags match order in request
-  - [ ] 4.5 Verification Gate
-    - [ ] 4.5.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
-    - [ ] 4.5.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
-    - [ ] 4.5.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 4. Extend Compilation System for ARM
+  - [x] 4.1 Implementation
+    - [x] 4.1.1 Create `ArmCompileRequest` struct in types.rs
+    - [x] 4.1.2 Add `source`, `output`, `mcu: ArmMcuConfig`, `include_paths`, `optimization`, `debug` fields
+    - [x] 4.1.3 Implement `ArmCompileRequest::new()` constructor
+    - [x] 4.1.4 Implement `with_mcu()`, `with_include_path()`, `with_define()` builder methods
+    - [x] 4.1.5 Implement `build_arm_compile_command()` in invocation.rs
+    - [x] 4.1.6 Implement `compile_arm()` function that invokes arm-none-eabi-gcc
+    - [x] 4.1.7 Ensure include paths are added in order with -I flags
+    - [x] 4.1.8 Parse compiler errors/warnings from stderr
+  - [x] 4.2 Unit Tests
+    - [x] 4.2.1 Test `build_arm_compile_command()` includes -c flag
+    - [x] 4.2.2 Test `build_arm_compile_command()` includes source and output paths
+    - [x] 4.2.3 Test `build_arm_compile_command()` includes MCU flags from config
+    - [x] 4.2.4 Test include paths appear in order specified
+    - [x] 4.2.5 Test optimization level -O0 through -O3
+    - [x] 4.2.6 Test debug flag -g3 when debug=true
+  - [x] 4.3 Integration Tests
+    - [x] 4.3.1 Test compile simple C file from reference project (gpio.c)
+    - [x] 4.3.2 Test compile with FPU configuration (cortex-m7 + fpv5-d16)
+    - [x] 4.3.3 Test compile syntax_error.c returns non-zero exit code
+    - [x] 4.3.4 Test compile missing_include.c returns error with "fatal error"
+    - [x] 4.3.5 Test compile inline_assembly.c succeeds for ARM target
+  - [x] 4.4 Property-Based Test
+    - [x] 4.4.1 Write P3: Include paths in flags match order in request
+  - [x] 4.5 Verification Gate
+    - [x] 4.5.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
+    - [x] 4.5.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
+    - [x] 4.5.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 5: Implement Linker Support
 **Validates: Requirements 4, 5, 10**
 
-- [ ] 5. Implement Linker Support
-  - [ ] 5.1 Implementation
-    - [ ] 5.1.1 Create `ArmLinkRequest` struct (objects, output, linker: LinkerConfig, mcu)
-    - [ ] 5.1.2 Implement `build_arm_link_command()` in invocation.rs
-    - [ ] 5.1.3 Implement `link_arm()` function
-    - [ ] 5.1.4 Add `-nostartfiles` and `--specs=nano.specs` flags
-    - [ ] 5.1.5 Implement memory overflow error detection from linker stderr
-    - [ ] 5.1.6 Create `LinkResult` struct with exit_code, stdout, stderr, diagnostics
-  - [ ] 5.2 Unit Tests
-    - [ ] 5.2.1 Test `build_arm_link_command()` includes -T<script>
-    - [ ] 5.2.2 Test `build_arm_link_command()` includes all object files
-    - [ ] 5.2.3 Test `build_arm_link_command()` includes MCU flags
-    - [ ] 5.2.4 Test memory overflow parsing detects "will not fit" message
-    - [ ] 5.2.5 Test memory overflow parsing detects "region overflow" message
-  - [ ] 5.3 Integration Tests
-    - [ ] 5.3.1 Test link with valid linker script from reference project
-    - [ ] 5.3.2 Test link with missing linker script returns error
-    - [ ] 5.3.3 Test link linker_overflow.c detects memory overflow
-  - [ ] 5.4 Verification Gate
-    - [ ] 5.4.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
-    - [ ] 5.4.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
-    - [ ] 5.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 5. Implement Linker Support
+  - [x] 5.1 Implementation
+    - [x] 5.1.1 Create `ArmLinkRequest` struct (objects, output, linker: LinkerConfig, mcu)
+    - [x] 5.1.2 Implement `build_arm_link_command()` in invocation.rs
+    - [x] 5.1.3 Implement `link_arm()` function
+    - [x] 5.1.4 Add `-nostartfiles` and `--specs=nano.specs` flags
+    - [x] 5.1.5 Implement memory overflow error detection from linker stderr
+    - [x] 5.1.6 Create `LinkResult` struct with exit_code, stdout, stderr, diagnostics
+  - [x] 5.2 Unit Tests
+    - [x] 5.2.1 Test `build_arm_link_command()` includes -T<script>
+    - [x] 5.2.2 Test `build_arm_link_command()` includes all object files
+    - [x] 5.2.3 Test `build_arm_link_command()` includes MCU flags
+    - [x] 5.2.4 Test memory overflow parsing detects "will not fit" message
+    - [x] 5.2.5 Test memory overflow parsing detects "region overflow" message
+  - [x] 5.3 Integration Tests
+    - [x] 5.3.1 Test link with valid linker script from reference project
+    - [x] 5.3.2 Test link with missing linker script returns error
+    - [x] 5.3.3 Test link linker_overflow.c detects memory overflow
+  - [x] 5.4 Verification Gate
+    - [x] 5.4.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
+    - [x] 5.4.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
+    - [x] 5.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 

@@ -186,6 +186,67 @@ pub fn compile_arm(
     }
 }
 
+/// Build command arguments for ARM linking.
+pub fn build_arm_link_command(
+    gcc_path: &std::path::Path,
+    request: &crate::ArmLinkRequest,
+) -> Vec<String> {
+    let mut args = Vec::new();
+    
+    // MCU-specific flags
+    args.extend(request.mcu.linker_flags(&request.linker));
+    
+    // Nano specs for smaller code size
+    args.push("--specs=nano.specs".to_string());
+    
+    // No startup files (we provide our own)
+    args.push("-nostartfiles".to_string());
+    
+    // Object files
+    for obj in &request.objects {
+        args.push(obj.display().to_string());
+    }
+    
+    // Output file
+    args.push("-o".to_string());
+    args.push(request.output.display().to_string());
+    
+    args
+}
+
+/// Link ARM object files.
+pub fn link_arm(
+    gcc_path: &std::path::Path,
+    request: &crate::ArmLinkRequest,
+) -> crate::LinkResult {
+    let args = build_arm_link_command(gcc_path, request);
+    
+    let output = Command::new(gcc_path)
+        .args(&args)
+        .output();
+    
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            let diagnostics = parse_diagnostics(&stderr, ToolchainKind::ArmGcc);
+            
+            crate::LinkResult {
+                exit_code: output.status.code().unwrap_or(-1),
+                stdout,
+                stderr,
+                diagnostics,
+            }
+        }
+        Err(e) => crate::LinkResult {
+            exit_code: -1,
+            stdout: String::new(),
+            stderr: e.to_string(),
+            diagnostics: vec![Diagnostic::error(e.to_string())],
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -370,5 +431,93 @@ main.c:15:10: warning: unused variable 'y' [-Wunused-variable]
         );
         
         assert!(args.contains(&"-g3".to_string()));
+    }
+    
+    #[test]
+    fn test_build_arm_link_command_includes_linker_script() {
+        let mcu = crate::ArmMcuConfig::cortex_m3();
+        let linker = crate::LinkerConfig::new("test.ld");
+        let request = crate::ArmLinkRequest::new(
+            vec![PathBuf::from("test.o")],
+            PathBuf::from("test.elf"),
+            linker,
+            mcu,
+        );
+        
+        let args = build_arm_link_command(
+            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
+            &request,
+        );
+        
+        assert!(args.iter().any(|a| a.starts_with("-Ttest.ld")));
+    }
+    
+    #[test]
+    fn test_build_arm_link_command_includes_all_objects() {
+        let mcu = crate::ArmMcuConfig::cortex_m3();
+        let linker = crate::LinkerConfig::new("test.ld");
+        let request = crate::ArmLinkRequest::new(
+            vec![
+                PathBuf::from("main.o"),
+                PathBuf::from("gpio.o"),
+                PathBuf::from("uart.o"),
+            ],
+            PathBuf::from("test.elf"),
+            linker,
+            mcu,
+        );
+        
+        let args = build_arm_link_command(
+            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
+            &request,
+        );
+        
+        assert!(args.contains(&"main.o".to_string()));
+        assert!(args.contains(&"gpio.o".to_string()));
+        assert!(args.contains(&"uart.o".to_string()));
+    }
+    
+    #[test]
+    fn test_build_arm_link_command_includes_mcu_flags() {
+        let mcu = crate::ArmMcuConfig::cortex_m3();
+        let linker = crate::LinkerConfig::new("test.ld");
+        let request = crate::ArmLinkRequest::new(
+            vec![PathBuf::from("test.o")],
+            PathBuf::from("test.elf"),
+            linker,
+            mcu,
+        );
+        
+        let args = build_arm_link_command(
+            std::path::Path::new("/usr/bin/arm-none-eabi-gcc"),
+            &request,
+        );
+        
+        assert!(args.contains(&"-mcpu=cortex-m3".to_string()));
+        assert!(args.contains(&"-mthumb".to_string()));
+    }
+    
+    #[test]
+    fn test_link_result_memory_overflow_detection_will_not_fit() {
+        let result = crate::LinkResult {
+            exit_code: 1,
+            stdout: String::new(),
+            stderr: "section `.text' will not fit in region `FLASH'".to_string(),
+            diagnostics: vec![],
+        };
+        
+        assert!(result.has_memory_overflow());
+    }
+    
+    #[test]
+    fn test_link_result_memory_overflow_detection_region_overflow() {
+        let result = crate::LinkResult {
+            exit_code: 1,
+            stdout: String::new(),
+            stderr: "region `RAM' overflowed by 1024 bytes".to_string(),
+            diagnostics: vec![],
+        };
+        
+        assert!(result.has_memory_overflow());
     }
 }

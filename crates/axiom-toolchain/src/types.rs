@@ -245,3 +245,59 @@ impl ArmCompileRequest {
         self
     }
 }
+
+/// A request to link ARM object files.
+#[derive(Debug, Clone)]
+pub struct ArmLinkRequest {
+    /// Object files to link.
+    pub objects: Vec<PathBuf>,
+    /// Output ELF file path.
+    pub output: PathBuf,
+    /// Linker configuration.
+    pub linker: crate::LinkerConfig,
+    /// MCU configuration.
+    pub mcu: crate::ArmMcuConfig,
+}
+
+impl ArmLinkRequest {
+    /// Create a new ARM link request.
+    pub fn new(
+        objects: Vec<PathBuf>,
+        output: PathBuf,
+        linker: crate::LinkerConfig,
+        mcu: crate::ArmMcuConfig,
+    ) -> Self {
+        Self {
+            objects,
+            output,
+            linker,
+            mcu,
+        }
+    }
+}
+
+/// Result of a link operation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LinkResult {
+    /// Exit code of the linker.
+    pub exit_code: i32,
+    /// Standard output.
+    pub stdout: String,
+    /// Standard error.
+    pub stderr: String,
+    /// Parsed diagnostics.
+    pub diagnostics: Vec<axiom_core::Diagnostic>,
+}
+
+impl LinkResult {
+    /// Check if linking succeeded.
+    pub fn success(&self) -> bool {
+        self.exit_code == 0
+    }
+    
+    /// Check if there was a memory overflow error.
+    pub fn has_memory_overflow(&self) -> bool {
+        self.stderr.contains("will not fit") || 
+        self.stderr.contains("region") && self.stderr.contains("overflow")
+    }
+}

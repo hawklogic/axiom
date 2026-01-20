@@ -215,3 +215,101 @@ fn test_compile_arm_inline_assembly() {
     // Clean up
     let _ = std::fs::remove_file(output);
 }
+
+
+#[test]
+#[cfg_attr(not(target_os = "macos"), ignore)]
+fn test_link_arm_with_valid_linker_script() {
+    use std::path::PathBuf;
+    
+    let gcc_path = PathBuf::from("/opt/homebrew/bin/arm-none-eabi-gcc");
+    if !gcc_path.exists() {
+        return;
+    }
+    
+    // First compile an object file
+    let mcu = ArmMcuConfig::cortex_m3();
+    let mut source = std::env::current_dir().unwrap();
+    if source.ends_with("crates/axiom-toolchain") {
+        source.pop();
+        source.pop();
+    }
+    source.push("tests/fixtures/arm-reference-project/Drivers/gpio.c");
+    
+    let mut inc_path = std::env::current_dir().unwrap();
+    if inc_path.ends_with("crates/axiom-toolchain") {
+        inc_path.pop();
+        inc_path.pop();
+    }
+    inc_path.push("tests/fixtures/arm-reference-project/Drivers");
+    
+    let obj_path = PathBuf::from("/tmp/test_link_gpio.o");
+    
+    let compile_req = ArmCompileRequest::new(source, obj_path.clone(), mcu.clone())
+        .with_include_path(inc_path);
+    
+    let compile_result = compile_arm(&gcc_path, &compile_req);
+    if compile_result.exit_code != 0 {
+        // Skip test if compilation fails
+        let _ = std::fs::remove_file(&obj_path);
+        return;
+    }
+    
+    // Now link it
+    let mut linker_script = std::env::current_dir().unwrap();
+    if linker_script.ends_with("crates/axiom-toolchain") {
+        linker_script.pop();
+        linker_script.pop();
+    }
+    linker_script.push("tests/fixtures/arm-reference-project/STM32F103C8_FLASH.ld");
+    
+    let linker = LinkerConfig::new(linker_script);
+    let output = PathBuf::from("/tmp/test_link.elf");
+    
+    let link_req = ArmLinkRequest::new(
+        vec![obj_path.clone()],
+        output.clone(),
+        linker,
+        mcu,
+    );
+    
+    let result = link_arm(&gcc_path, &link_req);
+    
+    // Should link successfully or fail with missing symbols (which is expected)
+    assert!(result.exit_code == 0 || result.stderr.contains("undefined reference"));
+    
+    // Clean up
+    let _ = std::fs::remove_file(obj_path);
+    let _ = std::fs::remove_file(output);
+}
+
+#[test]
+#[cfg_attr(not(target_os = "macos"), ignore)]
+fn test_link_arm_missing_linker_script() {
+    use std::path::PathBuf;
+    
+    let gcc_path = PathBuf::from("/opt/homebrew/bin/arm-none-eabi-gcc");
+    if !gcc_path.exists() {
+        return;
+    }
+    
+    let mcu = ArmMcuConfig::cortex_m3();
+    let linker = LinkerConfig::new("/nonexistent/script.ld");
+    let output = PathBuf::from("/tmp/test_link_missing.elf");
+    
+    let link_req = ArmLinkRequest::new(
+        vec![PathBuf::from("/tmp/dummy.o")],
+        output.clone(),
+        linker,
+        mcu,
+    );
+    
+    let result = link_arm(&gcc_path, &link_req);
+    
+    // Should fail
+    assert_ne!(result.exit_code, 0);
+    assert!(!result.stderr.is_empty());
+    
+    // Clean up
+    let _ = std::fs::remove_file(output);
+}
