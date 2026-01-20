@@ -34,10 +34,10 @@ pub fn terminal_create(state: State<AppState>, app: AppHandle) -> Result<Session
     logging::info("terminal", "Creating new PTY session");
     let mut manager = state.terminal_manager.lock().map_err(|e| e.to_string())?;
     let id = manager.create_session().map_err(|e| {
-        logging::error("terminal", &format!("Failed to create session: {}", e));
+        logging::error("terminal", format!("Failed to create session: {}", e));
         e.to_string()
     })?;
-    logging::info("terminal", &format!("PTY session {} created", id));
+    logging::info("terminal", format!("PTY session {} created", id));
     
     // Start reader thread for this session
     // Uses poll() with timeout - efficient waiting in kernel, can still be stopped
@@ -83,7 +83,7 @@ pub fn terminal_create(state: State<AppState>, app: AppHandle) -> Result<Session
                     
                     if (pollfd.revents & (libc::POLLHUP | libc::POLLERR)) != 0 {
                         // PTY closed
-                        logging::info("terminal", &format!("PTY hangup on session {}", id));
+                        logging::info("terminal", format!("PTY hangup on session {}", id));
                         break;
                     }
                     

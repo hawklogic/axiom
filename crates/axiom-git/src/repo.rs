@@ -161,7 +161,7 @@ impl Repository {
         let analysis = self.inner.merge_analysis(&[&fetch_commit])?;
         
         if analysis.0.is_up_to_date() {
-            return Ok(());
+            Ok(())
         } else if analysis.0.is_fast_forward() {
             let refname = format!("refs/heads/{}", branch_name);
             let mut reference = self.inner.find_reference(&refname)?;

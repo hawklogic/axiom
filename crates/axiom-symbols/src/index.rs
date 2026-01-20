@@ -50,7 +50,7 @@ impl SymbolIndex {
             .collect();
 
         // Deterministic sort: by kind order, then alphabetically
-        matches.sort_by(|a, b| a.cmp(b));
+        matches.sort();
 
         matches
     }

@@ -20,14 +20,23 @@
 //! used in any compliance-related functionality.
 
 pub mod coverage;
+pub mod error;
 pub mod modes;
+pub mod tool_qualification;
 pub mod traceability;
 
 pub use coverage::{
     build_coverage_flags, calculate_branch_coverage, calculate_statement_coverage,
     generate_coverage_report, parse_gcov_output, CoverageReport, FileCoverage,
 };
-pub use modes::{ComplianceMode, ComplianceSystem};
+pub use error::{ComplianceError, Result};
+pub use modes::{
+    detect_deviations, ComplianceMode, ComplianceRequirements, ComplianceSnapshot,
+    ComplianceSystem, Deviation, DeviationReport,
+};
+pub use tool_qualification::{
+    compute_sha256, ToolQualificationError, ToolQualificationLogger, ToolUsageRecord,
+};
 pub use traceability::{
     export_matrix_csv, find_untested_requirements, find_untraceable_functions,
     generate_traceability_matrix, parse_requirement_annotations, parse_test_annotations,

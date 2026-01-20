@@ -26,7 +26,7 @@ pub struct DirEntry {
 /// Read directory contents.
 #[tauri::command]
 pub fn read_dir(path: String) -> Result<Vec<DirEntry>, String> {
-    logging::debug("fs", &format!("read_dir: {}", path));
+    logging::debug("fs", format!("read_dir: {}", path));
     let path = Path::new(&path);
 
     if !path.exists() {
@@ -67,30 +67,30 @@ pub fn read_dir(path: String) -> Result<Vec<DirEntry>, String> {
         }
     });
 
-    logging::debug("fs", &format!("read_dir: {} entries", entries.len()));
+    logging::debug("fs", format!("read_dir: {} entries", entries.len()));
     Ok(entries)
 }
 
 /// Read file contents.
 #[tauri::command]
 pub fn read_file(path: String) -> Result<String, String> {
-    logging::info("fs", &format!("read_file: {}", path));
+    logging::info("fs", format!("read_file: {}", path));
     let result = fs::read_to_string(&path).map_err(|e| {
-        logging::error("fs", &format!("read_file failed: {}", e));
+        logging::error("fs", format!("read_file failed: {}", e));
         e.to_string()
     })?;
-    logging::debug("fs", &format!("read_file: {} bytes", result.len()));
+    logging::debug("fs", format!("read_file: {} bytes", result.len()));
     Ok(result)
 }
 
 /// Write file contents.
 #[tauri::command]
 pub fn write_file(path: String, contents: String) -> Result<(), String> {
-    logging::info("fs", &format!("write_file: {}", path));
+    logging::info("fs", format!("write_file: {}", path));
     fs::write(&path, &contents).map_err(|e| {
-        logging::error("fs", &format!("write_file failed: {}", e));
+        logging::error("fs", format!("write_file failed: {}", e));
         e.to_string()
     })?;
-    logging::debug("fs", &format!("write_file: {} bytes written", contents.len()));
+    logging::debug("fs", format!("write_file: {} bytes written", contents.len()));
     Ok(())
 }

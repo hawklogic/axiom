@@ -3,6 +3,8 @@
 
 //! Tauri command handlers.
 
+pub mod arm_toolchain;
+pub mod compliance;
 pub mod fs;
 pub mod git;
 pub mod parser;

@@ -2,6 +2,43 @@
 // Copyright 2024 HawkLogic Systems
 
 //! Toolchain detection from known paths.
+//!
+//! This module provides automatic detection of various toolchains installed on the system.
+//! It searches common installation locations and validates toolchain completeness.
+//!
+//! # Supported Toolchains
+//!
+//! - **Clang**: Searches `/usr/bin`, Homebrew paths, and Xcode Command Line Tools
+//! - **GCC**: Searches system paths and Homebrew installations
+//! - **ARM GCC**: Searches Homebrew, STM32CubeIDE, and standard ARM toolchain locations
+//! - **Python**: Searches system Python3 installations
+//!
+//! # ARM Toolchain Detection
+//!
+//! ARM toolchain detection is comprehensive and includes:
+//!
+//! - Glob pattern expansion for versioned STM32CubeIDE installations
+//! - Complete toolchain suite validation (gcc, g++, as, ld, objcopy, objdump, size, gdb)
+//! - Source identification (Homebrew, STM32CubeIDE, system, manual)
+//! - Version extraction and compatibility checking
+//!
+//! # Example
+//!
+//! ```no_run
+//! use axiom_toolchain::{detect_all, detect_arm_toolchains};
+//!
+//! // Detect all toolchain types
+//! let toolchains = detect_all();
+//! for tc in toolchains {
+//!     println!("Found {}: {} at {:?}", tc.kind, tc.version, tc.path);
+//! }
+//!
+//! // Detect ARM toolchains specifically
+//! let arm_suites = detect_arm_toolchains();
+//! for suite in arm_suites {
+//!     println!("ARM toolchain: {} ({:?})", suite.version, suite.source);
+//! }
+//! ```
 
 use crate::{DetectedToolchain, ToolchainKind, ArmToolchainSuite, ToolchainSource, ToolchainCompleteness};
 use std::path::{Path, PathBuf};
@@ -49,6 +86,26 @@ const PYTHON_PATHS: &[&str] = &[
 ];
 
 /// Expand glob patterns in paths and return all matching paths.
+///
+/// This function handles both literal paths and glob patterns (containing `*`, `?`, or `[`).
+/// For glob patterns, it expands them to all matching filesystem paths.
+///
+/// # Arguments
+///
+/// * `patterns` - Array of path patterns, which may include glob wildcards
+///
+/// # Returns
+///
+/// Vector of existing paths that match the patterns
+///
+/// # Example
+///
+/// ```ignore
+/// let paths = expand_glob_paths(&[
+///     "/usr/bin/gcc",
+///     "/opt/homebrew/bin/gcc-*",
+/// ]);
+/// ```
 fn expand_glob_paths(patterns: &[&str]) -> Vec<PathBuf> {
     let mut paths = Vec::new();
     
@@ -76,6 +133,22 @@ fn expand_glob_paths(patterns: &[&str]) -> Vec<PathBuf> {
 }
 
 /// Detect all available toolchains.
+///
+/// Searches for all supported toolchain types (Clang, GCC, ARM GCC, Python) in their
+/// standard installation locations. Returns the first found instance of each type.
+///
+/// # Returns
+///
+/// Vector of detected toolchains, one per type (if found)
+///
+/// # Example
+///
+/// ```no_run
+/// use axiom_toolchain::detect_all;
+///
+/// let toolchains = detect_all();
+/// println!("Found {} toolchains", toolchains.len());
+/// ```
 pub fn detect_all() -> Vec<DetectedToolchain> {
     let mut toolchains = Vec::new();
 

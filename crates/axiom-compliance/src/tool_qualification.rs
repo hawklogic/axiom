@@ -245,6 +245,7 @@ pub fn compute_sha256(path: &Path) -> Result<String> {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+    use std::fs;
 
     #[test]
     fn test_tool_usage_record_creation() {
@@ -298,5 +299,149 @@ mod tests {
 
         assert_eq!(record.diagnostics.len(), 2);
         assert_eq!(record.diagnostics[0], "warning: unused variable");
+    }
+
+    // 13.2.1: Test compute_sha256() returns 64-char hex string
+    #[test]
+    fn test_compute_sha256_returns_64_char_hex() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.txt");
+        fs::write(&file_path, b"Hello, World!").unwrap();
+
+        let checksum = compute_sha256(&file_path).unwrap();
+
+        // SHA-256 produces 32 bytes = 64 hex characters
+        assert_eq!(checksum.len(), 64);
+        // Verify it's all hex characters
+        assert!(checksum.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    // 13.2.2: Test compute_sha256() same content produces same hash
+    #[test]
+    fn test_compute_sha256_deterministic() {
+        let temp_dir = TempDir::new().unwrap();
+        let file1 = temp_dir.path().join("file1.txt");
+        let file2 = temp_dir.path().join("file2.txt");
+
+        let content = b"This is test content for checksumming";
+        fs::write(&file1, content).unwrap();
+        fs::write(&file2, content).unwrap();
+
+        let checksum1 = compute_sha256(&file1).unwrap();
+        let checksum2 = compute_sha256(&file2).unwrap();
+
+        assert_eq!(checksum1, checksum2);
+    }
+
+    // 13.2.3: Test ToolUsageRecord serialization roundtrip
+    #[test]
+    fn test_tool_usage_record_serialization_roundtrip() {
+        let mut record = ToolUsageRecord::new(
+            "arm-none-eabi-gcc".to_string(),
+            "14.3.1".to_string(),
+            vec!["-c".to_string(), "-O2".to_string(), "main.c".to_string()],
+            0,
+        );
+
+        record.add_input_checksum(
+            PathBuf::from("main.c"),
+            "abc123def456".to_string(),
+        );
+        record.add_output_checksum(
+            PathBuf::from("main.o"),
+            "789ghi012jkl".to_string(),
+        );
+        record.add_diagnostic("warning: unused variable 'x'".to_string());
+
+        // Serialize to JSON
+        let json = serde_json::to_string(&record).unwrap();
+
+        // Deserialize back
+        let deserialized: ToolUsageRecord = serde_json::from_str(&json).unwrap();
+
+        // Verify all fields match
+        assert_eq!(record.tool, deserialized.tool);
+        assert_eq!(record.version, deserialized.version);
+        assert_eq!(record.arguments, deserialized.arguments);
+        assert_eq!(record.input_checksums, deserialized.input_checksums);
+        assert_eq!(record.output_checksums, deserialized.output_checksums);
+        assert_eq!(record.exit_code, deserialized.exit_code);
+        assert_eq!(record.diagnostics, deserialized.diagnostics);
+    }
+
+    // 13.2.4: Test log() appends to file without overwriting
+    #[test]
+    fn test_log_appends_without_overwriting() {
+        let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("tool_usage.log");
+        let logger = ToolQualificationLogger::new(log_path.clone());
+
+        // Log first record
+        let record1 = ToolUsageRecord::new(
+            "gcc".to_string(),
+            "1.0".to_string(),
+            vec!["-c".to_string(), "file1.c".to_string()],
+            0,
+        );
+        logger.log(&record1).unwrap();
+
+        // Log second record
+        let record2 = ToolUsageRecord::new(
+            "gcc".to_string(),
+            "1.0".to_string(),
+            vec!["-c".to_string(), "file2.c".to_string()],
+            0,
+        );
+        logger.log(&record2).unwrap();
+
+        // Read log file and verify both records are present
+        let records = logger.get_all_records().unwrap();
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0].arguments[1], "file1.c");
+        assert_eq!(records[1].arguments[1], "file2.c");
+    }
+
+    // 13.2.5: Test get_all_records() returns all logged records
+    #[test]
+    fn test_get_all_records_returns_all() {
+        let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("tool_usage.log");
+        let logger = ToolQualificationLogger::new(log_path.clone());
+
+        // Log multiple records
+        for i in 0..5 {
+            let record = ToolUsageRecord::new(
+                "tool".to_string(),
+                "1.0".to_string(),
+                vec![format!("arg{}", i)],
+                i,
+            );
+            logger.log(&record).unwrap();
+        }
+
+        // Retrieve all records
+        let records = logger.get_all_records().unwrap();
+
+        assert_eq!(records.len(), 5);
+        for (i, record) in records.iter().enumerate() {
+            assert_eq!(record.exit_code, i as i32);
+            assert_eq!(record.arguments[0], format!("arg{}", i));
+        }
+    }
+
+    #[test]
+    fn test_get_all_records_empty_log() {
+        let temp_dir = TempDir::new().unwrap();
+        let log_path = temp_dir.path().join("nonexistent.log");
+        let logger = ToolQualificationLogger::new(log_path);
+
+        let records = logger.get_all_records().unwrap();
+        assert_eq!(records.len(), 0);
+    }
+
+    #[test]
+    fn test_compute_sha256_nonexistent_file() {
+        let result = compute_sha256(Path::new("/nonexistent/file.txt"));
+        assert!(result.is_err());
     }
 }

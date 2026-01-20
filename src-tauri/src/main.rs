@@ -20,6 +20,7 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::new())  // Register state BEFORE setup
+        .manage(commands::compliance::ComplianceState::new())  // Register compliance state
         .setup(|app| {
             // Initialize logging with app handle for event emission
             logging::init(app.handle().clone());
@@ -29,9 +30,9 @@ fn main() {
             // Log initial state
             let state = app.state::<AppState>();
             let toolchains = state.toolchains.lock().unwrap();
-            logging::info("toolchain", &format!("Detected {} toolchain(s)", toolchains.len()));
+            logging::info("toolchain", format!("Detected {} toolchain(s)", toolchains.len()));
             for tc in toolchains.iter() {
-                logging::debug("toolchain", &format!("  {:?} at {}", tc.kind, tc.path.display()));
+                logging::debug("toolchain", format!("  {:?} at {}", tc.kind, tc.path.display()));
             }
             drop(toolchains);
             
@@ -111,14 +112,14 @@ fn main() {
                         let _ = app.emit("show-about", ());
                     }
                     "documentation" => {
-                        let _ = tauri::async_runtime::spawn(async {
+                        std::mem::drop(tauri::async_runtime::spawn(async {
                             let _ = open::that("https://github.com/hawklogic/axiom");
-                        });
+                        }));
                     }
                     "report-issue" => {
-                        let _ = tauri::async_runtime::spawn(async {
+                        std::mem::drop(tauri::async_runtime::spawn(async {
                             let _ = open::that("https://github.com/hawklogic/axiom/issues");
-                        });
+                        }));
                     }
                     _ => {}
                 }
@@ -138,6 +139,26 @@ fn main() {
             commands::toolchain::get_toolchains,
             commands::toolchain::compile_file,
             commands::toolchain::compile_dry_run,
+            // ARM Toolchain commands
+            commands::arm_toolchain::detect_arm_toolchains_cmd,
+            commands::arm_toolchain::validate_toolchain_path,
+            commands::arm_toolchain::compile_arm_cmd,
+            commands::arm_toolchain::link_arm_cmd,
+            commands::arm_toolchain::generate_binary_cmd,
+            commands::arm_toolchain::get_preprocessor_output_cmd,
+            commands::arm_toolchain::get_assembly_output_cmd,
+            commands::arm_toolchain::get_disassembly_cmd,
+            commands::arm_toolchain::get_symbol_table_cmd,
+            commands::arm_toolchain::get_section_headers_cmd,
+            commands::arm_toolchain::detect_makefile_cmd,
+            commands::arm_toolchain::run_make_cmd,
+            // Compliance commands
+            commands::compliance::enable_compliance_mode,
+            commands::compliance::disable_compliance_mode,
+            commands::compliance::get_traceability_matrix,
+            commands::compliance::get_coverage_report,
+            commands::compliance::get_compliance_status,
+            commands::compliance::generate_deviation_report,
             // Parser commands
             commands::parser::parse_file,
             commands::parser::get_ast,

@@ -388,211 +388,211 @@
 ## Task 13: Implement Tool Qualification Logger
 **Validates: Requirements 20, 22, 23**
 
-- [-] 13. Implement Tool Qualification Logger
-  - [-] 13.1 Implementation
-    - [-] 13.1.1 Create `src/tool_qualification.rs` module
-    - [ ] 13.1.2 Create `ToolUsageRecord` struct (tool, version, arguments, input_checksums, output_checksums, timestamp, exit_code, diagnostics)
-    - [ ] 13.1.3 Create `ToolQualificationLogger` struct with log_path
-    - [ ] 13.1.4 Implement `compute_sha256()` for file checksum
-    - [ ] 13.1.5 Implement `ToolQualificationLogger::new()` constructor
-    - [ ] 13.1.6 Implement `log()` method with append-only file writing
-    - [ ] 13.1.7 Implement `get_all_records()` to read log file
-    - [ ] 13.1.8 Implement JSON serialization for records
-  - [ ] 13.2 Unit Tests
-    - [ ] 13.2.1 Test `compute_sha256()` returns 64-char hex string
-    - [ ] 13.2.2 Test `compute_sha256()` same content produces same hash
-    - [ ] 13.2.3 Test `ToolUsageRecord` serialization roundtrip
-    - [ ] 13.2.4 Test `log()` appends to file without overwriting
-    - [ ] 13.2.5 Test `get_all_records()` returns all logged records
-  - [ ] 13.3 Integration Tests
-    - [ ] 13.3.1 Test log multiple tool invocations
-    - [ ] 13.3.2 Test records contain correct checksums for input files
-  - [ ] 13.4 Property-Based Test
-    - [ ] 13.4.1 Write P7: All logged invocations are retrievable with correct data
-  - [ ] 13.5 Verification Gate
-    - [ ] 13.5.1 Run `cargo test -p axiom-compliance` - ALL MUST PASS
-    - [ ] 13.5.2 Run `cargo clippy -p axiom-compliance` - NO WARNINGS
-    - [ ] 13.5.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 13. Implement Tool Qualification Logger
+  - [x] 13.1 Implementation
+    - [x] 13.1.1 Create `src/tool_qualification.rs` module
+    - [x] 13.1.2 Create `ToolUsageRecord` struct (tool, version, arguments, input_checksums, output_checksums, timestamp, exit_code, diagnostics)
+    - [x] 13.1.3 Create `ToolQualificationLogger` struct with log_path
+    - [x] 13.1.4 Implement `compute_sha256()` for file checksum
+    - [x] 13.1.5 Implement `ToolQualificationLogger::new()` constructor
+    - [x] 13.1.6 Implement `log()` method with append-only file writing
+    - [x] 13.1.7 Implement `get_all_records()` to read log file
+    - [x] 13.1.8 Implement JSON serialization for records
+  - [x] 13.2 Unit Tests
+    - [x] 13.2.1 Test `compute_sha256()` returns 64-char hex string
+    - [x] 13.2.2 Test `compute_sha256()` same content produces same hash
+    - [x] 13.2.3 Test `ToolUsageRecord` serialization roundtrip
+    - [x] 13.2.4 Test `log()` appends to file without overwriting
+    - [x] 13.2.5 Test `get_all_records()` returns all logged records
+  - [x] 13.3 Integration Tests
+    - [x] 13.3.1 Test log multiple tool invocations
+    - [x] 13.3.2 Test records contain correct checksums for input files
+  - [x] 13.4 Property-Based Test
+    - [x] 13.4.1 Write P7: All logged invocations are retrievable with correct data
+  - [x] 13.5 Verification Gate
+    - [x] 13.5.1 Run `cargo test -p axiom-compliance` - ALL MUST PASS
+    - [x] 13.5.2 Run `cargo clippy -p axiom-compliance` - NO WARNINGS
+    - [x] 13.5.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 14: Implement Compliance Mode Management
 **Validates: Requirement 27**
 
-- [~] 14. Implement Compliance Mode Management
-  - [ ] 14.1 Implementation
-    - [ ] 14.1.1 Extend `ComplianceSystem` with data preservation on disable
-    - [ ] 14.1.2 Implement `disable_mode()` that preserves collected data
-    - [ ] 14.1.3 Implement `DeviationReport` struct for re-enablement analysis
-    - [ ] 14.1.4 Implement deviation detection (new code, modified code, broken links)
-    - [ ] 14.1.5 Implement `generate_deviation_report()` on mode re-enable
-    - [ ] 14.1.6 Implement union enforcement when multiple modes active
-  - [ ] 14.2 Unit Tests
-    - [ ] 14.2.1 Test disable mode preserves data
-    - [ ] 14.2.2 Test re-enable mode triggers deviation analysis
-    - [ ] 14.2.3 Test multiple modes can be active simultaneously
-    - [ ] 14.2.4 Test union enforcement applies strictest requirements
-  - [ ] 14.3 Property-Based Test
-    - [ ] 14.3.1 Write P8: Data survives mode disable/re-enable cycle
-  - [ ] 14.4 Verification Gate
-    - [ ] 14.4.1 Run `cargo test -p axiom-compliance` - ALL MUST PASS
-    - [ ] 14.4.2 Run `cargo clippy -p axiom-compliance` - NO WARNINGS
-    - [ ] 14.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 14. Implement Compliance Mode Management
+  - [x] 14.1 Implementation
+    - [x] 14.1.1 Extend `ComplianceSystem` with data preservation on disable
+    - [x] 14.1.2 Implement `disable_mode()` that preserves collected data
+    - [x] 14.1.3 Implement `DeviationReport` struct for re-enablement analysis
+    - [x] 14.1.4 Implement deviation detection (new code, modified code, broken links)
+    - [x] 14.1.5 Implement `generate_deviation_report()` on mode re-enable
+    - [x] 14.1.6 Implement union enforcement when multiple modes active
+  - [x] 14.2 Unit Tests
+    - [x] 14.2.1 Test disable mode preserves data
+    - [x] 14.2.2 Test re-enable mode triggers deviation analysis
+    - [x] 14.2.3 Test multiple modes can be active simultaneously
+    - [x] 14.2.4 Test union enforcement applies strictest requirements
+  - [x] 14.3 Property-Based Test
+    - [x] 14.3.1 Write P8: Data survives mode disable/re-enable cycle
+  - [x] 14.4 Verification Gate
+    - [x] 14.4.1 Run `cargo test -p axiom-compliance` - ALL MUST PASS
+    - [x] 14.4.2 Run `cargo clippy -p axiom-compliance` - NO WARNINGS
+    - [x] 14.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 15: Add Tauri Commands for ARM Toolchain
 **Validates: Requirement 9**
 
-- [~] 15. Add Tauri Commands for ARM Toolchain
-  - [ ] 15.1 Implementation
-    - [ ] 15.1.1 Create `src-tauri/src/commands/arm_toolchain.rs` module
-    - [ ] 15.1.2 Implement `detect_arm_toolchains` command
-    - [ ] 15.1.3 Implement `validate_toolchain_path` command
-    - [ ] 15.1.4 Implement `compile_arm` command
-    - [ ] 15.1.5 Implement `link_arm` command
-    - [ ] 15.1.6 Implement `generate_binary` command
-    - [ ] 15.1.7 Implement `get_preprocessor_output` command
-    - [ ] 15.1.8 Implement `get_assembly_output` command
-    - [ ] 15.1.9 Implement `get_disassembly` command
-    - [ ] 15.1.10 Implement `detect_makefile` command
-    - [ ] 15.1.11 Implement `run_make` command
-    - [ ] 15.1.12 Register all commands in main.rs
-  - [ ] 15.2 Unit Tests
-    - [ ] 15.2.1 Test command registration compiles without errors
-  - [ ] 15.3 Verification Gate
-    - [ ] 15.3.1 Run `cargo build -p axiom` - MUST COMPILE
-    - [ ] 15.3.2 Run `cargo clippy -p axiom` - NO WARNINGS
-    - [ ] 15.3.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 15. Add Tauri Commands for ARM Toolchain
+  - [x] 15.1 Implementation
+    - [x] 15.1.1 Create `src-tauri/src/commands/arm_toolchain.rs` module
+    - [x] 15.1.2 Implement `detect_arm_toolchains` command
+    - [x] 15.1.3 Implement `validate_toolchain_path` command
+    - [x] 15.1.4 Implement `compile_arm` command
+    - [x] 15.1.5 Implement `link_arm` command
+    - [x] 15.1.6 Implement `generate_binary` command
+    - [x] 15.1.7 Implement `get_preprocessor_output` command
+    - [x] 15.1.8 Implement `get_assembly_output` command
+    - [x] 15.1.9 Implement `get_disassembly` command
+    - [x] 15.1.10 Implement `detect_makefile` command
+    - [x] 15.1.11 Implement `run_make` command
+    - [x] 15.1.12 Register all commands in main.rs
+  - [x] 15.2 Unit Tests
+    - [x] 15.2.1 Test command registration compiles without errors
+  - [x] 15.3 Verification Gate
+    - [x] 15.3.1 Run `cargo build -p axiom` - MUST COMPILE
+    - [x] 15.3.2 Run `cargo clippy -p axiom` - NO WARNINGS
+    - [x] 15.3.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 16: Add Tauri Commands for Compliance
 **Validates: Requirements 18-27**
 
-- [~] 16. Add Tauri Commands for Compliance
-  - [ ] 16.1 Implementation
-    - [ ] 16.1.1 Create `src-tauri/src/commands/compliance.rs` module
-    - [ ] 16.1.2 Implement `enable_compliance_mode` command
-    - [ ] 16.1.3 Implement `disable_compliance_mode` command
-    - [ ] 16.1.4 Implement `get_traceability_matrix` command
-    - [ ] 16.1.5 Implement `get_coverage_report` command
-    - [ ] 16.1.6 Implement `get_compliance_status` command
-    - [ ] 16.1.7 Register all commands in main.rs
-  - [ ] 16.2 Verification Gate
-    - [ ] 16.2.1 Run `cargo build -p axiom` - MUST COMPILE
-    - [ ] 16.2.2 Run `cargo clippy -p axiom` - NO WARNINGS
-    - [ ] 16.2.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 16. Add Tauri Commands for Compliance
+  - [x] 16.1 Implementation
+    - [x] 16.1.1 Create `src-tauri/src/commands/compliance.rs` module
+    - [x] 16.1.2 Implement `enable_compliance_mode` command
+    - [x] 16.1.3 Implement `disable_compliance_mode` command
+    - [x] 16.1.4 Implement `get_traceability_matrix` command
+    - [x] 16.1.5 Implement `get_coverage_report` command
+    - [x] 16.1.6 Implement `get_compliance_status` command
+    - [x] 16.1.7 Register all commands in main.rs
+  - [x] 16.2 Verification Gate
+    - [x] 16.2.1 Run `cargo build -p axiom` - MUST COMPILE
+    - [x] 16.2.2 Run `cargo clippy -p axiom` - NO WARNINGS
+    - [x] 16.2.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 17: Create Frontend ARM Toolchain Store
 **Validates: Requirement 16**
 
-- [~] 17. Create Frontend ARM Toolchain Store
-  - [ ] 17.1 Implementation
-    - [ ] 17.1.1 Create `src/lib/stores/armToolchain.ts`
-    - [ ] 17.1.2 Define TypeScript interfaces for ArmToolchainSuite, ArmMcuConfig, etc.
-    - [ ] 17.1.3 Create writable store for detected toolchains
-    - [ ] 17.1.4 Create writable store for selected toolchain
-    - [ ] 17.1.5 Create writable store for MCU configuration
-    - [ ] 17.1.6 Implement `detectToolchains()` action calling Tauri command
-    - [ ] 17.1.7 Implement `selectToolchain()` action
-    - [ ] 17.1.8 Implement `compile()` action
-    - [ ] 17.1.9 Export store from `src/lib/stores/index.ts`
-  - [ ] 17.2 Verification Gate
-    - [ ] 17.2.1 Run `npm run check` - NO TYPE ERRORS
-    - [ ] 17.2.2 Run `npm run lint` - NO LINT ERRORS
+- [x] 17. Create Frontend ARM Toolchain Store
+  - [x] 17.1 Implementation
+    - [x] 17.1.1 Create `src/lib/stores/armToolchain.ts`
+    - [x] 17.1.2 Define TypeScript interfaces for ArmToolchainSuite, ArmMcuConfig, etc.
+    - [x] 17.1.3 Create writable store for detected toolchains
+    - [x] 17.1.4 Create writable store for selected toolchain
+    - [x] 17.1.5 Create writable store for MCU configuration
+    - [x] 17.1.6 Implement `detectToolchains()` action calling Tauri command
+    - [x] 17.1.7 Implement `selectToolchain()` action
+    - [x] 17.1.8 Implement `compile()` action
+    - [x] 17.1.9 Export store from `src/lib/stores/index.ts`
+  - [x] 17.2 Verification Gate
+    - [x] 17.2.1 Run `npm run check` - NO TYPE ERRORS
+    - [x] 17.2.2 Run `npm run lint` - NO LINT ERRORS
 
 ---
 
 ## Task 18: Create Frontend Compliance Store
 **Validates: Requirements 18-27**
 
-- [ ] 18. Create Frontend Compliance Store
-  - [ ] 18.1 Implementation
-    - [ ] 18.1.1 Create `src/lib/stores/compliance.ts`
-    - [ ] 18.1.2 Define TypeScript interfaces for ComplianceMode, TraceabilityMatrix, CoverageReport
-    - [ ] 18.1.3 Create writable store for compliance mode states
-    - [ ] 18.1.4 Create writable store for traceability matrix
-    - [ ] 18.1.5 Create writable store for coverage report
-    - [ ] 18.1.6 Implement `toggleComplianceMode()` action
-    - [ ] 18.1.7 Implement `refreshTraceability()` action
-    - [ ] 18.1.8 Implement `refreshCoverage()` action
-    - [ ] 18.1.9 Export store from `src/lib/stores/index.ts`
-  - [ ] 18.2 Verification Gate
-    - [ ] 18.2.1 Run `npm run check` - NO TYPE ERRORS
-    - [ ] 18.2.2 Run `npm run lint` - NO LINT ERRORS
+- [x] 18. Create Frontend Compliance Store
+  - [x] 18.1 Implementation
+    - [x] 18.1.1 Create `src/lib/stores/compliance.ts`
+    - [x] 18.1.2 Define TypeScript interfaces for ComplianceMode, TraceabilityMatrix, CoverageReport
+    - [x] 18.1.3 Create writable store for compliance mode states
+    - [x] 18.1.4 Create writable store for traceability matrix
+    - [x] 18.1.5 Create writable store for coverage report
+    - [x] 18.1.6 Implement `toggleComplianceMode()` action
+    - [x] 18.1.7 Implement `refreshTraceability()` action
+    - [x] 18.1.8 Implement `refreshCoverage()` action
+    - [x] 18.1.9 Export store from `src/lib/stores/index.ts`
+  - [x] 18.2 Verification Gate
+    - [x] 18.2.1 Run `npm run check` - NO TYPE ERRORS
+    - [x] 18.2.2 Run `npm run lint` - NO LINT ERRORS
 
 ---
 
 ## Task 19: Implement Error Handling
 **Validates: Requirement 10**
 
-- [ ] 19. Implement Error Handling
-  - [ ] 19.1 Implementation
-    - [ ] 19.1.1 Create `ArmToolchainError` enum in axiom-toolchain with thiserror
-    - [ ] 19.1.2 Add `NotFound` variant with installation suggestions
-    - [ ] 19.1.3 Add `Incomplete` variant with missing tools list
-    - [ ] 19.1.4 Add `VersionTooOld` variant with version info
-    - [ ] 19.1.5 Add `LinkerScriptNotFound` variant
-    - [ ] 19.1.6 Add `MemoryOverflow` variant with region details
-    - [ ] 19.1.7 Add `CompilationFailed` variant with diagnostics
-    - [ ] 19.1.8 Create `ComplianceError` enum in axiom-compliance
-    - [ ] 19.1.9 Implement platform-specific installation suggestions
-  - [ ] 19.2 Unit Tests
-    - [ ] 19.2.1 Test error Display implementations produce helpful messages
-    - [ ] 19.2.2 Test macOS suggestion mentions Homebrew
-    - [ ] 19.2.3 Test Linux suggestion mentions apt/dnf
-    - [ ] 19.2.4 Test Windows suggestion mentions ARM Developer download
-  - [ ] 19.3 Verification Gate
-    - [ ] 19.3.1 Run `cargo test` (full workspace) - ALL MUST PASS
-    - [ ] 19.3.2 Run `cargo clippy` (full workspace) - NO WARNINGS
+- [x] 19. Implement Error Handling
+  - [x] 19.1 Implementation
+    - [x] 19.1.1 Create `ArmToolchainError` enum in axiom-toolchain with thiserror
+    - [x] 19.1.2 Add `NotFound` variant with installation suggestions
+    - [x] 19.1.3 Add `Incomplete` variant with missing tools list
+    - [x] 19.1.4 Add `VersionTooOld` variant with version info
+    - [x] 19.1.5 Add `LinkerScriptNotFound` variant
+    - [x] 19.1.6 Add `MemoryOverflow` variant with region details
+    - [x] 19.1.7 Add `CompilationFailed` variant with diagnostics
+    - [x] 19.1.8 Create `ComplianceError` enum in axiom-compliance
+    - [x] 19.1.9 Implement platform-specific installation suggestions
+  - [x] 19.2 Unit Tests
+    - [x] 19.2.1 Test error Display implementations produce helpful messages
+    - [x] 19.2.2 Test macOS suggestion mentions Homebrew
+    - [x] 19.2.3 Test Linux suggestion mentions apt/dnf
+    - [x] 19.2.4 Test Windows suggestion mentions ARM Developer download
+  - [x] 19.3 Verification Gate
+    - [x] 19.3.1 Run `cargo test` (full workspace) - ALL MUST PASS
+    - [x] 19.3.2 Run `cargo clippy` (full workspace) - NO WARNINGS
 
 ---
 
 ## Task 20: Write Property-Based Tests
 **Validates: All requirements (verification)**
 
-- [ ] 20. Write Property-Based Tests
-  - [ ] 20.1 Implementation
-    - [ ] 20.1.1 Add proptest dependency to axiom-toolchain Cargo.toml
-    - [ ] 20.1.2 Add proptest dependency to axiom-compliance Cargo.toml
-    - [ ] 20.1.3 Create arbitrary generator for ArmMcuConfig
-    - [ ] 20.1.4 Create arbitrary generator for ToolchainSettings
-    - [ ] 20.1.5 Create arbitrary generator for TraceabilityLink
-    - [ ] 20.1.6 Write P5: Version parsing extracts valid semver components
-  - [ ] 20.2 Verification Gate
-    - [ ] 20.2.1 Run all property tests - ALL MUST PASS
-    - [ ] 20.2.2 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 20. Write Property-Based Tests
+  - [x] 20.1 Implementation
+    - [x] 20.1.1 Add proptest dependency to axiom-toolchain Cargo.toml
+    - [x] 20.1.2 Add proptest dependency to axiom-compliance Cargo.toml
+    - [x] 20.1.3 Create arbitrary generator for ArmMcuConfig
+    - [x] 20.1.4 Create arbitrary generator for ToolchainSettings
+    - [x] 20.1.5 Create arbitrary generator for TraceabilityLink
+    - [x] 20.1.6 Write P5: Version parsing extracts valid semver components
+  - [x] 20.2 Verification Gate
+    - [x] 20.2.1 Run all property tests - ALL MUST PASS
+    - [x] 20.2.2 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 21: Write Edge Case Integration Tests
 **Validates: All requirements (robustness)**
 
-- [ ] 21. Write Edge Case Integration Tests
-  - [ ] 21.1 Implementation
-    - [ ] 21.1.1 Write `test_empty_source_file` - compiles empty file
-    - [ ] 21.1.2 Write `test_unicode_in_comments` - handles unicode
-    - [ ] 21.1.3 Write `test_very_long_lines` - handles long lines
-    - [ ] 21.1.4 Write `test_deeply_nested_includes` - handles include depth
-    - [ ] 21.1.5 Write `test_inline_assembly` - compiles ARM asm
-    - [ ] 21.1.6 Write `test_preprocessor_heavy_macros` - handles macros
-    - [ ] 21.1.7 Write `test_invalid_mcu_config` - rejects invalid CPU
-    - [ ] 21.1.8 Write `test_circular_includes` - handles circular deps
-  - [ ] 21.2 Verification Gate
-    - [ ] 21.2.1 Run all edge case tests - ALL MUST PASS
-    - [ ] 21.2.2 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 21. Write Edge Case Integration Tests
+  - [x] 21.1 Implementation
+    - [x] 21.1.1 Write `test_empty_source_file` - compiles empty file
+    - [x] 21.1.2 Write `test_unicode_in_comments` - handles unicode
+    - [x] 21.1.3 Write `test_very_long_lines` - handles long lines
+    - [x] 21.1.4 Write `test_deeply_nested_includes` - handles include depth
+    - [x] 21.1.5 Write `test_inline_assembly` - compiles ARM asm
+    - [x] 21.1.6 Write `test_preprocessor_heavy_macros` - handles macros
+    - [x] 21.1.7 Write `test_invalid_mcu_config` - rejects invalid CPU
+    - [x] 21.1.8 Write `test_circular_includes` - handles circular deps
+  - [x] 21.2 Verification Gate
+    - [x] 21.2.1 Run all edge case tests - ALL MUST PASS
+    - [x] 21.2.2 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 22: Documentation and Final Verification
 **Validates: All requirements (completeness)**
 
-- [ ] 22. Documentation and Final Verification
-  - [ ] 22.1 Implementation
-    - [ ] 22.1.1 Add rustdoc comments to all public APIs in axiom-toolchain
+- [-] 22. Documentation and Final Verification
+  - [-] 22.1 Implementation
+    - [-] 22.1.1 Add rustdoc comments to all public APIs in axiom-toolchain
     - [ ] 22.1.2 Add rustdoc comments to all public APIs in axiom-compliance
     - [ ] 22.1.3 Update README.md with ARM toolchain usage examples
     - [ ] 22.1.4 Add example .axiom/toolchain.toml to docs
