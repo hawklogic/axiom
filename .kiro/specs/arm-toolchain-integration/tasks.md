@@ -209,41 +209,41 @@
 ## Task 7: Implement Compiler Stage Visualizer
 **Validates: Requirement 17**
 
-- [-] 7. Implement Compiler Stage Visualizer
-  - [ ] 7.1 Implementation
-    - [ ] 7.1.1 Create `crates/axiom-toolchain/src/visualizer.rs` module
-    - [ ] 7.1.2 Add module to lib.rs exports
-    - [ ] 7.1.3 Implement `build_preprocessor_flags()` returning -E flag
-    - [ ] 7.1.4 Implement `get_preprocessor_output()` function
-    - [ ] 7.1.5 Implement `build_assembly_flags()` returning -S flag
-    - [ ] 7.1.6 Implement `get_assembly_output()` function
-    - [ ] 7.1.7 Implement `build_disassembly_flags()` returning objdump -d
-    - [ ] 7.1.8 Implement `get_disassembly()` function
-    - [ ] 7.1.9 Implement `build_symbol_table_flags()` returning objdump -t
-    - [ ] 7.1.10 Implement `get_symbol_table()` function
-    - [ ] 7.1.11 Implement `build_section_headers_flags()` returning objdump -h
-    - [ ] 7.1.12 Implement `get_section_headers()` function
-  - [ ] 7.2 Unit Tests
-    - [ ] 7.2.1 Test `build_preprocessor_flags()` contains -E
-    - [ ] 7.2.2 Test `build_assembly_flags()` contains -S
-    - [ ] 7.2.3 Test `build_disassembly_flags()` contains -d
-    - [ ] 7.2.4 Test `build_symbol_table_flags()` contains -t
-    - [ ] 7.2.5 Test `build_section_headers_flags()` contains -h
-  - [ ] 7.3 Integration Tests
-    - [ ] 7.3.1 Test preprocessor output for gpio.c (if headers available)
-    - [ ] 7.3.2 Test assembly output for inline_assembly.c contains ARM instructions
-    - [ ] 7.3.3 Test disassembly of compiled object file
-  - [ ] 7.4 Verification Gate
-    - [ ] 7.4.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
-    - [ ] 7.4.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
-    - [ ] 7.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 7. Implement Compiler Stage Visualizer
+  - [x] 7.1 Implementation
+    - [x] 7.1.1 Create `crates/axiom-toolchain/src/visualizer.rs` module
+    - [x] 7.1.2 Add module to lib.rs exports
+    - [x] 7.1.3 Implement `build_preprocessor_flags()` returning -E flag
+    - [x] 7.1.4 Implement `get_preprocessor_output()` function
+    - [x] 7.1.5 Implement `build_assembly_flags()` returning -S flag
+    - [x] 7.1.6 Implement `get_assembly_output()` function
+    - [x] 7.1.7 Implement `build_disassembly_flags()` returning objdump -d
+    - [x] 7.1.8 Implement `get_disassembly()` function
+    - [x] 7.1.9 Implement `build_symbol_table_flags()` returning objdump -t
+    - [x] 7.1.10 Implement `get_symbol_table()` function
+    - [x] 7.1.11 Implement `build_section_headers_flags()` returning objdump -h
+    - [x] 7.1.12 Implement `get_section_headers()` function
+  - [x] 7.2 Unit Tests
+    - [x] 7.2.1 Test `build_preprocessor_flags()` contains -E
+    - [x] 7.2.2 Test `build_assembly_flags()` contains -S
+    - [x] 7.2.3 Test `build_disassembly_flags()` contains -d
+    - [x] 7.2.4 Test `build_symbol_table_flags()` contains -t
+    - [x] 7.2.5 Test `build_section_headers_flags()` contains -h
+  - [x] 7.3 Integration Tests
+    - [x] 7.3.1 Test preprocessor output for gpio.c (if headers available)
+    - [x] 7.3.2 Test assembly output for inline_assembly.c contains ARM instructions
+    - [x] 7.3.3 Test disassembly of compiled object file
+  - [x] 7.4 Verification Gate
+    - [x] 7.4.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
+    - [x] 7.4.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
+    - [x] 7.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 8: Implement Makefile Support
 **Validates: Requirement 8**
 
-- [ ] 8. Implement Makefile Support
+- [-] 8. Implement Makefile Support
   - [ ] 8.1 Implementation
     - [ ] 8.1.1 Create `crates/axiom-toolchain/src/makefile.rs` module
     - [ ] 8.1.2 Add module to lib.rs exports

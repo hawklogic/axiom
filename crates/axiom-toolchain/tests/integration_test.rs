@@ -372,3 +372,54 @@ fn test_get_disassembly_of_object() {
                 "Disassembly should contain section markers");
     }
 }
+
+#[test]
+fn test_detect_makefile_in_reference_project() {
+    use std::path::PathBuf;
+    
+    let project_path = PathBuf::from("tests/fixtures/arm-reference-project");
+    if !project_path.exists() {
+        return;
+    }
+    
+    let makefile_info = detect_makefile(&project_path);
+    assert!(makefile_info.is_some(), "Should detect Makefile in reference project");
+    
+    if let Some(info) = makefile_info {
+        assert!(!info.targets.is_empty(), "Should find targets in Makefile");
+    }
+}
+
+#[test]
+fn test_run_make_clean() {
+    use std::path::PathBuf;
+    
+    let project_path = PathBuf::from("tests/fixtures/arm-reference-project");
+    if !project_path.exists() {
+        return;
+    }
+    
+    // Run make clean (should always succeed even if nothing to clean)
+    let result = run_make(&project_path, "clean", None);
+    
+    // Exit code 0 or 2 (no rule) are both acceptable
+    assert!(result.exit_code == 0 || result.exit_code == 2,
+            "Make clean should succeed or report no rule");
+}
+
+#[test]
+fn test_run_make_invalid_target() {
+    use std::path::PathBuf;
+    
+    let project_path = PathBuf::from("tests/fixtures/arm-reference-project");
+    if !project_path.exists() {
+        return;
+    }
+    
+    // Run make with invalid target
+    let result = run_make(&project_path, "nonexistent_target_xyz", None);
+    
+    // Should fail or report no rule
+    assert!(result.exit_code != 0 || result.stderr.contains("No rule"),
+            "Invalid target should fail or report no rule");
+}
