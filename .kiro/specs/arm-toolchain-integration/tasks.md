@@ -177,7 +177,7 @@
 ## Task 6: Implement Binary Generation Module
 **Validates: Requirement 5**
 
-- [-] 6. Implement Binary Generation Module
+- [x] 6. Implement Binary Generation Module
   - [x] 6.1 Implementation
     - [x] 6.1.1 Create `crates/axiom-toolchain/src/binary_gen.rs` module
     - [x] 6.1.2 Add module to lib.rs exports
@@ -190,16 +190,16 @@
     - [x] 6.1.9 Implement `generate_bin()` function
     - [x] 6.1.10 Implement `parse_size_output()` to extract text/data/bss
     - [x] 6.1.11 Implement `get_size_stats()` function
-  - [ ] 6.2 Unit Tests
+  - [x] 6.2 Unit Tests
     - [x] 6.2.1 Test `build_objcopy_hex_command()` includes -O ihex
     - [x] 6.2.2 Test `build_objcopy_bin_command()` includes -O binary
     - [x] 6.2.3 Test `parse_size_output()` extracts correct values from arm-none-eabi-size output
     - [x] 6.2.4 Test `parse_size_output()` handles malformed output gracefully
-  - [ ] 6.3 Integration Tests
+  - [x] 6.3 Integration Tests
     - [x] 6.3.1 Test generate HEX from valid ELF (requires building reference project first)
     - [x] 6.3.2 Test generate BIN from valid ELF
     - [x] 6.3.3 Test size stats extraction from valid ELF
-  - [ ] 6.4 Verification Gate
+  - [x] 6.4 Verification Gate
     - [x] 6.4.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
     - [x] 6.4.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
     - [x] 6.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
@@ -209,7 +209,7 @@
 ## Task 7: Implement Compiler Stage Visualizer
 **Validates: Requirement 17**
 
-- [ ] 7. Implement Compiler Stage Visualizer
+- [-] 7. Implement Compiler Stage Visualizer
   - [ ] 7.1 Implementation
     - [ ] 7.1.1 Create `crates/axiom-toolchain/src/visualizer.rs` module
     - [ ] 7.1.2 Add module to lib.rs exports

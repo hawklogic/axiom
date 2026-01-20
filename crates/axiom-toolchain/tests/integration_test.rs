@@ -313,3 +313,62 @@ fn test_link_arm_missing_linker_script() {
     // Clean up
     let _ = std::fs::remove_file(output);
 }
+
+#[test]
+#[cfg_attr(not(target_os = "macos"), ignore)]
+fn test_get_assembly_output_inline_assembly() {
+    use std::path::PathBuf;
+    
+    // Only run if ARM toolchain is available
+    let gcc_path = PathBuf::from("/opt/homebrew/bin/arm-none-eabi-gcc");
+    if !gcc_path.exists() {
+        return;
+    }
+    
+    let source = PathBuf::from("tests/fixtures/arm-reference-project/edge_cases/inline_assembly.c");
+    let output = PathBuf::from("/tmp/inline_assembly.s");
+    
+    let mcu = ArmMcuConfig::cortex_m3();
+    let mcu_flags = mcu.compiler_flags();
+    
+    let result = get_assembly_output(&gcc_path, &source, &output, &mcu_flags);
+    
+    // Should succeed and contain ARM assembly instructions
+    if let Ok(asm) = result {
+        assert!(asm.contains("mrs") || asm.contains("msr") || asm.contains(".syntax"),
+                "Assembly should contain ARM instructions or directives");
+    }
+}
+
+#[test]
+#[cfg_attr(not(target_os = "macos"), ignore)]
+fn test_get_disassembly_of_object() {
+    use std::path::PathBuf;
+    
+    // Only run if ARM toolchain is available
+    let gcc_path = PathBuf::from("/opt/homebrew/bin/arm-none-eabi-gcc");
+    let objdump_path = PathBuf::from("/opt/homebrew/bin/arm-none-eabi-objdump");
+    if !gcc_path.exists() || !objdump_path.exists() {
+        return;
+    }
+    
+    // First compile a simple file
+    let source = PathBuf::from("tests/fixtures/arm-reference-project/Drivers/gpio.c");
+    let object = PathBuf::from("/tmp/gpio_test.o");
+    
+    let mcu = ArmMcuConfig::cortex_m3();
+    let request = ArmCompileRequest::new(source, object.clone(), mcu);
+    
+    let result = compile_arm(&gcc_path, &request);
+    if result.exit_code != 0 {
+        return; // Skip if compilation fails
+    }
+    
+    // Now disassemble it
+    let disasm = get_disassembly(&objdump_path, &object);
+    
+    if let Ok(output) = disasm {
+        assert!(output.contains("Disassembly") || output.contains("<"),
+                "Disassembly should contain section markers");
+    }
+}

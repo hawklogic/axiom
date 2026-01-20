@@ -10,9 +10,11 @@ mod binary_gen;
 mod detection;
 mod invocation;
 mod types;
+mod visualizer;
 
 pub use arm_mcu::*;
 pub use binary_gen::*;
 pub use detection::*;
 pub use invocation::*;
 pub use types::*;
+pub use visualizer::*;
