@@ -61,7 +61,7 @@ pub struct BinaryResult {
 
 /// Build objcopy command for HEX generation.
 pub fn build_objcopy_hex_command(
-    objcopy_path: &Path,
+    _objcopy_path: &Path,
     elf_path: &Path,
     hex_path: &Path,
 ) -> Vec<String> {
@@ -75,7 +75,7 @@ pub fn build_objcopy_hex_command(
 
 /// Build objcopy command for binary generation.
 pub fn build_objcopy_bin_command(
-    objcopy_path: &Path,
+    _objcopy_path: &Path,
     elf_path: &Path,
     bin_path: &Path,
 ) -> Vec<String> {

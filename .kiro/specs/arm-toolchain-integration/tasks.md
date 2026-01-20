@@ -178,31 +178,31 @@
 **Validates: Requirement 5**
 
 - [-] 6. Implement Binary Generation Module
-  - [-] 6.1 Implementation
-    - [ ] 6.1.1 Create `crates/axiom-toolchain/src/binary_gen.rs` module
-    - [ ] 6.1.2 Add module to lib.rs exports
-    - [ ] 6.1.3 Create `BinaryOutputConfig` struct (hex, bin, size_report)
-    - [ ] 6.1.4 Create `BinaryResult` struct (hex_path, bin_path, size_stats)
-    - [ ] 6.1.5 Create `SizeStats` struct (text, data, bss, total)
-    - [ ] 6.1.6 Implement `build_objcopy_hex_command()` with -O ihex
-    - [ ] 6.1.7 Implement `build_objcopy_bin_command()` with -O binary
-    - [ ] 6.1.8 Implement `generate_hex()` function
-    - [ ] 6.1.9 Implement `generate_bin()` function
-    - [ ] 6.1.10 Implement `parse_size_output()` to extract text/data/bss
-    - [ ] 6.1.11 Implement `get_size_stats()` function
+  - [x] 6.1 Implementation
+    - [x] 6.1.1 Create `crates/axiom-toolchain/src/binary_gen.rs` module
+    - [x] 6.1.2 Add module to lib.rs exports
+    - [x] 6.1.3 Create `BinaryOutputConfig` struct (hex, bin, size_report)
+    - [x] 6.1.4 Create `BinaryResult` struct (hex_path, bin_path, size_stats)
+    - [x] 6.1.5 Create `SizeStats` struct (text, data, bss, total)
+    - [x] 6.1.6 Implement `build_objcopy_hex_command()` with -O ihex
+    - [x] 6.1.7 Implement `build_objcopy_bin_command()` with -O binary
+    - [x] 6.1.8 Implement `generate_hex()` function
+    - [x] 6.1.9 Implement `generate_bin()` function
+    - [x] 6.1.10 Implement `parse_size_output()` to extract text/data/bss
+    - [x] 6.1.11 Implement `get_size_stats()` function
   - [ ] 6.2 Unit Tests
-    - [ ] 6.2.1 Test `build_objcopy_hex_command()` includes -O ihex
-    - [ ] 6.2.2 Test `build_objcopy_bin_command()` includes -O binary
-    - [ ] 6.2.3 Test `parse_size_output()` extracts correct values from arm-none-eabi-size output
-    - [ ] 6.2.4 Test `parse_size_output()` handles malformed output gracefully
+    - [x] 6.2.1 Test `build_objcopy_hex_command()` includes -O ihex
+    - [x] 6.2.2 Test `build_objcopy_bin_command()` includes -O binary
+    - [x] 6.2.3 Test `parse_size_output()` extracts correct values from arm-none-eabi-size output
+    - [x] 6.2.4 Test `parse_size_output()` handles malformed output gracefully
   - [ ] 6.3 Integration Tests
-    - [ ] 6.3.1 Test generate HEX from valid ELF (requires building reference project first)
-    - [ ] 6.3.2 Test generate BIN from valid ELF
-    - [ ] 6.3.3 Test size stats extraction from valid ELF
+    - [x] 6.3.1 Test generate HEX from valid ELF (requires building reference project first)
+    - [x] 6.3.2 Test generate BIN from valid ELF
+    - [x] 6.3.3 Test size stats extraction from valid ELF
   - [ ] 6.4 Verification Gate
-    - [ ] 6.4.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
-    - [ ] 6.4.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
-    - [ ] 6.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+    - [x] 6.4.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
+    - [x] 6.4.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
+    - [x] 6.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 

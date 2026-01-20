@@ -188,7 +188,7 @@ pub fn compile_arm(
 
 /// Build command arguments for ARM linking.
 pub fn build_arm_link_command(
-    gcc_path: &std::path::Path,
+    _gcc_path: &std::path::Path,
     request: &crate::ArmLinkRequest,
 ) -> Vec<String> {
     let mut args = Vec::new();
