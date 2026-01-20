@@ -243,154 +243,154 @@
 ## Task 8: Implement Makefile Support
 **Validates: Requirement 8**
 
-- [-] 8. Implement Makefile Support
-  - [ ] 8.1 Implementation
-    - [ ] 8.1.1 Create `crates/axiom-toolchain/src/makefile.rs` module
-    - [ ] 8.1.2 Add module to lib.rs exports
-    - [ ] 8.1.3 Create `MakefileInfo` struct (path, targets)
-    - [ ] 8.1.4 Create `MakeResult` struct (exit_code, stdout, stderr)
-    - [ ] 8.1.5 Implement `detect_makefile()` to find Makefile in directory
-    - [ ] 8.1.6 Implement `parse_makefile_targets()` to extract .PHONY targets
-    - [ ] 8.1.7 Implement `run_make()` to execute make with target
-    - [ ] 8.1.8 Pass toolchain path as PREFIX environment variable
-  - [ ] 8.2 Unit Tests
-    - [ ] 8.2.1 Test `detect_makefile()` finds Makefile in directory
-    - [ ] 8.2.2 Test `detect_makefile()` returns None for empty directory
-    - [ ] 8.2.3 Test `parse_makefile_targets()` extracts all, clean, flash targets
-    - [ ] 8.2.4 Test `parse_makefile_targets()` handles .PHONY declaration
-  - [ ] 8.3 Integration Tests
-    - [ ] 8.3.1 Test detect Makefile in reference project
-    - [ ] 8.3.2 Test run `make clean` in reference project
-    - [ ] 8.3.3 Test run `make` with invalid target returns error
-  - [ ] 8.4 Verification Gate
-    - [ ] 8.4.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
-    - [ ] 8.4.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
-    - [ ] 8.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 8. Implement Makefile Support
+  - [x] 8.1 Implementation
+    - [x] 8.1.1 Create `crates/axiom-toolchain/src/makefile.rs` module
+    - [x] 8.1.2 Add module to lib.rs exports
+    - [x] 8.1.3 Create `MakefileInfo` struct (path, targets)
+    - [x] 8.1.4 Create `MakeResult` struct (exit_code, stdout, stderr)
+    - [x] 8.1.5 Implement `detect_makefile()` to find Makefile in directory
+    - [x] 8.1.6 Implement `parse_makefile_targets()` to extract .PHONY targets
+    - [x] 8.1.7 Implement `run_make()` to execute make with target
+    - [x] 8.1.8 Pass toolchain path as PREFIX environment variable
+  - [x] 8.2 Unit Tests
+    - [x] 8.2.1 Test `detect_makefile()` finds Makefile in directory
+    - [x] 8.2.2 Test `detect_makefile()` returns None for empty directory
+    - [x] 8.2.3 Test `parse_makefile_targets()` extracts all, clean, flash targets
+    - [x] 8.2.4 Test `parse_makefile_targets()` handles .PHONY declaration
+  - [x] 8.3 Integration Tests
+    - [x] 8.3.1 Test detect Makefile in reference project
+    - [x] 8.3.2 Test run `make clean` in reference project
+    - [x] 8.3.3 Test run `make` with invalid target returns error
+  - [x] 8.4 Verification Gate
+    - [x] 8.4.1 Run `cargo test -p axiom-toolchain` - ALL MUST PASS
+    - [x] 8.4.2 Run `cargo clippy -p axiom-toolchain` - NO WARNINGS
+    - [x] 8.4.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 9: Extend Settings Schema for ARM Toolchain
 **Validates: Requirements 13, 14, 15**
 
-- [ ] 9. Extend Settings Schema for ARM Toolchain
-  - [ ] 9.1 Implementation
-    - [ ] 9.1.1 Add `ToolchainConfig` struct to schema.rs with generic HashMap settings
-    - [ ] 9.1.2 Update `ToolchainSettings` to use `HashMap<String, ToolchainConfig>`
-    - [ ] 9.1.3 Create `ArmToolchainSettings` struct (mcu, fpu, float_abi, linker_script, include_paths, defines)
-    - [ ] 9.1.4 Add `ComplianceSettings` struct (do178c_enabled, do330_enabled, arp4754a_enabled, dal)
-    - [ ] 9.1.5 Implement `load_project_settings()` from .axiom/toolchain.toml
-    - [ ] 9.1.6 Implement `merge_settings()` with project overriding global
-    - [ ] 9.1.7 Ensure unknown toolchain types are preserved through serialization
-  - [ ] 9.2 Unit Tests
-    - [ ] 9.2.1 Test `ArmToolchainSettings` default values
-    - [ ] 9.2.2 Test settings serialization roundtrip (serialize then deserialize equals original)
-    - [ ] 9.2.3 Test unknown toolchain "riscv" preserved after roundtrip
-    - [ ] 9.2.4 Test `merge_settings()` project path overrides global path
-    - [ ] 9.2.5 Test `merge_settings()` project auto_detect overrides global
-  - [ ] 9.3 Integration Tests
-    - [ ] 9.3.1 Test load project settings from reference project .axiom/toolchain.toml
-    - [ ] 9.3.2 Test merge with global settings
-  - [ ] 9.4 Property-Based Test
-    - [ ] 9.4.1 Write P4: Any ToolchainSettings survives serialize/deserialize roundtrip unchanged
-  - [ ] 9.5 Verification Gate
-    - [ ] 9.5.1 Run `cargo test -p axiom-settings` - ALL MUST PASS
-    - [ ] 9.5.2 Run `cargo clippy -p axiom-settings` - NO WARNINGS
-    - [ ] 9.5.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 9. Extend Settings Schema for ARM Toolchain
+  - [x] 9.1 Implementation
+    - [x] 9.1.1 Add `ToolchainConfig` struct to schema.rs with generic HashMap settings
+    - [x] 9.1.2 Update `ToolchainSettings` to use `HashMap<String, ToolchainConfig>`
+    - [x] 9.1.3 Create `ArmToolchainSettings` struct (mcu, fpu, float_abi, linker_script, include_paths, defines)
+    - [x] 9.1.4 Add `ComplianceSettings` struct (do178c_enabled, do330_enabled, arp4754a_enabled, dal)
+    - [x] 9.1.5 Implement `load_project_settings()` from .axiom/toolchain.toml
+    - [x] 9.1.6 Implement `merge_settings()` with project overriding global
+    - [x] 9.1.7 Ensure unknown toolchain types are preserved through serialization
+  - [x] 9.2 Unit Tests
+    - [x] 9.2.1 Test `ArmToolchainSettings` default values
+    - [x] 9.2.2 Test settings serialization roundtrip (serialize then deserialize equals original)
+    - [x] 9.2.3 Test unknown toolchain "riscv" preserved after roundtrip
+    - [x] 9.2.4 Test `merge_settings()` project path overrides global path
+    - [x] 9.2.5 Test `merge_settings()` project auto_detect overrides global
+  - [x] 9.3 Integration Tests
+    - [x] 9.3.1 Test load project settings from reference project .axiom/toolchain.toml
+    - [x] 9.3.2 Test merge with global settings
+  - [x] 9.4 Property-Based Test
+    - [x] 9.4.1 Write P4: Any ToolchainSettings survives serialize/deserialize roundtrip unchanged
+  - [x] 9.5 Verification Gate
+    - [x] 9.5.1 Run `cargo test -p axiom-settings` - ALL MUST PASS
+    - [x] 9.5.2 Run `cargo clippy -p axiom-settings` - NO WARNINGS
+    - [x] 9.5.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 10: Create axiom-compliance Crate Structure
 **Validates: Requirements 18-28 (foundation)**
 
-- [ ] 10. Create axiom-compliance Crate Structure
-  - [ ] 10.1 Implementation
-    - [ ] 10.1.1 Create `crates/axiom-compliance/` directory
-    - [ ] 10.1.2 Create `Cargo.toml` with dependencies (serde, chrono, uuid, sha2, regex, csv, thiserror)
-    - [ ] 10.1.3 Create `src/lib.rs` with module declarations
-    - [ ] 10.1.4 Create `ComplianceMode` enum (Do178c, Do330, Arp4754a)
-    - [ ] 10.1.5 Create `src/modes.rs` with mode state management
-    - [ ] 10.1.6 Implement `ComplianceSystem` struct with mode enable/disable
-    - [ ] 10.1.7 Add axiom-compliance to workspace Cargo.toml
-  - [ ] 10.2 Unit Tests
-    - [ ] 10.2.1 Test `ComplianceMode` enum serialization
-    - [ ] 10.2.2 Test enable single mode
-    - [ ] 10.2.3 Test disable single mode
-    - [ ] 10.2.4 Test enable multiple modes simultaneously
-    - [ ] 10.2.5 Test `is_mode_enabled()` returns correct state
-  - [ ] 10.3 Verification Gate
-    - [ ] 10.3.1 Run `cargo test -p axiom-compliance` - ALL MUST PASS
-    - [ ] 10.3.2 Run `cargo clippy -p axiom-compliance` - NO WARNINGS
-    - [ ] 10.3.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 10. Create axiom-compliance Crate Structure
+  - [x] 10.1 Implementation
+    - [x] 10.1.1 Create `crates/axiom-compliance/` directory
+    - [x] 10.1.2 Create `Cargo.toml` with dependencies (serde, chrono, uuid, sha2, regex, csv, thiserror)
+    - [x] 10.1.3 Create `src/lib.rs` with module declarations
+    - [x] 10.1.4 Create `ComplianceMode` enum (Do178c, Do330, Arp4754a)
+    - [x] 10.1.5 Create `src/modes.rs` with mode state management
+    - [x] 10.1.6 Implement `ComplianceSystem` struct with mode enable/disable
+    - [x] 10.1.7 Add axiom-compliance to workspace Cargo.toml
+  - [x] 10.2 Unit Tests
+    - [x] 10.2.1 Test `ComplianceMode` enum serialization
+    - [x] 10.2.2 Test enable single mode
+    - [x] 10.2.3 Test disable single mode
+    - [x] 10.2.4 Test enable multiple modes simultaneously
+    - [x] 10.2.5 Test `is_mode_enabled()` returns correct state
+  - [x] 10.3 Verification Gate
+    - [x] 10.3.1 Run `cargo test -p axiom-compliance` - ALL MUST PASS
+    - [x] 10.3.2 Run `cargo clippy -p axiom-compliance` - NO WARNINGS
+    - [x] 10.3.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 11: Implement Traceability System
 **Validates: Requirement 18**
 
-- [ ] 11. Implement Traceability System
-  - [ ] 11.1 Implementation
-    - [ ] 11.1.1 Create `src/traceability.rs` module
-    - [ ] 11.1.2 Create `TraceabilityLink` struct (requirement_id, source_file, line_number, link_type)
-    - [ ] 11.1.3 Create `LinkType` enum (Implementation, Test, Derived)
-    - [ ] 11.1.4 Create `TraceabilityMatrix` struct
-    - [ ] 11.1.5 Implement `parse_requirement_annotations()` for `// REQ-xxx` pattern
-    - [ ] 11.1.6 Implement `parse_test_annotations()` for `// TEST: REQ-xxx` pattern
-    - [ ] 11.1.7 Implement `generate_traceability_matrix()` from source files
-    - [ ] 11.1.8 Implement `find_untraceable_functions()` for gap analysis
-    - [ ] 11.1.9 Implement `find_untested_requirements()` for gap analysis
-    - [ ] 11.1.10 Implement `export_matrix_csv()` for certification export
-  - [ ] 11.2 Unit Tests
-    - [ ] 11.2.1 Test `parse_requirement_annotations()` finds "REQ-001"
-    - [ ] 11.2.2 Test `parse_requirement_annotations()` finds "REQ-001.1" (sub-requirements)
-    - [ ] 11.2.3 Test `parse_test_annotations()` finds single requirement
-    - [ ] 11.2.4 Test `parse_test_annotations()` finds multiple requirements "REQ-001, REQ-002"
-    - [ ] 11.2.5 Test `find_untraceable_functions()` identifies functions without REQ
-    - [ ] 11.2.6 Test matrix contains all parsed requirements
-  - [ ] 11.3 Integration Tests
-    - [ ] 11.3.1 Test generate matrix from reference project traced_module.c
-    - [ ] 11.3.2 Test find untraceable code in untraced_module.c
-    - [ ] 11.3.3 Test export matrix to CSV
-  - [ ] 11.4 Property-Based Test
-    - [ ] 11.4.1 Write P6: All annotated requirements appear in generated matrix
-  - [ ] 11.5 Verification Gate
-    - [ ] 11.5.1 Run `cargo test -p axiom-compliance` - ALL MUST PASS
-    - [ ] 11.5.2 Run `cargo clippy -p axiom-compliance` - NO WARNINGS
-    - [ ] 11.5.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 11. Implement Traceability System
+  - [x] 11.1 Implementation
+    - [x] 11.1.1 Create `src/traceability.rs` module
+    - [x] 11.1.2 Create `TraceabilityLink` struct (requirement_id, source_file, line_number, link_type)
+    - [x] 11.1.3 Create `LinkType` enum (Implementation, Test, Derived)
+    - [x] 11.1.4 Create `TraceabilityMatrix` struct
+    - [x] 11.1.5 Implement `parse_requirement_annotations()` for `// REQ-xxx` pattern
+    - [x] 11.1.6 Implement `parse_test_annotations()` for `// TEST: REQ-xxx` pattern
+    - [x] 11.1.7 Implement `generate_traceability_matrix()` from source files
+    - [x] 11.1.8 Implement `find_untraceable_functions()` for gap analysis
+    - [x] 11.1.9 Implement `find_untested_requirements()` for gap analysis
+    - [x] 11.1.10 Implement `export_matrix_csv()` for certification export
+  - [x] 11.2 Unit Tests
+    - [x] 11.2.1 Test `parse_requirement_annotations()` finds "REQ-001"
+    - [x] 11.2.2 Test `parse_requirement_annotations()` finds "REQ-001.1" (sub-requirements)
+    - [x] 11.2.3 Test `parse_test_annotations()` finds single requirement
+    - [x] 11.2.4 Test `parse_test_annotations()` finds multiple requirements "REQ-001, REQ-002"
+    - [x] 11.2.5 Test `find_untraceable_functions()` identifies functions without REQ
+    - [x] 11.2.6 Test matrix contains all parsed requirements
+  - [x] 11.3 Integration Tests
+    - [x] 11.3.1 Test generate matrix from reference project traced_module.c
+    - [x] 11.3.2 Test find untraceable code in untraced_module.c
+    - [x] 11.3.3 Test export matrix to CSV
+  - [x] 11.4 Property-Based Test
+    - [x] 11.4.1 Write P6: All annotated requirements appear in generated matrix
+  - [x] 11.5 Verification Gate
+    - [x] 11.5.1 Run `cargo test -p axiom-compliance` - ALL MUST PASS
+    - [x] 11.5.2 Run `cargo clippy -p axiom-compliance` - NO WARNINGS
+    - [x] 11.5.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 12: Implement Coverage Analysis
 **Validates: Requirement 19**
 
-- [ ] 12. Implement Coverage Analysis
-  - [ ] 12.1 Implementation
-    - [ ] 12.1.1 Create `src/coverage.rs` module
-    - [ ] 12.1.2 Create `FileCoverage` struct (file, statement_coverage, branch_coverage, uncovered_lines)
-    - [ ] 12.1.3 Create `CoverageReport` struct (files, total_statement, total_branch)
-    - [ ] 12.1.4 Implement `build_coverage_flags()` returning --coverage, -fprofile-arcs, -ftest-coverage
-    - [ ] 12.1.5 Implement `parse_gcov_output()` to extract line execution counts
-    - [ ] 12.1.6 Implement `calculate_statement_coverage()` percentage
-    - [ ] 12.1.7 Implement `calculate_branch_coverage()` percentage
-    - [ ] 12.1.8 Implement `generate_coverage_report()` from gcov data
-  - [ ] 12.2 Unit Tests
-    - [ ] 12.2.1 Test `build_coverage_flags()` contains --coverage
-    - [ ] 12.2.2 Test `parse_gcov_output()` identifies executed lines (count > 0)
-    - [ ] 12.2.3 Test `parse_gcov_output()` identifies unexecuted lines (#####)
-    - [ ] 12.2.4 Test `calculate_statement_coverage()` returns 50% for 5/10 lines
-    - [ ] 12.2.5 Test `calculate_branch_coverage()` returns 75% for 3/4 branches
-  - [ ] 12.3 Verification Gate
-    - [ ] 12.3.1 Run `cargo test -p axiom-compliance` - ALL MUST PASS
-    - [ ] 12.3.2 Run `cargo clippy -p axiom-compliance` - NO WARNINGS
-    - [ ] 12.3.3 Run `cargo test` (full workspace) - NO REGRESSIONS
+- [x] 12. Implement Coverage Analysis
+  - [x] 12.1 Implementation
+    - [x] 12.1.1 Create `src/coverage.rs` module
+    - [x] 12.1.2 Create `FileCoverage` struct (file, statement_coverage, branch_coverage, uncovered_lines)
+    - [x] 12.1.3 Create `CoverageReport` struct (files, total_statement, total_branch)
+    - [x] 12.1.4 Implement `build_coverage_flags()` returning --coverage, -fprofile-arcs, -ftest-coverage
+    - [x] 12.1.5 Implement `parse_gcov_output()` to extract line execution counts
+    - [x] 12.1.6 Implement `calculate_statement_coverage()` percentage
+    - [x] 12.1.7 Implement `calculate_branch_coverage()` percentage
+    - [x] 12.1.8 Implement `generate_coverage_report()` from gcov data
+  - [x] 12.2 Unit Tests
+    - [x] 12.2.1 Test `build_coverage_flags()` contains --coverage
+    - [x] 12.2.2 Test `parse_gcov_output()` identifies executed lines (count > 0)
+    - [x] 12.2.3 Test `parse_gcov_output()` identifies unexecuted lines (#####)
+    - [x] 12.2.4 Test `calculate_statement_coverage()` returns 50% for 5/10 lines
+    - [x] 12.2.5 Test `calculate_branch_coverage()` returns 75% for 3/4 branches
+  - [x] 12.3 Verification Gate
+    - [x] 12.3.1 Run `cargo test -p axiom-compliance` - ALL MUST PASS
+    - [x] 12.3.2 Run `cargo clippy -p axiom-compliance` - NO WARNINGS
+    - [x] 12.3.3 Run `cargo test` (full workspace) - NO REGRESSIONS
 
 ---
 
 ## Task 13: Implement Tool Qualification Logger
 **Validates: Requirements 20, 22, 23**
 
-- [ ] 13. Implement Tool Qualification Logger
-  - [ ] 13.1 Implementation
-    - [ ] 13.1.1 Create `src/tool_qualification.rs` module
+- [-] 13. Implement Tool Qualification Logger
+  - [-] 13.1 Implementation
+    - [-] 13.1.1 Create `src/tool_qualification.rs` module
     - [ ] 13.1.2 Create `ToolUsageRecord` struct (tool, version, arguments, input_checksums, output_checksums, timestamp, exit_code, diagnostics)
     - [ ] 13.1.3 Create `ToolQualificationLogger` struct with log_path
     - [ ] 13.1.4 Implement `compute_sha256()` for file checksum
@@ -419,7 +419,7 @@
 ## Task 14: Implement Compliance Mode Management
 **Validates: Requirement 27**
 
-- [ ] 14. Implement Compliance Mode Management
+- [~] 14. Implement Compliance Mode Management
   - [ ] 14.1 Implementation
     - [ ] 14.1.1 Extend `ComplianceSystem` with data preservation on disable
     - [ ] 14.1.2 Implement `disable_mode()` that preserves collected data
@@ -444,7 +444,7 @@
 ## Task 15: Add Tauri Commands for ARM Toolchain
 **Validates: Requirement 9**
 
-- [ ] 15. Add Tauri Commands for ARM Toolchain
+- [~] 15. Add Tauri Commands for ARM Toolchain
   - [ ] 15.1 Implementation
     - [ ] 15.1.1 Create `src-tauri/src/commands/arm_toolchain.rs` module
     - [ ] 15.1.2 Implement `detect_arm_toolchains` command
@@ -470,7 +470,7 @@
 ## Task 16: Add Tauri Commands for Compliance
 **Validates: Requirements 18-27**
 
-- [ ] 16. Add Tauri Commands for Compliance
+- [~] 16. Add Tauri Commands for Compliance
   - [ ] 16.1 Implementation
     - [ ] 16.1.1 Create `src-tauri/src/commands/compliance.rs` module
     - [ ] 16.1.2 Implement `enable_compliance_mode` command
@@ -489,7 +489,7 @@
 ## Task 17: Create Frontend ARM Toolchain Store
 **Validates: Requirement 16**
 
-- [ ] 17. Create Frontend ARM Toolchain Store
+- [~] 17. Create Frontend ARM Toolchain Store
   - [ ] 17.1 Implementation
     - [ ] 17.1.1 Create `src/lib/stores/armToolchain.ts`
     - [ ] 17.1.2 Define TypeScript interfaces for ArmToolchainSuite, ArmMcuConfig, etc.

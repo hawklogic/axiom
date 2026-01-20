@@ -4,6 +4,7 @@
 //! Settings schema definition.
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 /// Root settings structure.
@@ -36,6 +37,10 @@ pub struct Settings {
     /// UI settings.
     #[serde(default)]
     pub ui: UiSettings,
+
+    /// Compliance settings.
+    #[serde(default)]
+    pub compliance: ComplianceSettings,
 }
 
 fn default_version() -> u32 {
@@ -52,6 +57,7 @@ impl Default for Settings {
             assembly: AssemblySettings::default(),
             debug: DebugSettings::default(),
             ui: UiSettings::default(),
+            compliance: ComplianceSettings::default(),
         }
     }
 }
@@ -71,6 +77,10 @@ pub struct ToolchainSettings {
     /// Whether to auto-detect toolchains.
     #[serde(default = "default_true")]
     pub auto_detect: bool,
+
+    /// Generic toolchain configurations keyed by toolchain type.
+    #[serde(default)]
+    pub toolchains: HashMap<String, ToolchainConfig>,
 }
 
 impl Default for ToolchainSettings {
@@ -80,8 +90,24 @@ impl Default for ToolchainSettings {
             gcc_path: None,
             arm_gcc_path: None,
             auto_detect: true,
+            toolchains: HashMap::new(),
         }
     }
+}
+
+/// Generic toolchain configuration for extensibility.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ToolchainConfig {
+    /// Path to primary toolchain binary.
+    pub path: Option<PathBuf>,
+
+    /// Additional search paths for toolchain detection.
+    #[serde(default)]
+    pub search_paths: Vec<PathBuf>,
+
+    /// Toolchain-specific settings (extensible).
+    #[serde(default)]
+    pub settings: HashMap<String, toml::Value>,
 }
 
 /// Build configuration.
@@ -172,7 +198,7 @@ fn default_font_family() -> String {
 }
 
 /// Assembly view configuration.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct AssemblySettings {
     /// Assembly syntax style.
     #[serde(default)]
@@ -181,15 +207,6 @@ pub struct AssemblySettings {
     /// Target architecture.
     #[serde(default)]
     pub architecture: Option<String>,
-}
-
-impl Default for AssemblySettings {
-    fn default() -> Self {
-        Self {
-            syntax: AssemblySyntax::default(),
-            architecture: None,
-        }
-    }
 }
 
 /// Assembly syntax style.
@@ -258,6 +275,49 @@ fn default_true() -> bool {
     true
 }
 
+/// ARM-specific toolchain settings.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct ArmToolchainSettings {
+    /// Target MCU (e.g., "cortex-m7", "cortex-m4").
+    pub mcu: Option<String>,
+
+    /// FPU type (e.g., "fpv5-d16", "fpv4-sp-d16").
+    pub fpu: Option<String>,
+
+    /// Float ABI (hard, soft, softfp).
+    pub float_abi: Option<String>,
+
+    /// Default linker script path.
+    pub linker_script: Option<PathBuf>,
+
+    /// Default include paths.
+    #[serde(default)]
+    pub include_paths: Vec<PathBuf>,
+
+    /// Default preprocessor defines.
+    #[serde(default)]
+    pub defines: Vec<String>,
+}
+
+/// Compliance mode settings for safety-critical development.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct ComplianceSettings {
+    /// DO-178C mode enabled (software airworthiness).
+    #[serde(default)]
+    pub do178c_enabled: bool,
+
+    /// DO-330 mode enabled (tool qualification).
+    #[serde(default)]
+    pub do330_enabled: bool,
+
+    /// ARP4754A mode enabled (system safety).
+    #[serde(default)]
+    pub arp4754a_enabled: bool,
+
+    /// Design Assurance Level (A-E for DO-178C).
+    pub dal: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -277,5 +337,106 @@ mod tests {
         let toml = toml::to_string(&settings).unwrap();
         let parsed: Settings = toml::from_str(&toml).unwrap();
         assert_eq!(settings, parsed);
+    }
+
+    #[test]
+    fn test_arm_toolchain_settings_default() {
+        let settings = ArmToolchainSettings::default();
+        assert!(settings.mcu.is_none());
+        assert!(settings.fpu.is_none());
+        assert!(settings.float_abi.is_none());
+        assert!(settings.linker_script.is_none());
+        assert!(settings.include_paths.is_empty());
+        assert!(settings.defines.is_empty());
+    }
+
+    #[test]
+    fn test_settings_serialization_roundtrip() {
+        let mut settings = Settings::default();
+        settings.toolchains.toolchains.insert(
+            "arm".to_string(),
+            ToolchainConfig {
+                path: Some(PathBuf::from("/opt/homebrew/bin/arm-none-eabi-gcc")),
+                search_paths: vec![PathBuf::from("/opt/arm")],
+                settings: {
+                    let mut map = HashMap::new();
+                    map.insert("mcu".to_string(), toml::Value::String("cortex-m7".to_string()));
+                    map
+                },
+            },
+        );
+
+        let toml_str = toml::to_string(&settings).unwrap();
+        let parsed: Settings = toml::from_str(&toml_str).unwrap();
+        assert_eq!(settings, parsed);
+    }
+
+    #[test]
+    fn test_unknown_toolchain_preserved() {
+        let toml_str = r#"
+            version = 1
+            
+            [toolchains]
+            auto_detect = true
+            
+            [toolchains.toolchains.riscv]
+            path = "/opt/riscv/bin/riscv-gcc"
+            search_paths = []
+            
+            [toolchains.toolchains.riscv.settings]
+            arch = "rv32imac"
+        "#;
+
+        let settings: Settings = toml::from_str(toml_str).unwrap();
+        assert!(settings.toolchains.toolchains.contains_key("riscv"));
+        
+        // Verify it survives roundtrip
+        let serialized = toml::to_string(&settings).unwrap();
+        let parsed: Settings = toml::from_str(&serialized).unwrap();
+        assert!(parsed.toolchains.toolchains.contains_key("riscv"));
+        assert_eq!(
+            parsed.toolchains.toolchains.get("riscv").unwrap().path,
+            Some(PathBuf::from("/opt/riscv/bin/riscv-gcc"))
+        );
+    }
+
+    // Property-based tests
+    #[cfg(test)]
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        // Strategy for generating arbitrary ToolchainSettings
+        fn arb_toolchain_settings() -> impl Strategy<Value = ToolchainSettings> {
+            (
+                any::<bool>(),
+                prop::option::of(any::<String>().prop_map(PathBuf::from)),
+                prop::option::of(any::<String>().prop_map(PathBuf::from)),
+                prop::option::of(any::<String>().prop_map(PathBuf::from)),
+            )
+                .prop_map(|(auto_detect, clang_path, gcc_path, arm_gcc_path)| {
+                    ToolchainSettings {
+                        clang_path,
+                        gcc_path,
+                        arm_gcc_path,
+                        auto_detect,
+                        toolchains: HashMap::new(),
+                    }
+                })
+        }
+
+        proptest! {
+            #[test]
+            fn prop_toolchain_settings_roundtrip(settings in arb_toolchain_settings()) {
+                // Serialize to TOML
+                let toml_str = toml::to_string(&settings).unwrap();
+                
+                // Deserialize back
+                let parsed: ToolchainSettings = toml::from_str(&toml_str).unwrap();
+                
+                // Should be identical
+                prop_assert_eq!(settings, parsed);
+            }
+        }
     }
 }

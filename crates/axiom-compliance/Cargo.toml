@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2024 HawkLogic Systems
+
+[package]
+name = "axiom-compliance"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Compliance and certification support for safety-critical avionics software (DO-178C, DO-330, ARP4754A)"
+
+[dependencies]
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Date and time
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID generation
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Cryptographic hashing
+sha2 = "0.10"
+
+# Regular expressions
+regex = "1.10"
+
+# CSV parsing and writing
+csv = "1.3"
+
+[dev-dependencies]
+tempfile = { workspace = true }
+proptest = "1.4"

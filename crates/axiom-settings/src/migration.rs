@@ -62,16 +62,15 @@ pub fn migrate(mut settings: Settings) -> Result<MigrationResult, MigrationError
 
 /// Apply a single migration step.
 fn apply_migration(settings: Settings) -> Result<Settings, MigrationError> {
-    match settings.version {
-        // Add migration functions here as schema evolves:
-        // 0 => migrate_v0_to_v1(settings),
-        // 1 => migrate_v1_to_v2(settings),
-        v => Err(MigrationError::MigrationFailed {
-            from: v,
-            to: v + 1,
-            reason: format!("No migration defined for version {}", v),
-        }),
-    }
+    // Add migration functions here as schema evolves:
+    // 0 => migrate_v0_to_v1(settings),
+    // 1 => migrate_v1_to_v2(settings),
+    let v = settings.version;
+    Err(MigrationError::MigrationFailed {
+        from: v,
+        to: v + 1,
+        reason: format!("No migration defined for version {}", v),
+    })
 }
 
 #[cfg(test)]
