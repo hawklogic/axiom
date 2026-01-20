@@ -177,8 +177,8 @@
 ## Task 6: Implement Binary Generation Module
 **Validates: Requirement 5**
 
-- [ ] 6. Implement Binary Generation Module
-  - [ ] 6.1 Implementation
+- [-] 6. Implement Binary Generation Module
+  - [-] 6.1 Implementation
     - [ ] 6.1.1 Create `crates/axiom-toolchain/src/binary_gen.rs` module
     - [ ] 6.1.2 Add module to lib.rs exports
     - [ ] 6.1.3 Create `BinaryOutputConfig` struct (hex, bin, size_report)
