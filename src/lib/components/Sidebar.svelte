@@ -1,9 +1,14 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright 2024 HawkLogic Systems -->
 <script lang="ts">
+  import { armToolchainStore } from '$lib/stores/armToolchain';
+
   export let activePanel = 'files';
 
   let hoveredItem: string | null = null;
+
+  // Subscribe to ARM toolchain loading state for build progress indicator
+  const { loading: armLoading } = armToolchainStore;
 
   const items = [
     { 
@@ -17,6 +22,12 @@
       label: 'Source Control',
       description: 'Git Operations',
       svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 012 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>'
+    },
+    { 
+      id: 'arm', 
+      label: 'ARM Toolchain',
+      description: 'Embedded Development',
+      svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="12" r="2"/><path d="M7 10V8M17 10V8M7 14v2M17 14v2"/><line x1="9" y1="12" x2="15" y2="12"/></svg>'
     },
     { 
       id: 'ast', 
@@ -57,6 +68,7 @@
       <button
         class="nav-item"
         class:active={activePanel === item.id}
+        class:building={item.id === 'arm' && $armLoading}
         on:click={() => activePanel = item.id}
         on:mouseenter={() => hoveredItem = item.id}
         on:mouseleave={() => hoveredItem = null}
@@ -65,6 +77,14 @@
         <span class="icon">
           {@html item.svg}
         </span>
+        {#if item.id === 'arm' && $armLoading}
+          <span class="build-progress-indicator" aria-label="Build in progress">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" opacity="0.25"/>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+            </svg>
+          </span>
+        {/if}
         {#if hoveredItem === item.id}
           <div class="tooltip">
             <div class="tooltip-label">{item.label}</div>
@@ -149,6 +169,10 @@
     color: var(--color-accent);
   }
 
+  .nav-item.building {
+    color: var(--color-accent);
+  }
+
   .icon {
     width: 20px;
     height: 20px;
@@ -160,6 +184,34 @@
   .icon :global(svg) {
     width: 100%;
     height: 100%;
+  }
+
+  .build-progress-indicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .build-progress-indicator svg {
+    width: 100%;
+    height: 100%;
+    animation: spin 1s linear infinite;
+    color: var(--color-accent);
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .tooltip {

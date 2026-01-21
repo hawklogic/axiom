@@ -13,6 +13,7 @@
   import MiniConsole from '$lib/components/MiniConsole.svelte';
   import AboutPanel from '$lib/components/AboutPanel.svelte';
   import SourceControl from '$lib/components/SourceControl.svelte';
+  import ArmToolchainPanel from '$lib/components/arm/ArmToolchainPanel.svelte';
   import { APP, PANELS } from '$lib/strings';
   import { editorPanes } from '$lib/stores/editorPanes';
   import { ideStatus } from '$lib/stores/status';
@@ -254,6 +255,8 @@
             <Panel title="About Axiom">
               <AboutPanel />
             </Panel>
+          {:else if activePanel === 'arm'}
+            <ArmToolchainPanel />
           {/if}
         </div>
         

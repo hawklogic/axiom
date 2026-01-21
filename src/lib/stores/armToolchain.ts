@@ -202,12 +202,16 @@ function createArmToolchainStore() {
      * Select a specific toolchain by its GCC path.
      */
     selectToolchain(gccPath: string): void {
-      toolchains.subscribe(($toolchains) => {
-        const toolchain = $toolchains.find(t => t.gcc === gccPath);
-        if (toolchain) {
-          selectedToolchain.set(toolchain);
-        }
-      })();
+      let currentToolchains: ArmToolchainSuite[] = [];
+      const unsubscribe = toolchains.subscribe(value => {
+        currentToolchains = value;
+      });
+      unsubscribe();
+      
+      const toolchain = currentToolchains.find(t => t.gcc === gccPath);
+      if (toolchain) {
+        selectedToolchain.set(toolchain);
+      }
     },
 
     /**
@@ -546,6 +550,62 @@ function createArmToolchainStore() {
      */
     clearError(): void {
       error.set(null);
+    },
+
+    /**
+     * Save ARM toolchain settings.
+     */
+    async saveSettings(scope: 'project' | 'global'): Promise<void> {
+      loading.set(true);
+      error.set(null);
+
+      try {
+        // Get current values from stores using get() helper
+        let gccPath: string | null = null;
+        let currentToolchain: ArmToolchainSuite | null = null;
+        let currentMcuConfig: ArmMcuConfig | null = null;
+
+        const unsubscribeToolchain = selectedToolchain.subscribe((value) => {
+          currentToolchain = value;
+        });
+        unsubscribeToolchain();
+
+        const unsubscribeMcu = mcuConfig.subscribe((value) => {
+          currentMcuConfig = value;
+        });
+        unsubscribeMcu();
+
+        gccPath = currentToolchain?.gcc || null;
+
+        if (!currentMcuConfig) {
+          throw new Error('No MCU configuration to save');
+        }
+
+        // Convert MCU config to the format expected by the backend
+        const mcuConfigRequest = {
+          cpu: currentMcuConfig.cpu,
+          thumb: currentMcuConfig.thumb,
+          fpu: currentMcuConfig.fpu,
+          float_abi: currentMcuConfig.float_abi,
+          defines: currentMcuConfig.defines,
+        };
+
+        await invoke('save_arm_toolchain_settings_cmd', {
+          gccPath,
+          mcuConfig: mcuConfigRequest,
+          scope,
+        });
+
+        // Show success message (could emit an event or update a success state)
+        console.log(`ARM toolchain settings saved to ${scope} configuration`);
+      } catch (e) {
+        const errorMsg = `Failed to save settings: ${e}`;
+        error.set(errorMsg);
+        console.error(errorMsg);
+        throw e;
+      } finally {
+        loading.set(false);
+      }
     },
   };
 }

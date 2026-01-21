@@ -152,6 +152,7 @@ fn main() {
             commands::arm_toolchain::get_section_headers_cmd,
             commands::arm_toolchain::detect_makefile_cmd,
             commands::arm_toolchain::run_make_cmd,
+            commands::arm_toolchain::save_arm_toolchain_settings_cmd,
             // Compliance commands
             commands::compliance::enable_compliance_mode,
             commands::compliance::disable_compliance_mode,

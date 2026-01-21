@@ -401,3 +401,77 @@ pub fn run_make_cmd(
         stderr: result.stderr,
     })
 }
+
+/// Save ARM toolchain settings.
+#[tauri::command]
+pub fn save_arm_toolchain_settings_cmd(
+    state: State<AppState>,
+    gcc_path: Option<String>,
+    mcu_config: ArmMcuConfigRequest,
+    scope: String,
+) -> Result<(), String> {
+    use axiom_settings::save_default;
+    use std::collections::HashMap;
+
+    let mut settings = state.settings.lock().map_err(|e| e.to_string())?;
+
+    // Update ARM toolchain path
+    if let Some(path) = gcc_path {
+        settings.toolchains.arm_gcc_path = Some(PathBuf::from(path));
+    }
+
+    // Create ARM toolchain config in the generic toolchains map
+    let mut arm_settings = HashMap::new();
+    arm_settings.insert(
+        "cpu".to_string(),
+        toml::Value::String(mcu_config.cpu.clone()),
+    );
+    arm_settings.insert(
+        "thumb".to_string(),
+        toml::Value::Boolean(mcu_config.thumb),
+    );
+    if let Some(fpu) = &mcu_config.fpu {
+        arm_settings.insert("fpu".to_string(), toml::Value::String(fpu.clone()));
+    }
+    arm_settings.insert(
+        "float_abi".to_string(),
+        toml::Value::String(mcu_config.float_abi.clone()),
+    );
+    arm_settings.insert(
+        "defines".to_string(),
+        toml::Value::Array(
+            mcu_config
+                .defines
+                .iter()
+                .map(|d| toml::Value::String(d.clone()))
+                .collect(),
+        ),
+    );
+
+    let arm_config = axiom_settings::ToolchainConfig {
+        path: settings.toolchains.arm_gcc_path.clone(),
+        search_paths: vec![],
+        settings: arm_settings,
+    };
+
+    settings
+        .toolchains
+        .toolchains
+        .insert("arm".to_string(), arm_config);
+
+    // Save based on scope
+    match scope.as_str() {
+        "global" => {
+            save_default(&*settings).map_err(|e| e.to_string())?;
+        }
+        "project" => {
+            // For project scope, we need the project path
+            // For now, save to default location
+            // TODO: Implement project-specific settings path
+            save_default(&*settings).map_err(|e| e.to_string())?;
+        }
+        _ => return Err(format!("Invalid scope: {}", scope)),
+    }
+
+    Ok(())
+}

@@ -20,6 +20,8 @@
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "@tauri-apps/cli": "^2.0.0",
+    "@testing-library/svelte": "^5.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.0.0",
     "fast-check": "^4.5.3",
     "jsdom": "^27.4.0",
