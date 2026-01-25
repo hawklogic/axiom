@@ -75,17 +75,18 @@ All UI components will be tested using:
 
 ## Task 5: Implement Toolchain Settings Panel - MCU Configuration
 **Validates: Requirement 3**
+**Status: start**
 
 - [ ] 5. Implement Toolchain Settings Panel - MCU Configuration
   - [x] 5.1 Add CPU preset dropdown (cortex-m0, m3, m4, m7)
-  - [-] 5.2 Implement auto-populate of FPU and float ABI on preset selection
-  - [ ] 5.3 Add FPU type dropdown
-  - [ ] 5.4 Add float ABI dropdown (soft, softfp, hard)
-  - [ ] 5.5 Add Thumb mode checkbox
-  - [ ] 5.6 Implement preprocessor defines list with add/remove
-  - [ ] 5.7 Implement include paths list with add/remove/reorder
-  - [ ] 5.8 Add linker script file picker (filtered to .ld)
-  - [ ] 5.9 Write unit test: preset selection auto-populates fields
+  - [x] 5.2 Implement auto-populate of FPU and float ABI on preset selection
+  - [x] 5.3 Add FPU type dropdown
+  - [x] 5.4 Add float ABI dropdown (soft, softfp, hard)
+  - [x] 5.5 Add Thumb mode checkbox
+  - [x] 5.6 Implement preprocessor defines list with add/remove
+  - [x] 5.7 Implement include paths list with add/remove/reorder
+  - [x] 5.8 Add linker script file picker (filtered to .ld)
+  - [x] 5.9 Write unit test: preset selection auto-populates fields
   - [ ] 5.10 Write unit test: defines can be added and removed
   - [ ] 5.11 Write property test P2: preset selection always sets valid FPU/ABI combo
 
@@ -93,6 +94,7 @@ All UI components will be tested using:
 
 ## Task 6: Implement Build Panel - Build Operations
 **Validates: Requirement 4**
+**Status: start**
 
 - [ ] 6. Implement Build Panel - Build Operations
   - [ ] 6.1 Create `BuildPanel.svelte` component
@@ -111,6 +113,7 @@ All UI components will be tested using:
 
 ## Task 7: Implement Build Panel - Output Display
 **Validates: Requirement 5**
+**Status: start**
 
 - [ ] 7. Implement Build Panel - Output Display
   - [ ] 7.1 Create `BuildOutput.svelte` component
@@ -131,6 +134,7 @@ All UI components will be tested using:
 
 ## Task 8: Implement Build Panel - Binary Output
 **Validates: Requirement 6**
+**Status: start**
 
 - [ ] 8. Implement Build Panel - Binary Output
   - [ ] 8.1 Display generated file paths (ELF, HEX, BIN)
@@ -148,6 +152,7 @@ All UI components will be tested using:
 
 ## Task 9: Implement Build Panel - Makefile Support
 **Validates: Requirement 7**
+**Status: start**
 
 - [ ] 9. Implement Build Panel - Makefile Support
   - [ ] 9.1 Detect Makefile on panel load using `detectMakefile()`
@@ -163,6 +168,7 @@ All UI components will be tested using:
 
 ## Task 10: Implement Compiler Visualizer - Stage Selection
 **Validates: Requirement 8**
+**Status: start**
 
 - [ ] 10. Implement Compiler Visualizer - Stage Selection
   - [ ] 10.1 Create `CompilerVisualizer.svelte` component

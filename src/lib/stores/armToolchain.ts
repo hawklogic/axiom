@@ -31,6 +31,8 @@ export interface ArmMcuConfig {
   fpu: string | null;
   float_abi: 'hard' | 'soft' | 'softfp';
   defines: string[];
+  include_paths?: string[];
+  linker_script?: string;
 }
 
 export interface ArmCompileRequest {
@@ -111,6 +113,7 @@ export const DEFAULT_MCU_CONFIGS: Record<string, ArmMcuConfig> = {
     fpu: null,
     float_abi: 'soft',
     defines: [],
+    include_paths: [],
   },
   'cortex-m3': {
     cpu: 'cortex-m3',
@@ -118,6 +121,7 @@ export const DEFAULT_MCU_CONFIGS: Record<string, ArmMcuConfig> = {
     fpu: null,
     float_abi: 'soft',
     defines: [],
+    include_paths: [],
   },
   'cortex-m4': {
     cpu: 'cortex-m4',
@@ -125,6 +129,7 @@ export const DEFAULT_MCU_CONFIGS: Record<string, ArmMcuConfig> = {
     fpu: 'fpv4-sp-d16',
     float_abi: 'hard',
     defines: [],
+    include_paths: [],
   },
   'cortex-m7': {
     cpu: 'cortex-m7',
@@ -132,6 +137,7 @@ export const DEFAULT_MCU_CONFIGS: Record<string, ArmMcuConfig> = {
     fpu: 'fpv5-d16',
     float_abi: 'hard',
     defines: [],
+    include_paths: [],
   },
 };
 

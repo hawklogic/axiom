@@ -2,6 +2,7 @@
 <!-- Copyright 2024 HawkLogic Systems -->
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
+  import { open } from '@tauri-apps/plugin-dialog';
   import { armToolchainStore, DEFAULT_MCU_CONFIGS } from '$lib/stores/armToolchain';
   import type { ArmToolchainSuite, ArmMcuConfig } from '$lib/stores/armToolchain';
 
@@ -189,12 +190,60 @@
   }
 
   function handleAddIncludePath() {
-    // Include paths will be handled in a future task
-    // For now, just clear the input
     if (newIncludePath.trim()) {
-      // TODO: Add to include paths list
+      const currentPaths = $mcuConfig.include_paths || [];
+      if (!currentPaths.includes(newIncludePath.trim())) {
+        armToolchainStore.updateMcuConfig({ 
+          include_paths: [...currentPaths, newIncludePath.trim()] 
+        });
+      }
       newIncludePath = '';
     }
+  }
+
+  function handleRemoveIncludePath(path: string) {
+    const currentPaths = $mcuConfig.include_paths || [];
+    armToolchainStore.updateMcuConfig({ 
+      include_paths: currentPaths.filter(p => p !== path) 
+    });
+  }
+
+  // Drag and drop state for reordering
+  let draggedIndex: number | null = null;
+
+  function handleDragStart(event: DragEvent, index: number) {
+    draggedIndex = index;
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', index.toString());
+    }
+  }
+
+  function handleDragOver(event: DragEvent) {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+  }
+
+  function handleDrop(event: DragEvent, dropIndex: number) {
+    event.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      draggedIndex = null;
+      return;
+    }
+
+    const currentPaths = [...($mcuConfig.include_paths || [])];
+    const [draggedPath] = currentPaths.splice(draggedIndex, 1);
+    currentPaths.splice(dropIndex, 0, draggedPath);
+    
+    armToolchainStore.updateMcuConfig({ include_paths: currentPaths });
+    draggedIndex = null;
+  }
+
+  function handleDragEnd() {
+    draggedIndex = null;
   }
 
   function handleSave() {
@@ -234,6 +283,25 @@ https://developer.arm.com/downloads/-/gnu-rm`;
 https://developer.arm.com/downloads/-/gnu-rm
 
 Or install via STM32CubeIDE which includes the toolchain.`;
+    }
+  }
+
+  async function handleBrowseLinkerScript() {
+    try {
+      const selected = await open({
+        multiple: false,
+        directory: false,
+        filters: [{
+          name: 'Linker Script',
+          extensions: ['ld']
+        }]
+      });
+
+      if (selected && typeof selected === 'string') {
+        armToolchainStore.updateMcuConfig({ linker_script: selected });
+      }
+    } catch (error) {
+      console.error('Failed to open file dialog:', error);
     }
   }
 </script>
@@ -496,23 +564,42 @@ Or install via STM32CubeIDE which includes the toolchain.`;
     <h3>Include Paths</h3>
     
     <div class="list-container">
-      <!-- Include paths will be implemented in task 4.7 -->
-      <div class="placeholder-text">
-        Include paths configuration will be available in the next update.
-      </div>
+      {#each ($mcuConfig.include_paths || []) as path, index}
+        <div 
+          class="list-item draggable"
+          class:dragging={draggedIndex === index}
+          draggable="true"
+          on:dragstart={(e) => handleDragStart(e, index)}
+          on:dragover={handleDragOver}
+          on:drop={(e) => handleDrop(e, index)}
+          on:dragend={handleDragEnd}
+          role="listitem"
+          aria-label="Include path {path}"
+        >
+          <span class="drag-handle" aria-label="Drag to reorder">≡</span>
+          <span class="list-item-text">{path}</span>
+          <button 
+            class="btn-remove"
+            on:click={() => handleRemoveIncludePath(path)}
+            aria-label="Remove {path}"
+          >
+            ×
+          </button>
+        </div>
+      {/each}
       
       <div class="add-item">
         <input
           type="text"
           bind:value={newIncludePath}
-          placeholder="Add include path"
-          disabled
+          placeholder="Add include path (e.g., Core/Inc)"
+          on:keypress={(e) => e.key === 'Enter' && handleAddIncludePath()}
           aria-label="New include path"
         />
         <button 
           class="btn-add"
           on:click={handleAddIncludePath}
-          disabled
+          disabled={!newIncludePath.trim()}
         >
           + Add Path
         </button>
@@ -527,13 +614,23 @@ Or install via STM32CubeIDE which includes the toolchain.`;
     <div class="linker-script-field">
       <input
         type="text"
+        value={$mcuConfig.linker_script || ''}
         placeholder="STM32H750VBTX_FLASH.ld"
-        disabled
+        readonly
         aria-label="Linker script path"
       />
-      <button class="btn-browse" disabled>Browse</button>
+      <button 
+        class="btn-browse"
+        on:click={handleBrowseLinkerScript}
+      >
+        Browse
+      </button>
     </div>
-    <p class="field-hint">Linker script selection will be available in task 5.8</p>
+    {#if $mcuConfig.linker_script}
+      <p class="field-hint">Selected: {$mcuConfig.linker_script}</p>
+    {:else}
+      <p class="field-hint">No linker script selected. Click Browse to select a .ld file.</p>
+    {/if}
   </section>
 
   <!-- Settings Scope and Save -->
@@ -932,17 +1029,50 @@ Or install via STM32CubeIDE which includes the toolchain.`;
   .list-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
     background: var(--color-bg-tertiary);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .list-item.draggable {
+    cursor: move;
+  }
+
+  .list-item.draggable:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-accent-muted, rgba(33, 150, 243, 0.5));
+  }
+
+  .list-item.dragging {
+    opacity: 0.5;
+    border-color: var(--color-accent);
+  }
+
+  .drag-handle {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-base);
+    cursor: grab;
+    user-select: none;
+    transition: color var(--transition-fast);
+  }
+
+  .list-item.draggable:hover .drag-handle {
+    color: var(--color-accent);
+  }
+
+  .drag-handle:active {
+    cursor: grabbing;
   }
 
   .list-item-text {
+    flex: 1;
     font-size: var(--font-size-sm);
     color: var(--color-text-primary);
     font-family: monospace;
+    word-break: break-all;
   }
 
   .btn-remove {
